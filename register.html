@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Register — DIVA</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<a href="#main" class="skip-link">Skip to content</a>
+<div class="auth-shell">
+  <div class="auth-side d-none d-lg-flex">
+    <a href="index.html" class="navbar-brand text-white text-decoration-none d-flex align-items-center gap-2" style="font-family:var(--font-display); font-weight:700; font-size:1.3rem;">
+      <span class="brand-mark" style="width:30px;height:30px;border-radius:8px;background:linear-gradient(145deg, var(--accent-cyan), #1f8489); display:flex; align-items:center; justify-content:center; color:var(--navy-950); font-size:.85rem;">D</span> DIVA
+    </a>
+    <div>
+      <div class="eyebrow mb-3">Join the network</div>
+      <h2 class="text-white mb-3" style="font-family:var(--font-display); font-weight:700; font-size:2rem;">Prepared communities respond faster.</h2>
+      <p style="color:rgba(255,255,255,.65); max-width:380px;">Register to receive alerts for your city, ask DIVA for disaster guidance, and report incidents directly to responders.</p>
+    </div>
+    <div style="color:rgba(255,255,255,.4); font-family:var(--font-mono); font-size:.75rem;">New accounts default to the Community Resident role.</div>
+  </div>
+
+  <div class="auth-form-col" id="main">
+    <div class="auth-card">
+      <a href="index.html" class="brand d-lg-none"><span class="brand-mark">D</span> DIVA</a>
+      <h1 style="font-size:1.6rem; font-weight:700; color:var(--navy-950);">Create your account</h1>
+      <p class="text-muted-diva mb-4">Free for Philippine community residents.</p>
+
+      <div id="regError" class="alert-banner level-warning mb-3 d-none" style="opacity:1;">
+        <i class="bi bi-exclamation-triangle icon"></i>
+        <div id="regErrorText">Please check the highlighted fields.</div>
+      </div>
+      <div id="regSuccess" class="alert-banner level-info mb-3 d-none" style="opacity:1;">
+        <i class="bi bi-check-circle icon"></i>
+        <div>Account created. Redirecting to sign in…</div>
+      </div>
+
+      <form id="registerForm" novalidate>
+        <div class="mb-3">
+          <label class="form-label-diva" for="username">Username</label>
+          <input type="text" class="form-control form-control-diva" id="username" required minlength="3" autocomplete="username">
+        </div>
+        <div class="mb-3">
+          <label class="form-label-diva" for="regEmail">Email address</label>
+          <input type="email" class="form-control form-control-diva" id="regEmail" required autocomplete="email">
+        </div>
+        <div class="mb-3">
+          <label class="form-label-diva" for="city">City</label>
+          <input type="text" class="form-control form-control-diva" id="city" placeholder="e.g. Calamba, Laguna" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label-diva" for="regPassword">Password</label>
+          <input type="password" class="form-control form-control-diva" id="regPassword" required minlength="8" autocomplete="new-password">
+        </div>
+        <div class="mb-3">
+          <label class="form-label-diva" for="confirmPassword">Confirm password</label>
+          <input type="password" class="form-control form-control-diva" id="confirmPassword" required minlength="8" autocomplete="new-password">
+        </div>
+        <button type="submit" class="btn-diva btn-diva-primary w-100 justify-content-center mb-3" data-press>
+          <i class="bi bi-person-plus"></i> Create Account
+        </button>
+        <p class="text-center text-muted-diva" style="font-size:.9rem;">Already have an account? <a href="login.html" style="color:var(--accent-cyan); font-weight:600;">Sign in</a></p>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/animejs@4.5.0/lib/anime.iife.min.js"></script>
+<script src="assets/js/animations.js"></script>
+<script src="assets/js/main.js"></script>
+<script>
+  document.getElementById("registerForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const username = document.getElementById("username").value.trim();
+    const email = document.getElementById("regEmail").value.trim().toLowerCase();
+    const city = document.getElementById("city").value.trim();
+    const pass = document.getElementById("regPassword").value;
+    const confirm = document.getElementById("confirmPassword").value;
+    const errorBox = document.getElementById("regError");
+    const errorText = document.getElementById("regErrorText");
+    const successBox = document.getElementById("regSuccess");
+
+    function fail(msg) {
+      errorText.textContent = msg;
+      errorBox.classList.remove("d-none");
+      successBox.classList.add("d-none");
+      DivaAnim.animateAlertBanner(errorBox);
+    }
+
+    if (username.length < 3) return fail("Username must be at least 3 characters.");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail("Please enter a valid email address.");
+    if (!city) return fail("Please enter your city.");
+    if (pass.length < 8) return fail("Password must be at least 8 characters.");
+    if (pass !== confirm) return fail("Passwords do not match.");
+    if (DivaAuth.DEMO_ACCOUNTS[email]) return fail("An account with this email already exists.");
+
+    // In production this posts to /register.php, which hashes the password
+    // with PHP password_hash() and inserts the user as Community Resident.
+    errorBox.classList.add("d-none");
+    successBox.classList.remove("d-none");
+    DivaAnim.animateAlertBanner(successBox);
+    setTimeout(() => { window.location.href = "login.html"; }, 1400);
+  });
+</script>
+</body>
+</html>

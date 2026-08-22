@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Virtual Assistance — DIVA</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<div id="app-shell-root"></div>
+
+<template id="va-content">
+  <div class="chat-shell reveal-on-scroll">
+    <div class="chat-header">
+      <div>
+        <div style="font-weight:700; color:var(--navy-950);"><i class="bi bi-robot" style="color:var(--accent-cyan);"></i> Virtual Assistance</div>
+        <div style="font-size:.78rem; color:var(--ink-400);">General disaster guidance — not a substitute for emergency services</div>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <div class="lang-toggle">
+          <button type="button" data-lang="en" class="active">EN</button>
+          <button type="button" data-lang="fil">FIL</button>
+        </div>
+        <button class="btn-diva btn-diva-ghost btn-diva-sm" id="clearChatBtn" data-press><i class="bi bi-trash3"></i> Clear Chat</button>
+      </div>
+    </div>
+
+    <div class="chat-messages" id="chatMessages"></div>
+
+    <div class="quick-prompts" id="quickPrompts"></div>
+
+    <form class="chat-input-row" id="chatForm">
+      <input type="text" id="chatInput" placeholder="Ask about earthquakes, typhoons, floods, eruptions…" autocomplete="off">
+      <button type="submit" class="chat-send-btn" aria-label="Send message"><i class="bi bi-send"></i></button>
+    </form>
+  </div>
+</template>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/animejs@4.5.0/lib/anime.iife.min.js"></script>
+<script src="assets/js/animations.js"></script>
+<script src="assets/js/demo-data.js"></script>
+<script src="assets/js/main.js"></script>
+<script>
+  const user = renderAppShell("virtual-assistance.html", { title: "Virtual Assistance" });
+  let currentLang = "en";
+  const STORAGE_KEY = "diva_chat_" + (user ? user.email : "guest");
+
+  function loadHistory() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch (e) { return []; }
+  }
+  function saveHistory(history) { localStorage.setItem(STORAGE_KEY, JSON.stringify(history)); }
+
+  function emptyStateHtml() {
+    return `<div class="empty-state" id="chatEmptyState">
+      <div class="glyph"><i class="bi bi-chat-square-dots"></i></div>
+      <div>Start a conversation with DIVA</div>
+    </div>`;
+  }
+
+  function appendMessage(role, text, animate) {
+    const host = document.getElementById("chatMessages");
+    const empty = document.getElementById("chatEmptyState");
+    if (empty) empty.remove();
+    const el = document.createElement("div");
+    el.className = `chat-msg ${role}`;
+    el.innerHTML = `<div class="chat-avatar ${role}">${role === "user" ? "You" : "AI"}</div><div class="bubble">${text}</div>`;
+    host.appendChild(el);
+    if (animate) DivaAnim.animateChatMessage(el, role);
+    host.scrollTop = host.scrollHeight;
+    return el;
+  }
+
+  function classifyPrompt(text) {
+    const t = text.toLowerCase();
+    if (t.includes("earthquake") || t.includes("lindol")) return "earthquake";
+    if (t.includes("typhoon") || t.includes("bagyo")) return "typhoon";
+    if (t.includes("volcan") || t.includes("bulkan") || t.includes("eruption") || t.includes("ashfall")) return "volcano";
+    if (t.includes("contact") || t.includes("emergency number") || t.includes("numero")) return "contacts";
+    return "default";
+  }
+
+  function sendMessage(text) {
+    if (!text.trim()) return;
+    const history = loadHistory();
+    appendMessage("user", text, true);
+    history.push({ role: "user", message: text });
+    saveHistory(history);
+    document.getElementById("chatInput").value = "";
+
+    const host = document.getElementById("chatMessages");
+    const typingEl = document.createElement("div");
+    typingEl.className = "chat-msg assistant";
+    typingEl.innerHTML = `<div class="chat-avatar assistant">AI</div><div class="bubble typing-dots"><span></span><span></span><span></span></div>`;
+    host.appendChild(typingEl);
+    host.scrollTop = host.scrollHeight;
+    const dotsHandle = DivaAnim.startTypingDots(typingEl.querySelector(".typing-dots"));
+
+    // Simulated OpenAI API call. In production this posts to /api/chat.php,
+    // which calls the OpenAI API server-side (key never exposed to the browser)
+    // with the DIVA disaster-assistance system prompt.
+    setTimeout(() => {
+      DivaAnim.stopTypingDots(dotsHandle);
+      typingEl.remove();
+      const category = classifyPrompt(text);
+      const reply = DIVA_DEMO.aiReplies[currentLang][category];
+      appendMessage("assistant", reply, true);
+      history.push({ role: "assistant", message: reply });
+      saveHistory(history);
+    }, 1100);
+  }
+
+  function renderQuickPrompts() {
+    const host = document.getElementById("quickPrompts");
+    host.innerHTML = "";
+    DIVA_DEMO.quickPrompts.forEach((p) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "quick-prompt-btn";
+      btn.textContent = p;
+      btn.addEventListener("click", () => sendMessage(p));
+      host.appendChild(btn);
+    });
+  }
+
+  function initVaPage() {
+    document.getElementById("app-content").appendChild(document.getElementById("va-content").content.cloneNode(true));
+    initializeAnimations();
+    renderQuickPrompts();
+
+    const host = document.getElementById("chatMessages");
+    const history = loadHistory();
+    if (!history.length) {
+      host.innerHTML = emptyStateHtml();
+    } else {
+      history.forEach((m) => appendMessage(m.role, m.message, false));
+    }
+
+    document.querySelectorAll(".lang-toggle button").forEach((b) => {
+      b.addEventListener("click", () => {
+        document.querySelectorAll(".lang-toggle button").forEach((x) => x.classList.remove("active"));
+        b.classList.add("active");
+        currentLang = b.dataset.lang;
+      });
+    });
+
+    document.getElementById("chatForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      sendMessage(document.getElementById("chatInput").value);
+    });
+
+    document.getElementById("clearChatBtn").addEventListener("click", () => {
+      const msgs = Array.from(host.querySelectorAll(".chat-msg"));
+      if (!msgs.length) return;
+      let remaining = msgs.length;
+      msgs.forEach((m, i) => {
+        setTimeout(() => {
+          if (window.anime) {
+            anime.animate(m, { opacity: [1, 0], translateY: [0, -8], duration: 220, easing: "easeInQuad", onComplete: () => {
+              m.remove();
+              remaining--;
+              if (remaining === 0) { host.innerHTML = emptyStateHtml(); saveHistory([]); }
+            }});
+          } else {
+            m.remove(); remaining--;
+            if (remaining === 0) { host.innerHTML = emptyStateHtml(); saveHistory([]); }
+          }
+        }, i * 60);
+      });
+      divaToast("Chat cleared", "bi-trash3");
+    });
+  }
+
+  if (user) initVaPage();
+</script>
+</body>
+</html>

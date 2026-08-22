@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Weather — DIVA</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<div id="app-shell-root"></div>
+
+<template id="weather-content">
+  <div class="d-flex flex-wrap gap-3 align-items-center justify-content-between mb-3">
+    <div class="input-group" style="max-width:340px;">
+      <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
+      <input type="text" class="form-control form-control-diva border-start-0" id="citySearch" placeholder="Search city...">
+      <div class="list-group position-absolute d-none" id="citySuggestions" style="top:100%; left:0; right:0; z-index:50; max-width:340px;"></div>
+    </div>
+    <div class="d-flex gap-2">
+      <button class="btn-diva btn-diva-ghost btn-diva-sm" id="useLocationBtn" data-press><i class="bi bi-geo-alt"></i> Use my location</button>
+      <button class="btn-diva btn-diva-ghost btn-diva-sm" id="apiKeyBtn" data-press><i class="bi bi-key"></i> <span id="apiKeyBtnLabel">Add API key</span></button>
+    </div>
+  </div>
+
+  <div class="alert-banner level-advisory mb-4" id="apiKeyBanner" style="opacity:1;">
+    <i class="bi bi-info-circle icon"></i>
+    <div style="font-size:.86rem;">
+      Live weather uses your own OpenWeatherMap key, stored only in this browser (<code>localStorage</code>) — there's no backend yet to keep it server-side, so don't use a key you can't rotate. Get a free key at
+      <a href="https://openweathermap.org/api" target="_blank" rel="noopener" style="font-weight:600;">openweathermap.org/api</a>, then click <strong>Add API key</strong> above. Without a key, DIVA falls back to labeled demo data.
+    </div>
+  </div>
+
+  <div id="weatherLoading" class="diva-loading">
+    <div class="spinner"></div>
+    <div>Loading weather data...</div>
+  </div>
+
+  <div id="weatherError" class="error-state d-none">
+    <div class="glyph"><i class="bi bi-exclamation-octagon"></i></div>
+    <div><strong>Unable to retrieve weather data.</strong> Please try again.</div>
+    <button class="btn-diva btn-diva-ghost btn-diva-sm mt-3" id="retryWeather">Retry</button>
+  </div>
+
+  <div id="weatherBody" class="d-none">
+    <div class="row g-4 mb-4">
+      <div class="col-lg-5">
+        <div class="diva-card reveal-on-scroll h-100">
+          <div class="card-eyebrow"><span id="wCity">Calamba, PH</span><span class="demo-data-tag">DEMO DATA</span></div>
+          <h3 class="card-num" id="wTemp" style="font-size:3rem;">31°C</h3>
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <i class="bi bi-cloud-sun fs-3" style="color:var(--accent-cyan);" id="wIcon"></i>
+            <span id="wCondition" style="font-weight:600; color:var(--navy-950);">Partly Cloudy</span>
+          </div>
+          <div class="row g-2" style="font-size:.85rem;">
+            <div class="col-6"><span class="text-muted-diva">Feels like</span><div style="font-weight:600;" id="wFeels">33°C</div></div>
+            <div class="col-6"><span class="text-muted-diva">Humidity</span><div style="font-weight:600;" id="wHumidity">78%</div></div>
+            <div class="col-6"><span class="text-muted-diva">Wind speed</span><div style="font-weight:600;" id="wWind">12 km/h</div></div>
+            <div class="col-6"><span class="text-muted-diva">Visibility</span><div style="font-weight:600;" id="wVisibility">10 km</div></div>
+          </div>
+          <div class="data-source-line"><i class="bi bi-clock-history"></i> <span id="wTimestamp">Updated just now</span> · Source: OpenWeatherMap</div>
+        </div>
+      </div>
+      <div class="col-lg-7">
+        <div class="diva-card reveal-on-scroll h-100">
+          <div class="card-eyebrow"><span>Temperature Trend</span><i class="bi bi-graph-up" style="color:var(--accent-cyan);"></i></div>
+          <canvas id="tempTrendChart" height="150"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="diva-card reveal-on-scroll mb-4">
+      <div class="card-eyebrow"><span>6-Day Forecast</span></div>
+      <div class="forecast-strip" id="forecastStrip"></div>
+    </div>
+
+    <div class="diva-card reveal-on-scroll">
+      <div class="card-eyebrow"><span>Weather Map</span></div>
+      <div class="map-frame"><div id="weather-map"></div></div>
+    </div>
+  </div>
+</template>
+
+<!-- API key modal -->
+<div class="modal fade modal-diva" id="apiKeyModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content p-2">
+      <div class="modal-header border-0">
+        <h5 class="modal-title" style="font-weight:700; color:var(--navy-950);">OpenWeatherMap API key</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted-diva" style="font-size:.88rem;">Stored only in this browser's local storage. This is a temporary client-side arrangement until the PHP backend proxies OpenWeatherMap requests server-side per spec §35.</p>
+        <label class="form-label-diva" for="apiKeyInput">API key</label>
+        <input type="text" class="form-control form-control-diva" id="apiKeyInput" placeholder="Paste your OpenWeatherMap key" autocomplete="off">
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn-diva btn-diva-ghost btn-diva-sm" id="apiKeyClearBtn">Remove key</button>
+        <button type="button" class="btn-diva btn-diva-primary btn-diva-sm" id="apiKeySaveBtn">Save key</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/animejs@4.5.0/lib/anime.iife.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="assets/js/animations.js"></script>
+<script src="assets/js/demo-data.js"></script>
+<script src="assets/js/main.js"></script>
+<script>
+  const user = renderAppShell("weather.html", { title: "Weather" });
+  let map, marker, chart, apiKeyModal;
+
+  const OWM_KEY_STORAGE = "diva_owm_api_key";
+  const ICON_MAP = {
+    "01d": "bi-sun", "01n": "bi-moon-stars",
+    "02d": "bi-cloud-sun", "02n": "bi-cloud-moon",
+    "03d": "bi-cloud", "03n": "bi-cloud",
+    "04d": "bi-clouds", "04n": "bi-clouds",
+    "09d": "bi-cloud-drizzle", "09n": "bi-cloud-drizzle",
+    "10d": "bi-cloud-rain", "10n": "bi-cloud-rain",
+    "11d": "bi-cloud-lightning", "11n": "bi-cloud-lightning",
+    "13d": "bi-snow", "13n": "bi-snow",
+    "50d": "bi-cloud-haze", "50n": "bi-cloud-haze",
+  };
+
+  function getApiKey() { return (localStorage.getItem(OWM_KEY_STORAGE) || "").trim(); }
+  function hasLiveKey() { return getApiKey().length > 0; }
+
+  function updateApiKeyUI() {
+    document.getElementById("apiKeyBtnLabel").textContent = hasLiveKey() ? "Manage API key" : "Add API key";
+    document.getElementById("apiKeyBanner").classList.toggle("d-none", hasLiveKey());
+  }
+
+  const FORECAST_DEMO = [
+    { day: "Today", icon: "bi-cloud-sun", hi: 32, lo: 25 },
+    { day: "Sun", icon: "bi-cloud-rain", hi: 29, lo: 24 },
+    { day: "Mon", icon: "bi-cloud-rain-heavy", hi: 27, lo: 23 },
+    { day: "Tue", icon: "bi-clouds", hi: 30, lo: 24 },
+    { day: "Wed", icon: "bi-sun", hi: 33, lo: 25 },
+    { day: "Thu", icon: "bi-cloud-sun", hi: 31, lo: 24 },
+  ];
+
+  function renderMap(lat, lng, label) {
+    if (!map) {
+      map = L.map("weather-map").setView([lat, lng], 10);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
+      marker = L.marker([lat, lng]).addTo(map);
+    } else {
+      map.setView([lat, lng], 10);
+      marker.setLatLng([lat, lng]);
+    }
+    marker.bindPopup(label).openPopup();
+    setTimeout(() => map.invalidateSize(), 200);
+  }
+
+  function renderChart(labels, values) {
+    if (chart) chart.destroy();
+    chart = new Chart(document.getElementById("tempTrendChart"), {
+      type: "line",
+      data: {
+        labels,
+        datasets: [{
+          label: "Temperature Trend (°C)",
+          data: values,
+          borderColor: "#33c9d1",
+          backgroundColor: "rgba(51,201,209,.15)",
+          fill: true,
+          tension: 0.35,
+          pointBackgroundColor: "#0a1830",
+        }],
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { ticks: { callback: (v) => v + "°" } } },
+      },
+    });
+  }
+
+  function showWeatherBody() {
+    document.getElementById("weatherLoading").classList.add("d-none");
+    document.getElementById("weatherError").classList.add("d-none");
+    document.getElementById("weatherBody").classList.remove("d-none");
+  }
+
+  function showWeatherError() {
+    document.getElementById("weatherLoading").classList.add("d-none");
+    document.getElementById("weatherBody").classList.add("d-none");
+    document.getElementById("weatherError").classList.remove("d-none");
+  }
+
+  function setSourceTag(isLive) {
+    document.querySelector("#weatherBody .demo-data-tag")?.remove();
+    if (!isLive) {
+      const tag = document.createElement("span");
+      tag.className = "demo-data-tag";
+      tag.textContent = "DEMO DATA";
+      document.querySelector("#weatherBody .card-eyebrow").appendChild(tag);
+    }
+  }
+
+  function renderDemoWeather(cityName) {
+    document.getElementById("wCity").textContent = cityName;
+    document.getElementById("wTemp").textContent = "31°C";
+    document.getElementById("wCondition").textContent = "Partly Cloudy";
+    document.getElementById("wIcon").className = "bi bi-cloud-sun fs-3";
+    document.getElementById("wFeels").textContent = "33°C";
+    document.getElementById("wHumidity").textContent = "78%";
+    document.getElementById("wWind").textContent = "12 km/h";
+    document.getElementById("wVisibility").textContent = "10 km";
+    document.getElementById("wTimestamp").textContent = "Demo snapshot — add an API key for live data";
+
+    const strip = document.getElementById("forecastStrip");
+    strip.innerHTML = "";
+    FORECAST_DEMO.forEach((f) => {
+      const el = document.createElement("div");
+      el.className = "forecast-card";
+      el.innerHTML = `<div class="day">${f.day}</div><div class="icon"><i class="bi ${f.icon}"></i></div><div class="hi">${f.hi}°</div><div class="lo">${f.lo}°</div>`;
+      strip.appendChild(el);
+    });
+    renderChart(FORECAST_DEMO.map((f) => f.day), FORECAST_DEMO.map((f) => f.hi));
+    renderMap(14.2117, 121.1653, cityName);
+    setSourceTag(false);
+    showWeatherBody();
+    DivaAnim.initScrollReveal(".reveal-on-scroll");
+  }
+
+  async function fetchCurrentByCoords(lat, lng) {
+    const key = getApiKey();
+    const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&units=metric&appid=${key}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("current weather request failed: " + res.status);
+    return res.json();
+  }
+
+  async function fetchForecastByCoords(lat, lng) {
+    const key = getApiKey();
+    const url = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lng}&units=metric&appid=${key}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("forecast request failed: " + res.status);
+    return res.json();
+  }
+
+  async function geocodeCity(query) {
+    const key = getApiKey();
+    const url = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(query)}&limit=5&appid=${key}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("geocoding failed: " + res.status);
+    return res.json();
+  }
+
+  function dailyFromForecastList(list) {
+    const byDay = {};
+    list.forEach((item) => {
+      const date = item.dt_txt.split(" ")[0];
+      if (!byDay[date]) byDay[date] = { temps: [], icon: item.weather[0].icon };
+      byDay[date].temps.push(item.main.temp);
+      if (item.dt_txt.includes("12:00:00")) byDay[date].icon = item.weather[0].icon;
+    });
+    return Object.keys(byDay).slice(0, 6).map((date) => {
+      const d = new Date(date + "T00:00:00");
+      return {
+        day: d.toLocaleDateString(undefined, { weekday: "short" }),
+        icon: ICON_MAP[byDay[date].icon] || "bi-cloud",
+        hi: Math.round(Math.max(...byDay[date].temps)),
+        lo: Math.round(Math.min(...byDay[date].temps)),
+      };
+    });
+  }
+
+  async function loadLiveWeather(cityLabel, lat, lng) {
+    document.getElementById("weatherBody").classList.add("d-none");
+    document.getElementById("weatherError").classList.add("d-none");
+    document.getElementById("weatherLoading").classList.remove("d-none");
+    try {
+      const [current, forecast] = await Promise.all([fetchCurrentByCoords(lat, lng), fetchForecastByCoords(lat, lng)]);
+
+      document.getElementById("wCity").textContent = cityLabel || `${current.name}, ${current.sys?.country || ""}`;
+      document.getElementById("wTemp").textContent = `${Math.round(current.main.temp)}°C`;
+      document.getElementById("wCondition").textContent = current.weather[0].description.replace(/\b\w/g, (c) => c.toUpperCase());
+      document.getElementById("wIcon").className = `bi ${ICON_MAP[current.weather[0].icon] || "bi-cloud"} fs-3`;
+      document.getElementById("wFeels").textContent = `${Math.round(current.main.feels_like)}°C`;
+      document.getElementById("wHumidity").textContent = `${current.main.humidity}%`;
+      document.getElementById("wWind").textContent = `${Math.round(current.wind.speed * 3.6)} km/h`;
+      document.getElementById("wVisibility").textContent = current.visibility != null ? `${(current.visibility / 1000).toFixed(1)} km` : "—";
+      document.getElementById("wTimestamp").textContent = "Updated " + new Date(current.dt * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+      const days = dailyFromForecastList(forecast.list);
+      const strip = document.getElementById("forecastStrip");
+      strip.innerHTML = "";
+      days.forEach((f) => {
+        const el = document.createElement("div");
+        el.className = "forecast-card";
+        el.innerHTML = `<div class="day">${f.day}</div><div class="icon"><i class="bi ${f.icon}"></i></div><div class="hi">${f.hi}°</div><div class="lo">${f.lo}°</div>`;
+        strip.appendChild(el);
+      });
+      renderChart(days.map((f) => f.day), days.map((f) => f.hi));
+      renderMap(current.coord.lat, current.coord.lon, document.getElementById("wCity").textContent);
+      setSourceTag(true);
+      showWeatherBody();
+      DivaAnim.initScrollReveal(".reveal-on-scroll");
+    } catch (err) {
+      console.error(err);
+      showWeatherError();
+      divaToast("Live weather request failed — check your API key.", "bi-exclamation-triangle");
+    }
+  }
+
+  function loadWeather(cityLabel, lat, lng) {
+    if (hasLiveKey()) loadLiveWeather(cityLabel, lat, lng);
+    else renderDemoWeather(cityLabel || "Calamba, PH");
+  }
+
+  function renderSuggestions(results) {
+    const host = document.getElementById("citySuggestions");
+    if (!results.length) { host.classList.add("d-none"); host.innerHTML = ""; return; }
+    host.innerHTML = results.map((r, i) =>
+      `<button type="button" class="list-group-item list-group-item-action" data-idx="${i}" style="font-size:.85rem;">${r.name}${r.state ? ", " + r.state : ""}, ${r.country}</button>`
+    ).join("");
+    host.classList.remove("d-none");
+    host.querySelectorAll("button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const r = results[+btn.dataset.idx];
+        host.classList.add("d-none");
+        document.getElementById("citySearch").value = `${r.name}, ${r.country}`;
+        loadWeather(`${r.name}, ${r.country}`, r.lat, r.lon);
+      });
+    });
+  }
+
+  let searchDebounce;
+  function initWeatherPage() {
+    document.getElementById("app-content").appendChild(document.getElementById("weather-content").content.cloneNode(true));
+    initializeAnimations();
+    updateApiKeyUI();
+
+    apiKeyModal = new bootstrap.Modal(document.getElementById("apiKeyModal"));
+    document.getElementById("apiKeyBtn").addEventListener("click", () => {
+      document.getElementById("apiKeyInput").value = getApiKey();
+      apiKeyModal.show();
+    });
+    document.getElementById("apiKeySaveBtn").addEventListener("click", () => {
+      const val = document.getElementById("apiKeyInput").value.trim();
+      if (val) localStorage.setItem(OWM_KEY_STORAGE, val); else localStorage.removeItem(OWM_KEY_STORAGE);
+      updateApiKeyUI();
+      apiKeyModal.hide();
+      divaToast(val ? "API key saved" : "API key removed", "bi-key");
+      const search = document.getElementById("citySearch").value.trim();
+      if (search) loadWeather(search, 14.2117, 121.1653);
+      else if (navigator.geolocation) navigator.geolocation.getCurrentPosition((pos) => loadWeather(null, pos.coords.latitude, pos.coords.longitude), () => loadWeather("Calamba, PH", 14.2117, 121.1653));
+      else loadWeather("Calamba, PH", 14.2117, 121.1653);
+    });
+    document.getElementById("apiKeyClearBtn").addEventListener("click", () => {
+      localStorage.removeItem(OWM_KEY_STORAGE);
+      document.getElementById("apiKeyInput").value = "";
+      updateApiKeyUI();
+      apiKeyModal.hide();
+      divaToast("API key removed — showing demo data", "bi-key");
+      renderDemoWeather(document.getElementById("wCity").textContent || "Calamba, PH");
+    });
+
+    document.getElementById("retryWeather").addEventListener("click", () => {
+      const search = document.getElementById("citySearch").value.trim();
+      if (search) loadWeather(search, 14.2117, 121.1653);
+      else loadWeather("Calamba, PH", 14.2117, 121.1653);
+    });
+
+    document.getElementById("useLocationBtn").addEventListener("click", () => {
+      if (!navigator.geolocation) { divaToast("Geolocation not supported on this browser.", "bi-exclamation-triangle"); return; }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => loadWeather(null, pos.coords.latitude, pos.coords.longitude),
+        () => divaToast("Location permission denied — try the city search instead.", "bi-geo-alt")
+      );
+    });
+
+    const searchInput = document.getElementById("citySearch");
+    searchInput.addEventListener("input", (e) => {
+      clearTimeout(searchDebounce);
+      const q = e.target.value.trim();
+      if (!hasLiveKey() || q.length < 3) { document.getElementById("citySuggestions").classList.add("d-none"); return; }
+      searchDebounce = setTimeout(async () => {
+        try { renderSuggestions(await geocodeCity(q)); } catch (err) { console.error(err); }
+      }, 400);
+    });
+    searchInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && e.target.value.trim() && !hasLiveKey()) {
+        loadWeather(e.target.value.trim(), 14.2117, 121.1653);
+        e.preventDefault();
+      }
+    });
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest("#citySearch") && !e.target.closest("#citySuggestions")) {
+        document.getElementById("citySuggestions").classList.add("d-none");
+      }
+    });
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => loadWeather(null, pos.coords.latitude, pos.coords.longitude),
+        () => loadWeather("Calamba, PH", 14.2117, 121.1653)
+      );
+    } else {
+      loadWeather("Calamba, PH", 14.2117, 121.1653);
+    }
+  }
+
+  if (user) initWeatherPage();
+</script>
+</body>
+</html>
