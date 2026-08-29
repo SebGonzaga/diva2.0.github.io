@@ -69,19 +69,32 @@
   const user = renderAppShell("admin-analytics.html", { title: "Analytics" });
   if (user && !DivaAuth.isAdmin(user)) { window.location.href = "dashboard.html"; }
 
-  function initAdminAnalyticsPage() {
+  // UI shows "Pending / Reviewed / Resolved"; the DB enum (see
+  // supabase/schema.sql) uses "pending / verified / resolved / dismissed".
+  // Same mapping as admin-incidents.html.
+  const STATUS_DB_TO_UI = { pending: "Pending", verified: "Reviewed", resolved: "Resolved", dismissed: "Dismissed" };
+
+  async function initAdminAnalyticsPage() {
     document.getElementById("app-content").appendChild(document.getElementById("admin-analytics-content").content.cloneNode(true));
     initializeAnimations();
 
-    const incidents = DivaStore.getIncidents();
-    const alerts = DivaStore.getAlerts();
-    const users = DivaStore.getUsers();
+    const [incidentsRes, alertsRes, usersRes] = await Promise.all([
+      sb.from("incidents").select("category, status"),
+      sb.from("alerts").select("severity"),
+      sb.from("profiles").select("role"),
+    ]);
+    if (incidentsRes.error) console.error("Fetch incidents error:", incidentsRes.error);
+    if (alertsRes.error) console.error("Fetch alerts error:", alertsRes.error);
+    if (usersRes.error) console.error("Fetch profiles error:", usersRes.error);
+    const incidents = incidentsRes.data || [];
+    const alerts = alertsRes.data || [];
+    const users = usersRes.data || [];
     document.getElementById("incTotalLabel").textContent = incidents.length + " total";
 
     const palette = ["#33c9d1", "#e8703a", "#e0a92a", "#d8394a", "#1f9d7c", "#2c5581"];
 
     const byType = {};
-    incidents.forEach((i) => { const t = i.type || "Other"; byType[t] = (byType[t] || 0) + 1; });
+    incidents.forEach((i) => { const t = i.category || "Other"; byType[t] = (byType[t] || 0) + 1; });
     new Chart(document.getElementById("incTypeChart"), {
       type: "doughnut",
       data: { labels: Object.keys(byType).length ? Object.keys(byType) : ["No reports yet"], datasets: [{ data: Object.keys(byType).length ? Object.values(byType) : [1], backgroundColor: palette, borderWidth: 0 }] },
@@ -89,7 +102,7 @@
     });
 
     const statuses = ["Pending", "Reviewed", "Resolved"];
-    const byStatus = statuses.map((s) => incidents.filter((i) => i.status === s).length);
+    const byStatus = statuses.map((s) => incidents.filter((i) => STATUS_DB_TO_UI[i.status] === s).length);
     new Chart(document.getElementById("incStatusChart"), {
       type: "bar",
       data: { labels: statuses, datasets: [{ data: byStatus, backgroundColor: ["#e0a92a", "#33c9d1", "#1f9d7c"], borderRadius: 6 }] },
@@ -104,8 +117,8 @@
       options: { indexAxis: "y", plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 } } } },
     });
 
-    const admins = users.filter((u) => u.role === "Administrator").length;
-    const residents = users.filter((u) => u.role === "Community Resident").length;
+    const admins = users.filter((u) => u.role === "admin").length;
+    const residents = users.filter((u) => u.role === "resident").length;
     new Chart(document.getElementById("userRoleChart"), {
       type: "doughnut",
       data: { labels: ["Administrators", "Community Residents"], datasets: [{ data: [admins, residents], backgroundColor: ["#e8703a", "#33c9d1"], borderWidth: 0 }] },

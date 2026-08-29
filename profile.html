@@ -50,19 +50,21 @@
   const user = renderAppShell("profile.html", { title: "Profile" });
   if (user) {
     document.getElementById("app-content").appendChild(document.getElementById("profile-content").content.cloneNode(true));
-    const stored = DivaStore.findUser(user.email) || user;
+    const { data: stored, error: fetchError } = await sb.from("profiles").select("barangay").eq("id", user.id).single();
+    if (fetchError) console.error("Fetch profile error:", fetchError);
     document.getElementById("profileAvatar").textContent = user.name.split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase();
     document.getElementById("profileName").textContent = user.name;
     document.getElementById("profileRole").textContent = user.role;
     document.getElementById("profileEmail").textContent = user.email;
     document.getElementById("profileRole2").textContent = user.role;
-    document.getElementById("profileCity").value = stored.city || "";
+    document.getElementById("profileCity").value = (stored && stored.barangay) || "";
     initializeAnimations();
 
-    document.getElementById("profileForm").addEventListener("submit", (e) => {
+    document.getElementById("profileForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       const city = document.getElementById("profileCity").value.trim();
-      DivaStore.updateUser(user.email, { city });
+      const { error } = await sb.from("profiles").update({ barangay: city }).eq("id", user.id);
+      if (error) { console.error("Update profile error:", error); divaToast("Could not save changes", "bi-exclamation-triangle"); return; }
       const saved = document.getElementById("profileSaved");
       saved.classList.remove("d-none");
       DivaAnim.animateAlertBanner(saved);

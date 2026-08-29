@@ -94,15 +94,20 @@
     initializeAnimations();
     document.getElementById("adminUpdated").textContent = "Updated " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-    // Real counts from DivaStore instead of hardcoded numbers — this is the
+    // Real counts from Supabase instead of hardcoded numbers — this is the
     // same data admin-users.html, admin-alerts.html, and admin-incidents.html
     // read and write, so this overview never drifts from what's actually
-    // in the system.
-    const totalUsers = DivaStore.getUsers().length;
-    const activeAlerts = DivaStore.getAlerts().length;
-    const incidents = DivaStore.getIncidents();
-    const totalIncidents = incidents.length;
-    const pendingIncidents = incidents.filter((i) => i.status === "Pending").length;
+    // in the system. head:true skips fetching rows and just returns the count.
+    const [usersRes, alertsRes, incidentsRes, pendingRes] = await Promise.all([
+      sb.from("profiles").select("*", { count: "exact", head: true }),
+      sb.from("alerts").select("*", { count: "exact", head: true }),
+      sb.from("incidents").select("*", { count: "exact", head: true }),
+      sb.from("incidents").select("*", { count: "exact", head: true }).eq("status", "pending"),
+    ]);
+    const totalUsers = usersRes.count || 0;
+    const activeAlerts = alertsRes.count || 0;
+    const totalIncidents = incidentsRes.count || 0;
+    const pendingIncidents = pendingRes.count || 0;
 
     document.querySelector('[data-count-to]#statTotalUsers').setAttribute("data-count-to", totalUsers);
     document.querySelector('[data-count-to]#statActiveAlerts').setAttribute("data-count-to", activeAlerts);

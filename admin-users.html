@@ -75,33 +75,46 @@
   const user = renderAppShell("admin-users.html", { title: "User Management" });
   if (user && !DivaAuth.isAdmin(user)) { window.location.href = "dashboard.html"; }
 
-  function renderUsers(query) {
-    const all = DivaStore.getUsers();
+  // profiles.role is the DB enum ('resident'/'admin'); the UI shows the
+  // same friendly labels DivaAuth already uses elsewhere.
+  const roleLabel = (role) => (role === "admin" ? "Administrator" : "Community Resident");
+
+  async function fetchProfiles() {
+    const { data, error } = await sb
+      .from("profiles")
+      .select("id, full_name, email, barangay, role, status")
+      .order("created_at", { ascending: false });
+    if (error) { console.error("Fetch profiles error:", error); return []; }
+    return data;
+  }
+
+  async function renderUsers(query) {
+    const all = await fetchProfiles();
     document.getElementById("uTotal").textContent = all.length;
-    document.getElementById("uAdmins").textContent = all.filter((u) => u.role === "Administrator").length;
-    document.getElementById("uResidents").textContent = all.filter((u) => u.role === "Community Resident").length;
+    document.getElementById("uAdmins").textContent = all.filter((u) => u.role === "admin").length;
+    document.getElementById("uResidents").textContent = all.filter((u) => u.role === "resident").length;
     document.getElementById("uSuspended").textContent = all.filter((u) => u.status === "suspended").length;
 
     const q = (query || "").trim().toLowerCase();
-    const filtered = q ? all.filter((u) => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)) : all;
+    const filtered = q ? all.filter((u) => (u.full_name || "").toLowerCase().includes(q) || (u.email || "").toLowerCase().includes(q)) : all;
 
     const body = document.getElementById("usersTableBody");
     body.innerHTML = "";
     filtered.forEach((u) => {
-      const isSelf = u.email === user.email;
+      const isSelf = u.id === user.id;
       const isSuspended = u.status === "suspended";
-      const isAdminRole = u.role === "Administrator";
+      const isAdminRole = u.role === "admin";
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td data-label="Name"><strong>${u.name}</strong>${isSelf ? ' <span class="cell-muted">(you)</span>' : ""}</td>
-        <td data-label="Email" class="cell-muted">${u.email}</td>
-        <td data-label="City" class="cell-muted">${u.city || "—"}</td>
-        <td data-label="Role"><span class="status-badge ${isAdminRole ? "status-warning" : "status-safe"}">${u.role}</span></td>
+        <td data-label="Name"><strong>${u.full_name}</strong>${isSelf ? ' <span class="cell-muted">(you)</span>' : ""}</td>
+        <td data-label="Email" class="cell-muted">${u.email || "—"}</td>
+        <td data-label="City" class="cell-muted">${u.barangay || "—"}</td>
+        <td data-label="Role"><span class="status-badge ${isAdminRole ? "status-warning" : "status-safe"}">${roleLabel(u.role)}</span></td>
         <td data-label="Status"><span class="status-badge ${isSuspended ? "status-critical" : "status-safe"}">${isSuspended ? "Suspended" : "Active"}</span></td>
         <td class="text-end row-actions">
           <div class="d-flex gap-1 justify-content-end flex-wrap">
-            <button type="button" class="btn-diva btn-diva-ghost btn-diva-sm" data-action="toggle-role" data-email="${u.email}" ${isSelf ? "disabled" : ""}>${isAdminRole ? "Make Resident" : "Make Admin"}</button>
-            <button type="button" class="btn-diva btn-diva-ghost btn-diva-sm" data-action="toggle-status" data-email="${u.email}" ${isSelf ? "disabled" : ""}>${isSuspended ? "Reactivate" : "Suspend"}</button>
+            <button type="button" class="btn-diva btn-diva-ghost btn-diva-sm" data-action="toggle-role" data-id="${u.id}" ${isSelf ? "disabled" : ""}>${isAdminRole ? "Make Resident" : "Make Admin"}</button>
+            <button type="button" class="btn-diva btn-diva-ghost btn-diva-sm" data-action="toggle-status" data-id="${u.id}" ${isSelf ? "disabled" : ""}>${isSuspended ? "Reactivate" : "Suspend"}</button>
           </div>
         </td>`;
       body.appendChild(tr);
@@ -115,21 +128,24 @@
 
     document.getElementById("userSearch").addEventListener("input", (e) => renderUsers(e.target.value));
 
-    document.getElementById("usersTableBody").addEventListener("click", (e) => {
+    document.getElementById("usersTableBody").addEventListener("click", async (e) => {
       const btn = e.target.closest("button[data-action]");
       if (!btn || btn.disabled) return;
-      const email = btn.dataset.email;
-      const target = DivaStore.findUser(email);
+      const id = btn.dataset.id;
+      const all = await fetchProfiles();
+      const target = all.find((u) => u.id === id);
       if (!target) return;
 
       if (btn.dataset.action === "toggle-role") {
-        const nextRole = target.role === "Administrator" ? "Community Resident" : "Administrator";
-        DivaStore.updateUser(email, { role: nextRole });
-        divaToast(`${target.name} is now ${nextRole}`, "bi-check-circle");
+        const nextRole = target.role === "admin" ? "resident" : "admin";
+        const { error } = await sb.from("profiles").update({ role: nextRole }).eq("id", id);
+        if (error) { console.error("Update role error:", error); divaToast("Could not update role", "bi-exclamation-triangle"); return; }
+        divaToast(`${target.full_name} is now ${roleLabel(nextRole)}`, "bi-check-circle");
       } else if (btn.dataset.action === "toggle-status") {
         const nextStatus = target.status === "suspended" ? "active" : "suspended";
-        DivaStore.updateUser(email, { status: nextStatus });
-        divaToast(nextStatus === "suspended" ? `${target.name} suspended` : `${target.name} reactivated`, nextStatus === "suspended" ? "bi-slash-circle" : "bi-check-circle");
+        const { error } = await sb.from("profiles").update({ status: nextStatus }).eq("id", id);
+        if (error) { console.error("Update status error:", error); divaToast("Could not update status", "bi-exclamation-triangle"); return; }
+        divaToast(nextStatus === "suspended" ? `${target.full_name} suspended` : `${target.full_name} reactivated`, nextStatus === "suspended" ? "bi-slash-circle" : "bi-check-circle");
       }
       renderUsers(document.getElementById("userSearch").value);
     });
