@@ -164,8 +164,12 @@
 <script src="assets/js/animations.js"></script>
 <script src="assets/js/icons.js"></script>
 <script src="assets/js/demo-data.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/diva-auth.js"></script>
 <script src="assets/js/main.js"></script>
-<script>
+<script type="module">
+  await DivaAuth.init();
   const user = renderAppShell("dashboard.html", { title: "Dashboard" });
   if (user) {
     document.getElementById("app-content").appendChild(document.getElementById("dashboard-content").content.cloneNode(true));

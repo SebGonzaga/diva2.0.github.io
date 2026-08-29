@@ -69,8 +69,11 @@
 <script src="https://cdn.jsdelivr.net/npm/animejs@4.5.0/lib/anime.iife.min.js"></script>
 <script src="assets/js/animations.js"></script>
 <script src="assets/js/icons.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/diva-auth.js"></script>
 <script src="assets/js/main.js"></script>
-<script>
+<script type="module">
   document.querySelectorAll(".demo-account-chip").forEach((chip) => {
     chip.addEventListener("click", () => {
       document.getElementById("email").value = chip.dataset.demoEmail;
@@ -89,20 +92,18 @@
     "Password is required."
   );
 
-  document.getElementById("loginForm").addEventListener("submit", (e) => {
+  document.getElementById("loginForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const email = document.getElementById("email").value.trim().toLowerCase();
     const pass = document.getElementById("password").value;
+    const submitBtn = e.target.querySelector('button[type="submit"]');
     const errorBox = document.getElementById("loginError");
     const errorText = errorBox.querySelector("div");
-    const result = DivaAuth.login(email, pass);
 
-    if (result === "suspended") {
-      errorText.innerHTML = "<strong>This account has been suspended.</strong> Contact your DIVA administrator for help.";
-      errorBox.classList.remove("d-none");
-      DivaAnim.animateAlertBanner(errorBox);
-      return;
-    }
+    submitBtn.disabled = true;
+    const result = await DivaAuth.login(email, pass);
+    submitBtn.disabled = false;
+
     if (!result) {
       errorText.innerHTML = "<strong>Invalid email or password.</strong> Please try again, or use one of the demo accounts below.";
       errorBox.classList.remove("d-none");
@@ -110,7 +111,6 @@
       return;
     }
     errorBox.classList.add("d-none");
-    DivaAuth.setUser(result);
     window.location.href = DivaAuth.isAdmin(result) ? "admin-dashboard.html" : "dashboard.html";
   });
 </script>

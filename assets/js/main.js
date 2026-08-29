@@ -187,49 +187,8 @@ const DivaStore = {
   },
 };
 
-const DivaAuth = {
-  getUser() {
-    try { return JSON.parse(localStorage.getItem("diva_user") || "null"); } catch (e) { return null; }
-  },
-  setUser(user) {
-    // Never keep the password in the "active session" copy that pages read.
-    const { password, ...safe } = user;
-    localStorage.setItem("diva_user", JSON.stringify(safe));
-  },
-  logout() { localStorage.removeItem("diva_user"); window.location.href = "index.html"; },
-  requireLogin() {
-    const u = this.getUser();
-    if (!u) { window.location.href = "login.html"; }
-    return u;
-  },
-  isAdmin(u) { return !!(u && u.role === "Administrator"); },
-
-  /** Returns the matched account on success, null on bad credentials, or
-   *  the string "suspended" if the account exists but has been disabled
-   *  by an administrator on the User Management page. */
-  login(email, password) {
-    const account = DivaStore.findUser(email);
-    if (!account || account.password !== password) return null;
-    if (account.status === "suspended") return "suspended";
-    return account;
-  },
-
-  /** Registers a new Community Resident account. Returns the created user,
-   *  or null if the email is already registered. */
-  register({ name, email, password, city }) {
-    if (DivaStore.findUser(email)) return null;
-    const user = {
-      id: "u_" + Date.now(),
-      email: email.toLowerCase(),
-      password, name, city,
-      role: "Community Resident",
-      status: "active",
-      createdAt: Date.now(),
-    };
-    DivaStore.addUser(user);
-    return user;
-  },
-};
+// DivaAuth now lives in assets/js/diva-auth.js (Supabase-backed).
+// Make sure that file is loaded on this page BEFORE main.js.
 
 /** Shared Leaflet pin icon — same visual language everywhere on the app
  *  (dashboard's Live Situation Map, Emergency's evacuation map, etc.) so a
