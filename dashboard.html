@@ -227,7 +227,9 @@
     // presented as the user's real location (see renderLocationDependent).
     const FALLBACK_LAT = 14.2117, FALLBACK_LNG = 121.1653; // Calamba, Laguna
     const NEARBY_RADIUS_KM = 60;
-    const liveAlerts = DivaStore.getAlerts();
+    const { data: liveAlertsRaw, error: alertsFetchError } = await sb.from("alerts").select("*").order("created_at", { ascending: false });
+    if (alertsFetchError) console.error("Fetch alerts error:", alertsFetchError);
+    const liveAlerts = liveAlertsRaw || [];
 
     // Community Risk — computed live from the app's real current state
     // (nearby active alerts, resident-submitted incidents, the nearest
@@ -351,7 +353,7 @@
     // Everything here depends on where the user actually is, so it only runs
     // once we've resolved a real (or explicitly-fallback) location — see the
     // geolocation call at the bottom of this script.
-    function renderLocationDependent(userLat, userLng, isRealLocation, quakes) {
+    async function renderLocationDependent(userLat, userLng, isRealLocation, quakes) {
       // "How many alerts affect ME" — computed here, against the resolved
       // location, then reused by both the hero stat card and the map/legend
       // below, instead of each spot hardcoding its own number that can drift.
@@ -375,13 +377,19 @@
       // without a location (permission denied) still show up on
       // admin-incidents.html, just not on this map. Computed here (not just
       // inside the map code below) because Community Risk needs it too.
-      const coordPattern = /^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/;
-      const reportedWithCoords = DivaStore.getIncidents()
-        .filter((r) => r.location && coordPattern.test(r.location.trim()))
-        .map((r) => {
-          const [lat, lng] = r.location.split(",").map((v) => parseFloat(v.trim()));
-          return { title: r.type || "Incident report", lat, lng, area: r.reporterName ? `Reported by ${r.reporterName}` : "Resident report", updated: new Date(r.reportedAt).toLocaleString() };
-        });
+      const { data: dbIncidents, error: incidentsFetchError } = await sb
+        .from("incidents")
+        .select("*, profiles(full_name)")
+        .not("lat", "is", null)
+        .not("lng", "is", null);
+      if (incidentsFetchError) console.error("Fetch incidents error:", incidentsFetchError);
+      const reportedWithCoords = (dbIncidents || []).map((r) => ({
+        title: r.category || "Incident report",
+        lat: r.lat,
+        lng: r.lng,
+        area: r.profiles?.full_name ? `Reported by ${r.profiles.full_name}` : "Resident report",
+        updated: new Date(r.created_at).toLocaleString(),
+      }));
       const allIncidents = [...(DIVA_DEMO.incidents || []), ...reportedWithCoords];
       const nearbyIncidents = allIncidents.filter((inc) => haversineKm(userLat, userLng, inc.lat, inc.lng) <= NEARBY_RADIUS_KM);
 
@@ -543,7 +551,7 @@
       } catch (err) {
         console.warn("Live earthquake fetch failed for Community Risk.", err);
       }
-      renderLocationDependent(lat, lng, isRealLocation, quakes);
+      await renderLocationDependent(lat, lng, isRealLocation, quakes);
       initializeAnimations();
     }
     if (navigator.geolocation) {

@@ -147,22 +147,32 @@
     return isNaN(d) ? ts : d.toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
   }
 
-  function renderAlertsTable() {
-    const alerts = [...DivaStore.getAlerts()].sort((a, b) => (b.publishedAt || 0) - (a.publishedAt || 0));
+  // Local cache of the last fetch, so openForEdit() doesn't need a round
+  // trip — refreshed every time renderAlertsTable() runs.
+  let alertsCache = [];
+
+  async function fetchAlerts() {
+    const { data, error } = await sb.from("alerts").select("*").order("created_at", { ascending: false });
+    if (error) { console.error("Fetch alerts error:", error); return []; }
+    return data;
+  }
+
+  async function renderAlertsTable() {
+    alertsCache = await fetchAlerts();
     const body = document.getElementById("alertsTableBody");
     const empty = document.getElementById("alertsEmpty");
-    document.getElementById("alertsCount").textContent = alerts.length + " total";
+    document.getElementById("alertsCount").textContent = alertsCache.length + " total";
     body.innerHTML = "";
-    empty.classList.toggle("d-none", alerts.length > 0);
-    alerts.forEach((a) => {
+    empty.classList.toggle("d-none", alertsCache.length > 0);
+    alertsCache.forEach((a) => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td data-label="Title"><strong>${a.title}</strong></td>
         <td data-label="Type">${a.type}</td>
         <td data-label="Severity"><span class="status-badge ${severityBadge[a.severity] || "status-caution"} ${a.severity === "critical" ? "badge-live" : ""}">${a.severity}</span></td>
         <td data-label="Area" class="cell-muted">${a.area}</td>
-        <td data-label="Published" class="cell-muted">${fmt(a.publishedAt)}</td>
-        <td data-label="Expires" class="cell-muted">${a.expires || "—"}</td>
+        <td data-label="Published" class="cell-muted">${fmt(a.created_at)}</td>
+        <td data-label="Expires" class="cell-muted">${a.expires_at ? fmt(a.expires_at) : "—"}</td>
         <td class="text-end row-actions">
           <button type="button" class="icon-btn-diva me-1" data-edit="${a.id}" aria-label="Edit alert"><i class="bi bi-pencil"></i></button>
           <button type="button" class="icon-btn-diva danger" data-delete="${a.id}" aria-label="Delete alert"><i class="bi bi-trash3"></i></button>
@@ -192,7 +202,7 @@
     }
 
     function openForEdit(id) {
-      const a = DivaStore.getAlerts().find((x) => x.id === id);
+      const a = alertsCache.find((x) => x.id === id);
       if (!a) return;
       document.getElementById("alertId").value = a.id;
       document.getElementById("alertModalTitle").textContent = "Edit Alert";
@@ -203,27 +213,28 @@
       document.getElementById("alertLat").value = a.lat ?? "";
       document.getElementById("alertLng").value = a.lng ?? "";
       document.getElementById("alertMessage").value = a.message || "";
-      document.getElementById("alertStart").value = a.start ? a.start.replace(" ", "T") : "";
-      document.getElementById("alertExpires").value = a.expires ? a.expires.replace(" ", "T") : "";
+      document.getElementById("alertStart").value = a.starts_at ? a.starts_at.slice(0, 16) : "";
+      document.getElementById("alertExpires").value = a.expires_at ? a.expires_at.slice(0, 16) : "";
       modal.show();
     }
 
     document.getElementById("newAlertBtn").addEventListener("click", openForCreate);
 
-    document.getElementById("alertsTableBody").addEventListener("click", (e) => {
+    document.getElementById("alertsTableBody").addEventListener("click", async (e) => {
       const editBtn = e.target.closest("[data-edit]");
       const delBtn = e.target.closest("[data-delete]");
       if (editBtn) openForEdit(editBtn.dataset.edit);
       if (delBtn) {
         if (confirm("Delete this alert? Residents will stop seeing it immediately.")) {
-          DivaStore.deleteAlert(delBtn.dataset.delete);
+          const { error } = await sb.from("alerts").delete().eq("id", delBtn.dataset.delete);
+          if (error) { console.error("Delete alert error:", error); divaToast("Could not delete alert", "bi-exclamation-triangle"); return; }
           renderAlertsTable();
           divaToast("Alert deleted", "bi-trash3");
         }
       }
     });
 
-    form.addEventListener("submit", (e) => {
+    form.addEventListener("submit", async (e) => {
       e.preventDefault();
       const id = document.getElementById("alertId").value;
       const payload = {
@@ -234,17 +245,24 @@
         lat: parseFloat(document.getElementById("alertLat").value),
         lng: parseFloat(document.getElementById("alertLng").value),
         message: document.getElementById("alertMessage").value.trim(),
-        start: document.getElementById("alertStart").value.replace("T", " "),
-        expires: document.getElementById("alertExpires").value.replace("T", " "),
-        publishedBy: user.name,
+        starts_at: new Date(document.getElementById("alertStart").value).toISOString(),
+        expires_at: new Date(document.getElementById("alertExpires").value).toISOString(),
       };
+
+      let error;
       if (id) {
-        DivaStore.updateAlert(id, payload);
-        divaToast("Alert updated", "bi-check-circle");
+        ({ error } = await sb.from("alerts").update(payload).eq("id", id));
       } else {
-        DivaStore.addAlert(payload);
-        divaToast("Alert published", "bi-check-circle");
+        ({ error } = await sb.from("alerts").insert({ ...payload, created_by: user.id }));
       }
+
+      if (error) {
+        console.error("Save alert error:", error);
+        divaToast("Could not save alert", "bi-exclamation-triangle");
+        return;
+      }
+
+      divaToast(id ? "Alert updated" : "Alert published", "bi-check-circle");
       modal.hide();
       renderAlertsTable();
       const success = document.getElementById("alertFormSuccess");

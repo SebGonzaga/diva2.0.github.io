@@ -104,39 +104,52 @@
       "Please describe what you observed (at least 10 characters)."
     );
 
-    document.getElementById("reportForm").addEventListener("submit", (e) => {
+    document.getElementById("reportForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       const btn = document.getElementById("submitReportBtn");
       const photoInput = document.getElementById("incidentPhoto");
-      const reportData = {
-        type: document.getElementById("incidentType").value,
-        description: document.getElementById("incidentDesc").value.trim(),
-        location: document.getElementById("incidentLocation").value,
-        reportedAtDisplay: document.getElementById("incidentTime").value,
-        hasPhoto: !!(photoInput.files && photoInput.files.length),
-        photoName: photoInput.files && photoInput.files[0] ? photoInput.files[0].name : null,
-        reporterName: user.name,
-        reporterEmail: user.email,
-      };
+      const type = document.getElementById("incidentType").value;
+      const locationText = document.getElementById("incidentLocation").value;
+
+      // The "Location" field holds "lat, lng" when geolocation succeeded,
+      // or a fallback string ("Permission denied", etc.) otherwise. Parse
+      // out coordinates when present; the raw text is always kept as the
+      // human-readable "area" regardless.
+      let lat = null, lng = null;
+      const coordMatch = locationText.match(/^(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)$/);
+      if (coordMatch) { lat = parseFloat(coordMatch[1]); lng = parseFloat(coordMatch[2]); }
+
       btn.disabled = true;
       btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Submitting...`;
-      // In production this posts to /api/incidents.php and inserts into
-      // incident_reports. Here it's written to DivaStore, which is the same
-      // place admin-incidents.html reads from — so this report actually
-      // shows up for disaster response officials to review, not just a
-      // fake success message.
-      setTimeout(() => {
-        DivaStore.addIncident(reportData);
-        btn.disabled = false;
-        btn.innerHTML = `<i class="bi bi-flag dicon" data-dicon="flag"></i> Submit Report`;
-        document.getElementById("reportForm").reset();
-        document.getElementById("incidentTime").value = new Date().toLocaleString();
-        document.getElementById("getLocationBtn").click();
-        const success = document.getElementById("reportSuccess");
-        success.classList.remove("d-none");
-        DivaAnim.animateAlertBanner(success);
-        divaToast("Incident report submitted", "bi-check-circle");
-      }, 900);
+
+      // Note: photo attachments aren't uploaded anywhere yet — the file
+      // input is accepted but not sent. Wiring this up needs a Supabase
+      // Storage bucket; ask to add that as a follow-up if you need it.
+      const { error } = await sb.from("incidents").insert({
+        reporter_id: user.id,
+        title: `${type || "Incident"} reported`,
+        description: document.getElementById("incidentDesc").value.trim(),
+        category: type,
+        area: locationText,
+        lat, lng,
+      });
+
+      btn.disabled = false;
+      btn.innerHTML = `<i class="bi bi-flag dicon" data-dicon="flag"></i> Submit Report`;
+
+      if (error) {
+        console.error("Incident submit error:", error);
+        divaToast("Could not submit report — please try again", "bi-exclamation-triangle");
+        return;
+      }
+
+      document.getElementById("reportForm").reset();
+      document.getElementById("incidentTime").value = new Date().toLocaleString();
+      document.getElementById("getLocationBtn").click();
+      const success = document.getElementById("reportSuccess");
+      success.classList.remove("d-none");
+      DivaAnim.animateAlertBanner(success);
+      divaToast("Incident report submitted", "bi-check-circle");
     });
   }
 

@@ -50,16 +50,38 @@
   const statusTone = { Pending: "status-warning", Reviewed: "status-caution", Resolved: "status-safe" };
   const typeIcon = { Ashfall: "bi-cloud-haze2", "Ground cracks": "bi-layers", "Gas smell": "bi-wind", Flooding: "bi-water", Landslide: "bi-layers", "Earthquake damage": "bi-activity", Other: "bi-flag" };
 
+  // UI shows "Pending / Reviewed / Resolved"; the DB enum (see
+  // supabase/schema.sql) uses "pending / verified / resolved / dismissed".
+  const STATUS_DB_TO_UI = { pending: "Pending", verified: "Reviewed", resolved: "Resolved", dismissed: "Dismissed" };
+  const STATUS_UI_TO_DB = { Pending: "pending", Reviewed: "verified", Resolved: "resolved" };
+
   function fmt(ts) {
     if (!ts) return "—";
     const d = new Date(ts);
     return isNaN(d) ? ts : d.toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
   }
 
-  function renderIncidents(filter) {
+  async function fetchIncidents() {
+    const { data, error } = await sb
+      .from("incidents")
+      .select("*, profiles(full_name)")
+      .order("created_at", { ascending: false });
+    if (error) { console.error("Fetch incidents error:", error); return []; }
+    return data.map((inc) => ({
+      id: inc.id,
+      type: inc.category,
+      description: inc.description,
+      location: inc.area,
+      reportedAt: inc.created_at,
+      reporterName: inc.profiles?.full_name || "Resident",
+      status: STATUS_DB_TO_UI[inc.status] || "Pending",
+    }));
+  }
+
+  async function renderIncidents(filter) {
     const list = document.getElementById("incidentsList");
     const empty = document.getElementById("incidentsEmpty");
-    const all = [...DivaStore.getIncidents()].sort((a, b) => (b.reportedAt || 0) - (a.reportedAt || 0));
+    const all = await fetchIncidents();
     const items = filter === "all" ? all : all.filter((i) => i.status === filter);
     list.innerHTML = "";
     empty.classList.toggle("d-none", items.length > 0);
@@ -82,7 +104,6 @@
         <p style="font-size:.9rem; margin-bottom:.6rem;">${inc.description || "No description provided."}</p>
         <div class="data-source-line mb-3">
           <i class="bi bi-geo-alt"></i> ${inc.location || "Location not provided"}
-          ${inc.hasPhoto ? `<span class="ms-2"><i class="bi bi-paperclip"></i> ${inc.photoName || "Photo attached"}</span>` : ""}
         </div>
         <div class="d-flex flex-wrap gap-2">
           <button type="button" class="btn-diva btn-diva-ghost btn-diva-sm" data-status="Pending" data-id="${inc.id}">Mark Pending</button>
@@ -106,10 +127,12 @@
       });
     });
 
-    document.getElementById("incidentsList").addEventListener("click", (e) => {
+    document.getElementById("incidentsList").addEventListener("click", async (e) => {
       const btn = e.target.closest("[data-status]");
       if (!btn) return;
-      DivaStore.updateIncident(btn.dataset.id, { status: btn.dataset.status });
+      const dbStatus = STATUS_UI_TO_DB[btn.dataset.status];
+      const { error } = await sb.from("incidents").update({ status: dbStatus }).eq("id", btn.dataset.id);
+      if (error) { console.error("Update incident error:", error); divaToast("Could not update status", "bi-exclamation-triangle"); return; }
       const activeFilter = document.querySelector("#incidentFilters .active-filter").dataset.filter;
       renderIncidents(activeFilter);
       divaToast("Report marked " + btn.dataset.status, "bi-check-circle");
