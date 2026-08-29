@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>(function(){try{var t=localStorage.getItem("diva_theme")||"dark";document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Emergency — DIVA</title>
@@ -13,6 +14,14 @@
 <div id="app-shell-root"></div>
 
 <template id="emergency-content">
+  <div class="diva-card diva-card-dark reveal-on-scroll mb-4 d-flex flex-wrap align-items-center justify-content-between gap-3" style="background:linear-gradient(160deg, rgba(216,57,74,.3), transparent), linear-gradient(160deg, var(--navy-800), var(--navy-950) 75%); border-color:rgba(216,57,74,.35);">
+    <div>
+      <div class="card-eyebrow" style="margin-bottom:.4rem;"><span>Active threat nearby?</span></div>
+      <div style="font-family:var(--font-display); font-weight:700; font-size:1.15rem;">Switch to Emergency Mode for a simplified, action-only view.</div>
+    </div>
+    <button type="button" class="btn-emergency" style="width:auto;" id="activateEmergencyBtn" data-press><i class="bi bi-broadcast dicon" data-dicon="broadcast"></i> ACTIVATE EMERGENCY MODE</button>
+  </div>
+
   <div class="diva-card reveal-on-scroll mb-4">
     <div class="card-eyebrow"><span>Emergency Contacts</span></div>
     <div class="row g-3" id="contactGrid"></div>
@@ -29,21 +38,17 @@
 <script src="https://cdn.jsdelivr.net/npm/animejs@4.5.0/lib/anime.iife.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="assets/js/animations.js"></script>
+<script src="assets/js/icons.js"></script>
 <script src="assets/js/demo-data.js"></script>
 <script src="assets/js/main.js"></script>
 <script>
   const user = renderAppShell("emergency.html", { title: "Emergency" });
 
-  function haversineKm(lat1, lng1, lat2, lng2) {
-    const R = 6371;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLng = (lng2 - lng1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  }
-
+  // haversineKm() now lives in assets/js/main.js — shared across pages.
   function initEmergencyPage() {
     document.getElementById("app-content").appendChild(document.getElementById("emergency-content").content.cloneNode(true));
+
+    document.getElementById("activateEmergencyBtn").addEventListener("click", () => DivaEmergencyMode.open());
 
     const contactGrid = document.getElementById("contactGrid");
     const iconMap = { Police: "bi-shield-lock", Fire: "bi-fire", Medical: "bi-heart-pulse", NDRRMC: "bi-diagram-3" };
@@ -62,14 +67,14 @@
     const userLat = 14.2117, userLng = 121.1653; // demo user location (Calamba, Laguna)
     const map = L.map("evac-map").setView([userLat, userLng], 13);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
-    L.marker([userLat, userLng], { title: "You are here" }).addTo(map).bindPopup("Your approximate location");
+    L.marker([userLat, userLng], { icon: divaPinIcon("user", "bi-person-fill"), title: "You are here" }).addTo(map).bindPopup("Your approximate location");
 
     const evacList = document.getElementById("evacList");
     DIVA_DEMO.evacuationCenters
       .map((c) => ({ ...c, dist: haversineKm(userLat, userLng, c.lat, c.lng) }))
       .sort((a, b) => a.dist - b.dist)
       .forEach((c) => {
-        L.circleMarker([c.lat, c.lng], { radius: 8, color: "#1f9d7c", fillColor: "#1f9d7c", fillOpacity: 0.6 })
+        L.marker([c.lat, c.lng], { icon: divaPinIcon("shelter", "bi-house-heart-fill") })
           .addTo(map)
           .bindPopup(`<strong>${c.name}</strong><br>${c.address}`);
 

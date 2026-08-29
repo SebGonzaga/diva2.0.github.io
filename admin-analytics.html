@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){try{var t=localStorage.getItem("diva_theme")||"dark";document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Analytics — DIVA</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<div id="app-shell-root"></div>
+
+<template id="admin-analytics-content">
+  <div class="mb-4">
+    <span class="eyebrow">Operations Analytics</span>
+    <h1 style="font-family:var(--font-display); font-weight:700; font-size:1.4rem; color:var(--canvas-heading); margin:.25rem 0 0;">System-wide insights</h1>
+  </div>
+
+  <div class="row g-4 mb-4">
+    <div class="col-lg-6">
+      <div class="diva-card reveal-on-scroll">
+        <div class="card-eyebrow"><span>Incidents by type</span><span class="cell-muted" id="incTotalLabel"></span></div>
+        <canvas id="incTypeChart" height="220"></canvas>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="diva-card reveal-on-scroll">
+        <div class="card-eyebrow"><span>Incident status</span></div>
+        <canvas id="incStatusChart" height="220"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4 mb-4">
+    <div class="col-lg-6">
+      <div class="diva-card reveal-on-scroll">
+        <div class="card-eyebrow"><span>Alerts by severity</span></div>
+        <canvas id="alertSeverityChart" height="220"></canvas>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="diva-card reveal-on-scroll">
+        <div class="card-eyebrow"><span>Registered accounts</span></div>
+        <canvas id="userRoleChart" height="220"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="diva-card reveal-on-scroll">
+    <div class="card-eyebrow"><span>Chatbot usage trend</span><span class="demo-data-tag">DEMO DATA</span></div>
+    <p class="text-muted-diva mb-3" style="font-size:.85rem;">Conversation volume is not yet logged server-side, so this trend is illustrative until the PHP + MySQL backend (spec §27–33) tracks real Virtual Assistance sessions.</p>
+    <canvas id="chatTrendChart" height="160"></canvas>
+  </div>
+</template>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/animejs@4.5.0/lib/anime.iife.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="assets/js/animations.js"></script>
+<script src="assets/js/demo-data.js"></script>
+<script src="assets/js/main.js"></script>
+<script>
+  const user = renderAppShell("admin-analytics.html", { title: "Analytics" });
+  if (user && !DivaAuth.isAdmin(user)) { window.location.href = "dashboard.html"; }
+
+  function initAdminAnalyticsPage() {
+    document.getElementById("app-content").appendChild(document.getElementById("admin-analytics-content").content.cloneNode(true));
+    initializeAnimations();
+
+    const incidents = DivaStore.getIncidents();
+    const alerts = DivaStore.getAlerts();
+    const users = DivaStore.getUsers();
+    document.getElementById("incTotalLabel").textContent = incidents.length + " total";
+
+    const palette = ["#33c9d1", "#e8703a", "#e0a92a", "#d8394a", "#1f9d7c", "#2c5581"];
+
+    const byType = {};
+    incidents.forEach((i) => { const t = i.type || "Other"; byType[t] = (byType[t] || 0) + 1; });
+    new Chart(document.getElementById("incTypeChart"), {
+      type: "doughnut",
+      data: { labels: Object.keys(byType).length ? Object.keys(byType) : ["No reports yet"], datasets: [{ data: Object.keys(byType).length ? Object.values(byType) : [1], backgroundColor: palette, borderWidth: 0 }] },
+      options: { plugins: { legend: { position: "bottom", labels: { boxWidth: 10, font: { size: 11 } } } } },
+    });
+
+    const statuses = ["Pending", "Reviewed", "Resolved"];
+    const byStatus = statuses.map((s) => incidents.filter((i) => i.status === s).length);
+    new Chart(document.getElementById("incStatusChart"), {
+      type: "bar",
+      data: { labels: statuses, datasets: [{ data: byStatus, backgroundColor: ["#e0a92a", "#33c9d1", "#1f9d7c"], borderRadius: 6 }] },
+      options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } },
+    });
+
+    const severities = ["information", "advisory", "warning", "critical"];
+    const bySeverity = severities.map((s) => alerts.filter((a) => a.severity === s).length);
+    new Chart(document.getElementById("alertSeverityChart"), {
+      type: "bar",
+      data: { labels: ["Information", "Advisory", "Warning", "Critical"], datasets: [{ data: bySeverity, backgroundColor: ["#3f8cf3", "#e0a92a", "#e8703a", "#d8394a"], borderRadius: 6 }] },
+      options: { indexAxis: "y", plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 } } } },
+    });
+
+    const admins = users.filter((u) => u.role === "Administrator").length;
+    const residents = users.filter((u) => u.role === "Community Resident").length;
+    new Chart(document.getElementById("userRoleChart"), {
+      type: "doughnut",
+      data: { labels: ["Administrators", "Community Residents"], datasets: [{ data: [admins, residents], backgroundColor: ["#e8703a", "#33c9d1"], borderWidth: 0 }] },
+      options: { plugins: { legend: { position: "bottom", labels: { boxWidth: 10, font: { size: 11 } } } } },
+    });
+
+    new Chart(document.getElementById("chatTrendChart"), {
+      type: "line",
+      data: { labels: ["Mar","Apr","May","Jun","Jul","Aug"], datasets: [{ label: "Conversations", data: [40,65,90,120,160,210], borderColor:"#2c5581", backgroundColor:"rgba(44,85,129,.12)", fill:true, tension:.35 }] },
+      options: { plugins: { legend: { display:false } } },
+    });
+  }
+
+  if (user && DivaAuth.isAdmin(user)) initAdminAnalyticsPage();
+</script>
+</body>
+</html>

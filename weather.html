@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>(function(){try{var t=localStorage.getItem("diva_theme")||"dark";document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Weather — DIVA</title>
@@ -15,31 +16,65 @@
 <template id="weather-content">
   <div class="d-flex flex-wrap gap-3 align-items-center justify-content-between mb-3">
     <div class="input-group" style="max-width:340px;">
-      <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
+      <span class="input-group-text bg-white border-end-0"><i class="bi bi-search dicon" data-dicon="search"></i></span>
       <input type="text" class="form-control form-control-diva border-start-0" id="citySearch" placeholder="Search city...">
       <div class="list-group position-absolute d-none" id="citySuggestions" style="top:100%; left:0; right:0; z-index:50; max-width:340px;"></div>
     </div>
     <div class="d-flex gap-2">
-      <button class="btn-diva btn-diva-ghost btn-diva-sm" id="useLocationBtn" data-press><i class="bi bi-geo-alt"></i> Use my location</button>
-      <button class="btn-diva btn-diva-ghost btn-diva-sm" id="apiKeyBtn" data-press><i class="bi bi-key"></i> <span id="apiKeyBtnLabel">Add API key</span></button>
+      <button class="btn-diva btn-diva-ghost btn-diva-sm" id="useLocationBtn" data-press><i class="bi bi-geo-alt dicon" data-dicon="geo-alt"></i> Use my location</button>
+      <button class="btn-diva btn-diva-ghost btn-diva-sm" id="apiKeyBtn" data-press><i class="bi bi-key dicon" data-dicon="key"></i> <span id="apiKeyBtnLabel">Add API key</span></button>
     </div>
   </div>
 
   <div class="alert-banner level-advisory mb-4" id="apiKeyBanner" style="opacity:1;">
-    <i class="bi bi-info-circle icon"></i>
+    <i class="bi bi-info-circle icon dicon" data-dicon="info-circle"></i>
     <div style="font-size:.86rem;">
       Live weather uses your own OpenWeatherMap key, stored only in this browser (<code>localStorage</code>) — there's no backend yet to keep it server-side, so don't use a key you can't rotate. Get a free key at
       <a href="https://openweathermap.org/api" target="_blank" rel="noopener" style="font-weight:600;">openweathermap.org/api</a>, then click <strong>Add API key</strong> above. Without a key, DIVA falls back to labeled demo data.
     </div>
   </div>
 
-  <div id="weatherLoading" class="diva-loading">
-    <div class="spinner"></div>
-    <div>Loading weather data...</div>
+  <div id="weatherSkeleton" aria-live="polite" aria-label="Loading weather data">
+    <div class="row g-4 mb-4">
+      <div class="col-lg-5">
+        <div class="diva-card h-100">
+          <div class="d-flex justify-content-between mb-3"><span class="skeleton" style="width:40%; height:14px;"></span><span class="skeleton" style="width:70px; height:14px;"></span></div>
+          <span class="skeleton d-block mb-3" style="width:50%; height:2.6rem;"></span>
+          <span class="skeleton d-block mb-3" style="width:60%; height:18px;"></span>
+          <div class="row g-2">
+            <div class="col-6"><span class="skeleton d-block" style="height:34px;"></span></div>
+            <div class="col-6"><span class="skeleton d-block" style="height:34px;"></span></div>
+            <div class="col-6 mt-2"><span class="skeleton d-block" style="height:34px;"></span></div>
+            <div class="col-6 mt-2"><span class="skeleton d-block" style="height:34px;"></span></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-7">
+        <div class="diva-card h-100">
+          <span class="skeleton d-block mb-3" style="width:35%; height:14px;"></span>
+          <span class="skeleton d-block" style="height:150px;"></span>
+        </div>
+      </div>
+    </div>
+    <div class="diva-card mb-4">
+      <span class="skeleton d-block mb-3" style="width:30%; height:14px;"></span>
+      <div class="d-flex gap-2">
+        <span class="skeleton flex-fill" style="height:90px;"></span>
+        <span class="skeleton flex-fill" style="height:90px;"></span>
+        <span class="skeleton flex-fill" style="height:90px;"></span>
+        <span class="skeleton flex-fill d-none d-md-block" style="height:90px;"></span>
+        <span class="skeleton flex-fill d-none d-md-block" style="height:90px;"></span>
+        <span class="skeleton flex-fill d-none d-md-block" style="height:90px;"></span>
+      </div>
+    </div>
+    <div class="diva-card">
+      <span class="skeleton d-block mb-3" style="width:25%; height:14px;"></span>
+      <span class="skeleton d-block" style="height:260px;"></span>
+    </div>
   </div>
 
   <div id="weatherError" class="error-state d-none">
-    <div class="glyph"><i class="bi bi-exclamation-octagon"></i></div>
+    <div class="glyph"><i class="bi bi-exclamation-octagon dicon" data-dicon="exclamation-octagon"></i></div>
     <div><strong>Unable to retrieve weather data.</strong> Please try again.</div>
     <button class="btn-diva btn-diva-ghost btn-diva-sm mt-3" id="retryWeather">Retry</button>
   </div>
@@ -60,12 +95,12 @@
             <div class="col-6"><span class="text-muted-diva">Wind speed</span><div style="font-weight:600;" id="wWind">12 km/h</div></div>
             <div class="col-6"><span class="text-muted-diva">Visibility</span><div style="font-weight:600;" id="wVisibility">10 km</div></div>
           </div>
-          <div class="data-source-line"><i class="bi bi-clock-history"></i> <span id="wTimestamp">Updated just now</span> · Source: OpenWeatherMap</div>
+          <div class="data-source-line"><i class="bi bi-clock-history dicon" data-dicon="clock-history"></i> <span id="wTimestamp">Updated just now</span> · Source: OpenWeatherMap</div>
         </div>
       </div>
       <div class="col-lg-7">
         <div class="diva-card reveal-on-scroll h-100">
-          <div class="card-eyebrow"><span>Temperature Trend</span><i class="bi bi-graph-up" style="color:var(--accent-cyan);"></i></div>
+          <div class="card-eyebrow"><span>Temperature Trend</span><i class="bi bi-graph-up dicon" style="color:var(--accent-cyan);" data-dicon="graph-up"></i></div>
           <canvas id="tempTrendChart" height="150"></canvas>
         </div>
       </div>
@@ -109,6 +144,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script src="assets/js/animations.js"></script>
+<script src="assets/js/icons.js"></script>
 <script src="assets/js/demo-data.js"></script>
 <script src="assets/js/main.js"></script>
 <script>
@@ -116,6 +152,13 @@
   let map, marker, chart, apiKeyModal;
 
   const OWM_KEY_STORAGE = "diva_owm_api_key";
+
+  // Hardcode your OpenWeatherMap key here (free tier at https://openweathermap.org/api)
+  // so residents get live weather automatically with no setup. Leave the
+  // placeholder as-is to keep using demo data until a real key is added.
+  const DEFAULT_OWM_API_KEY = "YOUR_OPENWEATHERMAP_API_KEY_HERE";
+  const HAS_DEFAULT_KEY = DEFAULT_OWM_API_KEY && DEFAULT_OWM_API_KEY !== "YOUR_OPENWEATHERMAP_API_KEY_HERE";
+
   const ICON_MAP = {
     "01d": "bi-sun", "01n": "bi-moon-stars",
     "02d": "bi-cloud-sun", "02n": "bi-cloud-moon",
@@ -128,11 +171,15 @@
     "50d": "bi-cloud-haze", "50n": "bi-cloud-haze",
   };
 
-  function getApiKey() { return (localStorage.getItem(OWM_KEY_STORAGE) || "").trim(); }
+  function getApiKey() {
+    const stored = (localStorage.getItem(OWM_KEY_STORAGE) || "").trim();
+    return stored || (HAS_DEFAULT_KEY ? DEFAULT_OWM_API_KEY : "");
+  }
   function hasLiveKey() { return getApiKey().length > 0; }
 
   function updateApiKeyUI() {
-    document.getElementById("apiKeyBtnLabel").textContent = hasLiveKey() ? "Manage API key" : "Add API key";
+    const usingDefault = HAS_DEFAULT_KEY && !localStorage.getItem(OWM_KEY_STORAGE);
+    document.getElementById("apiKeyBtnLabel").textContent = usingDefault ? "Using built-in key" : (hasLiveKey() ? "Manage API key" : "Add API key");
     document.getElementById("apiKeyBanner").classList.toggle("d-none", hasLiveKey());
   }
 
@@ -183,13 +230,13 @@
   }
 
   function showWeatherBody() {
-    document.getElementById("weatherLoading").classList.add("d-none");
+    document.getElementById("weatherSkeleton").classList.add("d-none");
     document.getElementById("weatherError").classList.add("d-none");
     document.getElementById("weatherBody").classList.remove("d-none");
   }
 
   function showWeatherError() {
-    document.getElementById("weatherLoading").classList.add("d-none");
+    document.getElementById("weatherSkeleton").classList.add("d-none");
     document.getElementById("weatherBody").classList.add("d-none");
     document.getElementById("weatherError").classList.remove("d-none");
   }
@@ -208,7 +255,8 @@
     document.getElementById("wCity").textContent = cityName;
     document.getElementById("wTemp").textContent = "31°C";
     document.getElementById("wCondition").textContent = "Partly Cloudy";
-    document.getElementById("wIcon").className = "bi bi-cloud-sun fs-3";
+    document.getElementById("wIcon").className = "fs-3";
+    DivaIcons.renderWeatherIcon(document.getElementById("wIcon"), "bi-cloud-sun");
     document.getElementById("wFeels").textContent = "33°C";
     document.getElementById("wHumidity").textContent = "78%";
     document.getElementById("wWind").textContent = "12 km/h";
@@ -220,7 +268,7 @@
     FORECAST_DEMO.forEach((f) => {
       const el = document.createElement("div");
       el.className = "forecast-card";
-      el.innerHTML = `<div class="day">${f.day}</div><div class="icon"><i class="bi ${f.icon}"></i></div><div class="hi">${f.hi}°</div><div class="lo">${f.lo}°</div>`;
+      el.innerHTML = `<div class="day">${f.day}</div><div class="icon">${DivaIcons.weatherIconHTML(f.icon)}</div><div class="hi">${f.hi}°</div><div class="lo">${f.lo}°</div>`;
       strip.appendChild(el);
     });
     renderChart(FORECAST_DEMO.map((f) => f.day), FORECAST_DEMO.map((f) => f.hi));
@@ -228,6 +276,7 @@
     setSourceTag(false);
     showWeatherBody();
     DivaAnim.initScrollReveal(".reveal-on-scroll");
+    setWeatherCache({ isLive: false, city: cityName, tempC: 31, condition: "Partly Cloudy", icon: "bi-cloud-sun" });
   }
 
   async function fetchCurrentByCoords(lat, lng) {
@@ -276,14 +325,15 @@
   async function loadLiveWeather(cityLabel, lat, lng) {
     document.getElementById("weatherBody").classList.add("d-none");
     document.getElementById("weatherError").classList.add("d-none");
-    document.getElementById("weatherLoading").classList.remove("d-none");
+    document.getElementById("weatherSkeleton").classList.remove("d-none");
     try {
       const [current, forecast] = await Promise.all([fetchCurrentByCoords(lat, lng), fetchForecastByCoords(lat, lng)]);
 
       document.getElementById("wCity").textContent = cityLabel || `${current.name}, ${current.sys?.country || ""}`;
       document.getElementById("wTemp").textContent = `${Math.round(current.main.temp)}°C`;
       document.getElementById("wCondition").textContent = current.weather[0].description.replace(/\b\w/g, (c) => c.toUpperCase());
-      document.getElementById("wIcon").className = `bi ${ICON_MAP[current.weather[0].icon] || "bi-cloud"} fs-3`;
+      document.getElementById("wIcon").className = "fs-3";
+      DivaIcons.renderWeatherIcon(document.getElementById("wIcon"), ICON_MAP[current.weather[0].icon] || "bi-cloud");
       document.getElementById("wFeels").textContent = `${Math.round(current.main.feels_like)}°C`;
       document.getElementById("wHumidity").textContent = `${current.main.humidity}%`;
       document.getElementById("wWind").textContent = `${Math.round(current.wind.speed * 3.6)} km/h`;
@@ -296,7 +346,7 @@
       days.forEach((f) => {
         const el = document.createElement("div");
         el.className = "forecast-card";
-        el.innerHTML = `<div class="day">${f.day}</div><div class="icon"><i class="bi ${f.icon}"></i></div><div class="hi">${f.hi}°</div><div class="lo">${f.lo}°</div>`;
+        el.innerHTML = `<div class="day">${f.day}</div><div class="icon">${DivaIcons.weatherIconHTML(f.icon)}</div><div class="hi">${f.hi}°</div><div class="lo">${f.lo}°</div>`;
         strip.appendChild(el);
       });
       renderChart(days.map((f) => f.day), days.map((f) => f.hi));
@@ -304,6 +354,14 @@
       setSourceTag(true);
       showWeatherBody();
       DivaAnim.initScrollReveal(".reveal-on-scroll");
+      setWeatherCache({
+        isLive: true,
+        city: document.getElementById("wCity").textContent,
+        tempC: Math.round(current.main.temp),
+        condition: current.weather[0].description.replace(/\b\w/g, (c) => c.toUpperCase()),
+        icon: ICON_MAP[current.weather[0].icon] || "bi-cloud",
+        lat: current.coord.lat, lng: current.coord.lon,
+      });
     } catch (err) {
       console.error(err);
       showWeatherError();

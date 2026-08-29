@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>(function(){try{var t=localStorage.getItem("diva_theme")||"dark";document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Alerts — DIVA</title>
@@ -20,7 +21,7 @@
   </div>
   <div class="d-flex flex-column gap-3" id="alertsList"></div>
   <div class="empty-state d-none" id="alertsEmpty">
-    <div class="glyph"><i class="bi bi-check-circle"></i></div>
+    <div class="glyph"><i class="bi bi-check-circle dicon" data-dicon="check-circle"></i></div>
     <div>No active alerts in this category.</div>
   </div>
 </template>
@@ -28,6 +29,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/animejs@4.5.0/lib/anime.iife.min.js"></script>
 <script src="assets/js/animations.js"></script>
+<script src="assets/js/icons.js"></script>
 <script src="assets/js/demo-data.js"></script>
 <script src="assets/js/main.js"></script>
 <script>
@@ -40,7 +42,8 @@
     const list = document.getElementById("alertsList");
     const empty = document.getElementById("alertsEmpty");
     list.innerHTML = "";
-    const items = DIVA_DEMO.alerts.filter((a) => filter === "all" || a.severity === filter);
+    const allAlerts = [...DivaStore.getAlerts()].sort((a, b) => (b.publishedAt || 0) - (a.publishedAt || 0));
+    const items = allAlerts.filter((a) => filter === "all" || a.severity === filter);
     empty.classList.toggle("d-none", items.length > 0);
     items.forEach((a) => {
       const el = document.createElement("div");
@@ -49,7 +52,7 @@
         <div class="flex-grow-1">
           <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
             <strong>${a.title}</strong>
-            <span class="status-badge ${statusMap[a.severity]}">${a.severity}</span>
+            <span class="status-badge ${statusMap[a.severity]} ${a.severity === "critical" ? "badge-live" : ""}">${a.severity}</span>
           </div>
           <div style="font-size:.88rem; margin:.35rem 0;">${a.message}</div>
           <div class="data-source-line"><i class="bi bi-geo"></i> ${a.area} · <i class="bi bi-calendar3"></i> ${a.start} – ${a.expires}</div>

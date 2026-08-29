@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>(function(){try{var t=localStorage.getItem("diva_theme")||"dark";document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Taal Volcano — DIVA</title>
@@ -28,26 +29,32 @@
       <div class="col-6 col-md-3"><span class="text-muted-diva">GVP volcano #</span><div style="font-weight:600;" id="tvVnum">273070</div></div>
       <div class="col-6 col-md-3"><span class="text-muted-diva">Aviation color</span><div style="font-weight:600;" id="tvColor">—</div></div>
     </div>
-    <div class="data-source-line" id="tvSourceLine"><i class="bi bi-broadcast"></i> Loading live data from USGS VolcView…</div>
+    <div class="data-source-line" id="tvSourceLine"><i class="bi bi-broadcast dicon" data-dicon="broadcast"></i> Loading live data from USGS VolcView…</div>
   </div>
 
   <div class="row g-4 mb-4">
     <div class="col-lg-5">
       <div class="diva-card reveal-on-scroll h-100">
         <div class="card-eyebrow"><span>Conditions at Taal</span><span class="demo-data-tag" style="background:var(--accent-cyan); color:#fff;">LIVE</span></div>
-        <div id="wxLoading" class="diva-loading" style="padding:1.5rem 0;">
-          <div class="spinner"></div>
-          <div>Loading weather…</div>
+        <div id="wxLoading" style="padding:.25rem 0;">
+          <span class="skeleton d-block mb-3" style="width:50%; height:2.2rem;"></span>
+          <span class="skeleton d-block mb-3" style="width:60%; height:16px;"></span>
+          <div class="row g-2">
+            <div class="col-6"><span class="skeleton d-block" style="height:32px;"></span></div>
+            <div class="col-6"><span class="skeleton d-block" style="height:32px;"></span></div>
+            <div class="col-6 mt-2"><span class="skeleton d-block" style="height:32px;"></span></div>
+            <div class="col-6 mt-2"><span class="skeleton d-block" style="height:32px;"></span></div>
+          </div>
         </div>
         <div id="wxError" class="error-state d-none" style="padding:1.5rem 0;">
-          <div class="glyph"><i class="bi bi-exclamation-octagon"></i></div>
+          <div class="glyph"><i class="bi bi-exclamation-octagon dicon" data-dicon="exclamation-octagon"></i></div>
           <div><strong>Unable to retrieve weather data.</strong></div>
           <button class="btn-diva btn-diva-ghost btn-diva-sm mt-3" id="wxRetry">Retry</button>
         </div>
         <div id="wxBody" class="d-none">
           <h3 class="card-num" id="wTemp" style="font-size:2.6rem;">—</h3>
           <div class="d-flex align-items-center gap-2 mb-3">
-            <i class="bi bi-cloud-sun fs-3" style="color:var(--accent-cyan);" id="wIcon"></i>
+            <i class="bi bi-cloud-sun fs-3 dicon" style="color:var(--accent-cyan);" id="wIcon" data-dicon="cloud-sun"></i>
             <span id="wCondition" style="font-weight:600; color:var(--navy-950);">—</span>
           </div>
           <div class="row g-2" style="font-size:.85rem;">
@@ -57,7 +64,7 @@
             <div class="col-6"><span class="text-muted-diva">Visibility</span><div style="font-weight:600;" id="wVisibility">—</div></div>
           </div>
           <p class="text-muted-diva mt-2" style="font-size:.78rem;">Wind direction is useful context for likely ash/gas plume drift, but isn't a hazard forecast — always follow official PHIVOLCS advisories.</p>
-          <div class="data-source-line" id="wxSourceLine"><i class="bi bi-clock-history"></i> Source: OpenWeatherMap</div>
+          <div class="data-source-line" id="wxSourceLine"><i class="bi bi-clock-history dicon" data-dicon="clock-history"></i> Source: OpenWeatherMap</div>
         </div>
       </div>
     </div>
@@ -83,18 +90,18 @@
         <div style="font-size:.82rem; color:var(--ink-600);">Sudden steam-driven (phreatic) or minor phreatomagmatic eruptions, volcanic gas expulsions, and ashfall can occur without further warning. The entire Taal Volcano Island is a Permanent Danger Zone.</div>
       </div>
     </div>
-    <div class="data-source-line"><i class="bi bi-box-arrow-up-right"></i> <a href="https://www.phivolcs.dost.gov.ph/" target="_blank" rel="noopener">Check the current advisory at phivolcs.dost.gov.ph &rarr;</a></div>
+    <div class="data-source-line"><i class="bi bi-box-arrow-up-right dicon" data-dicon="box-arrow-up-right"></i> <a href="https://www.phivolcs.dost.gov.ph/" target="_blank" rel="noopener">Check the current advisory at phivolcs.dost.gov.ph &rarr;</a></div>
   </div>
 
   <div class="diva-card reveal-on-scroll">
-    <div class="card-eyebrow"><span>About Taal</span><i class="bi bi-info-circle" style="color:var(--accent-cyan);"></i></div>
+    <div class="card-eyebrow"><span>About Taal</span><i class="bi bi-info-circle dicon" style="color:var(--accent-cyan);" data-dicon="info-circle"></i></div>
     <p style="font-size:.87rem; color:var(--ink-600);">
       Taal is a caldera roughly 15 by 20 km wide in southwestern Luzon, largely filled by Lake Taal. Its low-lying Volcano
       Island, near sea level at the lake's center, is where all of its historical eruptions have originated, and it has a long
       record of powerful, sometimes deadly, eruptions. Because the caldera sits so close to the surrounding lake and its
       vents are shallow, it's especially prone to abrupt phreatic and phreatomagmatic explosions.
     </p>
-    <div class="data-source-line"><i class="bi bi-box-arrow-up-right"></i> <a id="tvGvpLink" href="https://volcano.si.edu/volcano.cfm?vn=273070" target="_blank" rel="noopener">View Taal's full profile and latest activity reports on the Smithsonian GVP site &rarr;</a></div>
+    <div class="data-source-line"><i class="bi bi-box-arrow-up-right dicon" data-dicon="box-arrow-up-right"></i> <a id="tvGvpLink" href="https://volcano.si.edu/volcano.cfm?vn=273070" target="_blank" rel="noopener">View Taal's full profile and latest activity reports on the Smithsonian GVP site &rarr;</a></div>
   </div>
 </template>
 
@@ -102,6 +109,7 @@
 <script src="https://cdn.jsdelivr.net/npm/animejs@4.5.0/lib/anime.iife.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="assets/js/animations.js"></script>
+<script src="assets/js/icons.js"></script>
 <script src="assets/js/demo-data.js"></script>
 <script src="assets/js/main.js"></script>
 <script>
@@ -114,7 +122,9 @@
   const TAAL_FALLBACK = { lat: 14.0021, lng: 120.9932, elevM: 311 };
 
   // Provided by the person for this project's own use — OpenWeatherMap key.
-  const OWM_KEY = "70253a8ee4056b8b416391d8f034faf0";
+  // Read from localStorage (same key the Weather page's "Add API key" modal
+  // writes to) rather than hardcoded here, so it never ships in page source.
+  const OWM_KEY = (localStorage.getItem("diva_owm_api_key") || "").trim();
 
   const AVIATION_COLOR_META = {
     GREEN: "Green (normal)",
@@ -163,8 +173,8 @@
     document.getElementById("tvElev").textContent = `${loc.elevM} m`;
     document.getElementById("tvColor").textContent = loc.color ? (AVIATION_COLOR_META[loc.color] || loc.color) : "None on file";
     document.getElementById("tvSourceLine").innerHTML = live
-      ? `<i class="bi bi-broadcast"></i> Live from USGS VolcView (worldwide volcanoes API), fetched just now.`
-      : `<i class="bi bi-exclamation-triangle"></i> USGS VolcView was unreachable — showing last-known coordinates instead.`;
+      ? `<i class="bi bi-broadcast dicon" data-dicon="broadcast"></i> Live from USGS VolcView (worldwide volcanoes API), fetched just now.`
+      : `<i class="bi bi-exclamation-triangle dicon" data-dicon="exclamation-triangle"></i> USGS VolcView was unreachable — showing last-known coordinates instead.`;
 
     const map = L.map("volcano-map").setView([loc.lat, loc.lng], 12);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
@@ -178,6 +188,12 @@
     document.getElementById("wxLoading").classList.remove("d-none");
     document.getElementById("wxBody").classList.add("d-none");
     document.getElementById("wxError").classList.add("d-none");
+    if (!OWM_KEY) {
+      document.getElementById("wxLoading").classList.add("d-none");
+      document.getElementById("wxError").classList.remove("d-none");
+      document.getElementById("wxError").querySelector("div").innerHTML = `<strong>No OpenWeatherMap API key set.</strong> Add one on the <a href="weather.html">Weather page</a> first.`;
+      return;
+    }
     try {
       const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&units=metric&appid=${OWM_KEY}`;
       const res = await fetch(url);

@@ -33,7 +33,7 @@
       <p class="text-muted-diva mb-4">Monitor hazards and get disaster guidance for your community.</p>
 
       <div id="loginError" class="alert-banner level-warning mb-3 d-none" style="opacity:1;">
-        <i class="bi bi-exclamation-triangle icon"></i>
+        <i class="bi bi-exclamation-triangle icon dicon" data-dicon="exclamation-triangle"></i>
         <div><strong>Invalid email or password.</strong> Please try again, or use one of the demo accounts below.</div>
       </div>
 
@@ -47,7 +47,7 @@
           <input type="password" class="form-control form-control-diva" id="password" required autocomplete="current-password">
         </div>
         <button type="submit" class="btn-diva btn-diva-primary w-100 justify-content-center mb-3" data-press>
-          <i class="bi bi-box-arrow-in-right"></i> Sign In
+          <i class="bi bi-box-arrow-in-right dicon" data-dicon="box-arrow-in-right"></i> Sign In
         </button>
         <p class="text-center text-muted-diva" style="font-size:.9rem;">Don't have an account? <a href="register.html" style="color:var(--accent-cyan); font-weight:600;">Register</a></p>
       </form>
@@ -55,9 +55,6 @@
       <hr class="my-4">
       <p class="eyebrow mb-2" style="color:var(--ink-400);">Demo accounts (development only)</p>
       <div class="d-flex flex-column gap-2">
-        <div class="demo-account-chip" data-demo-email="master@diva.gov.ph" data-demo-pass="MasterDemo123!">
-          <span>Master Admin — master@diva.gov.ph</span><span>Use</span>
-        </div>
         <div class="demo-account-chip" data-demo-email="admin@diva.gov.ph" data-demo-pass="AdminDemo123!">
           <span>Administrator — admin@diva.gov.ph</span><span>Use</span>
         </div>
@@ -71,6 +68,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/animejs@4.5.0/lib/anime.iife.min.js"></script>
 <script src="assets/js/animations.js"></script>
+<script src="assets/js/icons.js"></script>
 <script src="assets/js/main.js"></script>
 <script>
   document.querySelectorAll(".demo-account-chip").forEach((chip) => {
@@ -80,21 +78,40 @@
     });
   });
 
+  DivaFieldValidation.wireField(
+    document.getElementById("email"),
+    (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()),
+    "Enter a valid email address."
+  );
+  DivaFieldValidation.wireField(
+    document.getElementById("password"),
+    (v) => v.length > 0,
+    "Password is required."
+  );
+
   document.getElementById("loginForm").addEventListener("submit", (e) => {
     e.preventDefault();
     const email = document.getElementById("email").value.trim().toLowerCase();
     const pass = document.getElementById("password").value;
-    const account = DivaAuth.DEMO_ACCOUNTS[email];
     const errorBox = document.getElementById("loginError");
+    const errorText = errorBox.querySelector("div");
+    const result = DivaAuth.login(email, pass);
 
-    if (!account || account.password !== pass) {
+    if (result === "suspended") {
+      errorText.innerHTML = "<strong>This account has been suspended.</strong> Contact your DIVA administrator for help.";
+      errorBox.classList.remove("d-none");
+      DivaAnim.animateAlertBanner(errorBox);
+      return;
+    }
+    if (!result) {
+      errorText.innerHTML = "<strong>Invalid email or password.</strong> Please try again, or use one of the demo accounts below.";
       errorBox.classList.remove("d-none");
       DivaAnim.animateAlertBanner(errorBox);
       return;
     }
     errorBox.classList.add("d-none");
-    DivaAuth.setUser({ email, name: account.name, role: account.role });
-    window.location.href = DivaAuth.isAdmin({ role: account.role }) ? "admin-dashboard.html" : "dashboard.html";
+    DivaAuth.setUser(result);
+    window.location.href = DivaAuth.isAdmin(result) ? "admin-dashboard.html" : "dashboard.html";
   });
 </script>
 </body>

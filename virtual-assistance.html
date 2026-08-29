@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>(function(){try{var t=localStorage.getItem("diva_theme")||"dark";document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Virtual Assistance — DIVA</title>
@@ -15,7 +16,7 @@
   <div class="chat-shell reveal-on-scroll">
     <div class="chat-header">
       <div>
-        <div style="font-weight:700; color:var(--navy-950);"><i class="bi bi-robot" style="color:var(--accent-cyan);"></i> Virtual Assistance</div>
+        <div style="font-weight:700; color:var(--navy-950);"><i class="bi bi-robot dicon" style="color:var(--accent-cyan);" data-dicon="robot"></i> Virtual Assistance</div>
         <div style="font-size:.78rem; color:var(--ink-400);">General disaster guidance — not a substitute for emergency services</div>
       </div>
       <div class="d-flex align-items-center gap-2">
@@ -23,17 +24,15 @@
           <button type="button" data-lang="en" class="active">EN</button>
           <button type="button" data-lang="fil">FIL</button>
         </div>
-        <button class="btn-diva btn-diva-ghost btn-diva-sm" id="clearChatBtn" data-press><i class="bi bi-trash3"></i> Clear Chat</button>
+        <button class="btn-diva btn-diva-ghost btn-diva-sm" id="clearChatBtn" data-press><i class="bi bi-trash3 dicon" data-dicon="trash3"></i> Clear Chat</button>
       </div>
     </div>
 
     <div class="chat-messages" id="chatMessages"></div>
 
-    <div class="quick-prompts" id="quickPrompts"></div>
-
     <form class="chat-input-row" id="chatForm">
       <input type="text" id="chatInput" placeholder="Ask about earthquakes, typhoons, floods, eruptions…" autocomplete="off">
-      <button type="submit" class="chat-send-btn" aria-label="Send message"><i class="bi bi-send"></i></button>
+      <button type="submit" class="chat-send-btn" aria-label="Send message"><i class="bi bi-send dicon" data-dicon="send"></i></button>
     </form>
   </div>
 </template>
@@ -41,6 +40,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/animejs@4.5.0/lib/anime.iife.min.js"></script>
 <script src="assets/js/animations.js"></script>
+<script src="assets/js/icons.js"></script>
 <script src="assets/js/demo-data.js"></script>
 <script src="assets/js/main.js"></script>
 <script>
@@ -54,9 +54,15 @@
   function saveHistory(history) { localStorage.setItem(STORAGE_KEY, JSON.stringify(history)); }
 
   function emptyStateHtml() {
-    return `<div class="empty-state" id="chatEmptyState">
-      <div class="glyph"><i class="bi bi-chat-square-dots"></i></div>
-      <div>Start a conversation with DIVA</div>
+    return `<div class="empty-state" id="chatEmptyState" style="padding-top:1.5rem;">
+      <div class="glyph"><i class="bi bi-robot dicon" style="color:var(--accent-cyan);" data-dicon="robot"></i></div>
+      <div style="font-family:var(--font-display); font-weight:700; font-size:1.1rem; color:var(--navy-950);">How can I help you today?</div>
+      <div class="va-topic-grid">
+        <button type="button" class="va-topic-btn" data-topic="What is the current weather risk?"><i class="bi bi-cloud-sun dicon" data-dicon="cloud-sun"></i> Weather</button>
+        <button type="button" class="va-topic-btn" data-topic="Volcanic eruption signs?"><i class="bi bi-triangle dicon" data-dicon="triangle"></i> Volcano</button>
+        <button type="button" class="va-topic-btn" data-topic="How do I prepare an emergency kit?"><i class="bi bi-house dicon" data-dicon="house"></i> Prepare</button>
+        <button type="button" class="va-topic-btn" data-topic="What should I do in an emergency?"><i class="bi bi-exclamation-triangle dicon" data-dicon="exclamation-triangle"></i> Emergency</button>
+      </div>
     </div>`;
   }
 
@@ -76,7 +82,8 @@
   function classifyPrompt(text) {
     const t = text.toLowerCase();
     if (t.includes("earthquake") || t.includes("lindol")) return "earthquake";
-    if (t.includes("typhoon") || t.includes("bagyo")) return "typhoon";
+    if (t.includes("flood") || t.includes("baha")) return "flood";
+    if (t.includes("typhoon") || t.includes("bagyo") || t.includes("weather") || t.includes("panahon") || t.includes("prepare") || t.includes("kit") || t.includes("hakbang")) return "typhoon";
     if (t.includes("volcan") || t.includes("bulkan") || t.includes("eruption") || t.includes("ashfall")) return "volcano";
     if (t.includes("contact") || t.includes("emergency number") || t.includes("numero")) return "contacts";
     return "default";
@@ -112,23 +119,9 @@
     }, 1100);
   }
 
-  function renderQuickPrompts() {
-    const host = document.getElementById("quickPrompts");
-    host.innerHTML = "";
-    DIVA_DEMO.quickPrompts.forEach((p) => {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "quick-prompt-btn";
-      btn.textContent = p;
-      btn.addEventListener("click", () => sendMessage(p));
-      host.appendChild(btn);
-    });
-  }
-
   function initVaPage() {
     document.getElementById("app-content").appendChild(document.getElementById("va-content").content.cloneNode(true));
     initializeAnimations();
-    renderQuickPrompts();
 
     const host = document.getElementById("chatMessages");
     const history = loadHistory();
@@ -137,6 +130,15 @@
     } else {
       history.forEach((m) => appendMessage(m.role, m.message, false));
     }
+
+    // Event delegation: quick-topic buttons only exist in the empty state,
+    // which is re-rendered after "Clear Chat", so bind on the container.
+    // Clicking any one of them sends that message immediately, which removes
+    // the empty state (and the topics with it) — they only ever show once.
+    host.addEventListener("click", (e) => {
+      const btn = e.target.closest(".va-topic-btn");
+      if (btn) sendMessage(btn.dataset.topic);
+    });
 
     document.querySelectorAll(".lang-toggle button").forEach((b) => {
       b.addEventListener("click", () => {

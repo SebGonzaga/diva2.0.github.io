@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>(function(){try{var t=localStorage.getItem("diva_theme")||"dark";document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Profile — DIVA</title>
@@ -19,11 +20,18 @@
         <h3 style="font-weight:700; color:var(--navy-950);" id="profileName"></h3>
         <span class="status-badge status-safe" id="profileRole"></span>
       </div>
-      <div class="diva-card reveal-on-scroll">
-        <div class="mb-3"><span class="text-muted-diva" style="font-size:.82rem;">Email</span><div style="font-weight:600;" id="profileEmail"></div></div>
-        <div class="mb-3"><span class="text-muted-diva" style="font-size:.82rem;">City</span><div style="font-weight:600;">Calamba, Laguna</div></div>
-        <div><span class="text-muted-diva" style="font-size:.82rem;">Account type</span><div style="font-weight:600;" id="profileRole2"></div></div>
+      <div id="profileSaved" class="alert-banner level-info mb-3 d-none" style="opacity:1;">
+        <i class="bi bi-check-circle icon dicon" data-dicon="check-circle"></i><div>Profile updated.</div>
       </div>
+      <form class="diva-card reveal-on-scroll" id="profileForm">
+        <div class="mb-3"><span class="text-muted-diva" style="font-size:.82rem;">Email</span><div style="font-weight:600;" id="profileEmail"></div></div>
+        <div class="mb-3">
+          <label class="form-label-diva" for="profileCity">City</label>
+          <input type="text" class="form-control form-control-diva" id="profileCity" placeholder="e.g. Calamba, Laguna">
+        </div>
+        <div class="mb-3"><span class="text-muted-diva" style="font-size:.82rem;">Account type</span><div style="font-weight:600;" id="profileRole2"></div></div>
+        <button type="submit" class="btn-diva btn-diva-primary" data-press><i class="bi bi-check-circle dicon" data-dicon="check-circle"></i> Save changes</button>
+      </form>
     </div>
   </div>
 </template>
@@ -31,17 +39,31 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/animejs@4.5.0/lib/anime.iife.min.js"></script>
 <script src="assets/js/animations.js"></script>
+<script src="assets/js/icons.js"></script>
+<script src="assets/js/demo-data.js"></script>
 <script src="assets/js/main.js"></script>
 <script>
   const user = renderAppShell("profile.html", { title: "Profile" });
   if (user) {
     document.getElementById("app-content").appendChild(document.getElementById("profile-content").content.cloneNode(true));
+    const stored = DivaStore.findUser(user.email) || user;
     document.getElementById("profileAvatar").textContent = user.name.split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase();
     document.getElementById("profileName").textContent = user.name;
     document.getElementById("profileRole").textContent = user.role;
     document.getElementById("profileEmail").textContent = user.email;
     document.getElementById("profileRole2").textContent = user.role;
+    document.getElementById("profileCity").value = stored.city || "";
     initializeAnimations();
+
+    document.getElementById("profileForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const city = document.getElementById("profileCity").value.trim();
+      DivaStore.updateUser(user.email, { city });
+      const saved = document.getElementById("profileSaved");
+      saved.classList.remove("d-none");
+      DivaAnim.animateAlertBanner(saved);
+      divaToast("Profile updated", "bi-check-circle");
+    });
   }
 </script>
 </body>

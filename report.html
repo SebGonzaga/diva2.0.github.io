@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>(function(){try{var t=localStorage.getItem("diva_theme")||"dark";document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Report Incident — DIVA</title>
@@ -16,7 +17,7 @@
     <div class="col-lg-7">
       <div class="diva-card reveal-on-scroll">
         <div id="reportSuccess" class="alert-banner level-info mb-3 d-none" style="opacity:1;">
-          <i class="bi bi-check-circle icon"></i>
+          <i class="bi bi-check-circle icon dicon" data-dicon="check-circle"></i>
           <div><strong>Incident Report Submitted</strong><div style="font-size:.85rem;">Disaster response officials will review your report shortly.</div></div>
         </div>
 
@@ -46,7 +47,7 @@
             <label class="form-label-diva">Location</label>
             <div class="d-flex gap-2">
               <input type="text" class="form-control form-control-diva" id="incidentLocation" placeholder="Detecting location..." readonly>
-              <button type="button" class="btn-diva btn-diva-ghost btn-diva-sm" id="getLocationBtn"><i class="bi bi-geo-alt"></i></button>
+              <button type="button" class="btn-diva btn-diva-ghost btn-diva-sm" id="getLocationBtn" aria-label="Detect my current location"><i class="bi bi-geo-alt dicon" data-dicon="geo-alt"></i></button>
             </div>
           </div>
           <div class="mb-4">
@@ -54,7 +55,7 @@
             <input type="text" class="form-control form-control-diva" id="incidentTime" readonly>
           </div>
           <button type="submit" class="btn-diva btn-diva-primary w-100 justify-content-center" id="submitReportBtn" data-press>
-            <i class="bi bi-flag"></i> Submit Report
+            <i class="bi bi-flag dicon" data-dicon="flag"></i> Submit Report
           </button>
         </form>
       </div>
@@ -65,6 +66,8 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/animejs@4.5.0/lib/anime.iife.min.js"></script>
 <script src="assets/js/animations.js"></script>
+<script src="assets/js/icons.js"></script>
+<script src="assets/js/demo-data.js"></script>
 <script src="assets/js/main.js"></script>
 <script>
   const user = renderAppShell("report.html", { title: "Report Incident" });
@@ -86,17 +89,45 @@
     });
     document.getElementById("getLocationBtn").click();
 
+    DivaFieldValidation.wireField(
+      document.getElementById("incidentType"),
+      (v) => v.length > 0,
+      "Please select an incident type."
+    );
+    DivaFieldValidation.wireField(
+      document.getElementById("incidentDesc"),
+      (v) => v.trim().length >= 10,
+      "Please describe what you observed (at least 10 characters)."
+    );
+
     document.getElementById("reportForm").addEventListener("submit", (e) => {
       e.preventDefault();
       const btn = document.getElementById("submitReportBtn");
+      const photoInput = document.getElementById("incidentPhoto");
+      const reportData = {
+        type: document.getElementById("incidentType").value,
+        description: document.getElementById("incidentDesc").value.trim(),
+        location: document.getElementById("incidentLocation").value,
+        reportedAtDisplay: document.getElementById("incidentTime").value,
+        hasPhoto: !!(photoInput.files && photoInput.files.length),
+        photoName: photoInput.files && photoInput.files[0] ? photoInput.files[0].name : null,
+        reporterName: user.name,
+        reporterEmail: user.email,
+      };
       btn.disabled = true;
       btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Submitting...`;
-      // In production this posts to /api/incidents.php and inserts into incident_reports.
+      // In production this posts to /api/incidents.php and inserts into
+      // incident_reports. Here it's written to DivaStore, which is the same
+      // place admin-incidents.html reads from — so this report actually
+      // shows up for disaster response officials to review, not just a
+      // fake success message.
       setTimeout(() => {
+        DivaStore.addIncident(reportData);
         btn.disabled = false;
-        btn.innerHTML = `<i class="bi bi-flag"></i> Submit Report`;
+        btn.innerHTML = `<i class="bi bi-flag dicon" data-dicon="flag"></i> Submit Report`;
         document.getElementById("reportForm").reset();
         document.getElementById("incidentTime").value = new Date().toLocaleString();
+        document.getElementById("getLocationBtn").click();
         const success = document.getElementById("reportSuccess");
         success.classList.remove("d-none");
         DivaAnim.animateAlertBanner(success);

@@ -30,11 +30,11 @@
       <p class="text-muted-diva mb-4">Free for Philippine community residents.</p>
 
       <div id="regError" class="alert-banner level-warning mb-3 d-none" style="opacity:1;">
-        <i class="bi bi-exclamation-triangle icon"></i>
+        <i class="bi bi-exclamation-triangle icon dicon" data-dicon="exclamation-triangle"></i>
         <div id="regErrorText">Please check the highlighted fields.</div>
       </div>
       <div id="regSuccess" class="alert-banner level-info mb-3 d-none" style="opacity:1;">
-        <i class="bi bi-check-circle icon"></i>
+        <i class="bi bi-check-circle icon dicon" data-dicon="check-circle"></i>
         <div>Account created. Redirecting to sign in…</div>
       </div>
 
@@ -60,7 +60,7 @@
           <input type="password" class="form-control form-control-diva" id="confirmPassword" required minlength="8" autocomplete="new-password">
         </div>
         <button type="submit" class="btn-diva btn-diva-primary w-100 justify-content-center mb-3" data-press>
-          <i class="bi bi-person-plus"></i> Create Account
+          <i class="bi bi-person-plus dicon" data-dicon="person-plus"></i> Create Account
         </button>
         <p class="text-center text-muted-diva" style="font-size:.9rem;">Already have an account? <a href="login.html" style="color:var(--accent-cyan); font-weight:600;">Sign in</a></p>
       </form>
@@ -70,8 +70,25 @@
 
 <script src="https://cdn.jsdelivr.net/npm/animejs@4.5.0/lib/anime.iife.min.js"></script>
 <script src="assets/js/animations.js"></script>
+<script src="assets/js/icons.js"></script>
 <script src="assets/js/main.js"></script>
 <script>
+  const usernameEl = document.getElementById("username");
+  const emailEl = document.getElementById("regEmail");
+  const cityEl = document.getElementById("city");
+  const passEl = document.getElementById("regPassword");
+  const confirmEl = document.getElementById("confirmPassword");
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  DivaFieldValidation.wireField(usernameEl, (v) => v.trim().length >= 3, "Username must be at least 3 characters.");
+  DivaFieldValidation.wireField(emailEl, (v) => emailPattern.test(v.trim()), "Enter a valid email address.");
+  DivaFieldValidation.wireField(cityEl, (v) => v.trim().length > 0, "Please enter your city.");
+  DivaFieldValidation.wireField(passEl, (v) => v.length >= 8, "Password must be at least 8 characters.");
+  const confirmValidation = DivaFieldValidation.wireField(confirmEl, (v) => v.length > 0 && v === passEl.value, "Passwords do not match.");
+  // Re-check "confirm" whenever the primary password changes, since its
+  // validity depends on that field too.
+  passEl.addEventListener("input", () => { if (confirmEl.value) confirmValidation.revalidate(); });
+
   document.getElementById("registerForm").addEventListener("submit", (e) => {
     e.preventDefault();
     const username = document.getElementById("username").value.trim();
@@ -90,15 +107,20 @@
       DivaAnim.animateAlertBanner(errorBox);
     }
 
-    if (username.length < 3) return fail("Username must be at least 3 characters.");
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail("Please enter a valid email address.");
-    if (!city) return fail("Please enter your city.");
-    if (pass.length < 8) return fail("Password must be at least 8 characters.");
-    if (pass !== confirm) return fail("Passwords do not match.");
-    if (DivaAuth.DEMO_ACCOUNTS[email]) return fail("An account with this email already exists.");
+    if (username.length < 3) { usernameEl.focus(); return fail("Username must be at least 3 characters."); }
+    if (!emailPattern.test(email)) { emailEl.focus(); return fail("Please enter a valid email address."); }
+    if (!city) { cityEl.focus(); return fail("Please enter your city."); }
+    if (pass.length < 8) { passEl.focus(); return fail("Password must be at least 8 characters."); }
+    if (pass !== confirm) { confirmEl.focus(); return fail("Passwords do not match."); }
 
     // In production this posts to /register.php, which hashes the password
     // with PHP password_hash() and inserts the user as Community Resident.
+    // Here it's saved to the same DivaStore that login.html and the admin
+    // User Management page read, so a newly registered account can sign in
+    // right away and shows up for admins immediately.
+    const created = DivaAuth.register({ name: username, email, password: pass, city });
+    if (!created) return fail("An account with this email already exists.");
+
     errorBox.classList.add("d-none");
     successBox.classList.remove("d-none");
     DivaAnim.animateAlertBanner(successBox);
