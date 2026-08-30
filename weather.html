@@ -22,15 +22,6 @@
     </div>
     <div class="d-flex gap-2">
       <button class="btn-diva btn-diva-ghost btn-diva-sm" id="useLocationBtn" data-press><i class="bi bi-geo-alt dicon" data-dicon="geo-alt"></i> Use my location</button>
-      <button class="btn-diva btn-diva-ghost btn-diva-sm" id="apiKeyBtn" data-press><i class="bi bi-key dicon" data-dicon="key"></i> <span id="apiKeyBtnLabel">Add API key</span></button>
-    </div>
-  </div>
-
-  <div class="alert-banner level-advisory mb-4" id="apiKeyBanner" style="opacity:1;">
-    <i class="bi bi-info-circle icon dicon" data-dicon="info-circle"></i>
-    <div style="font-size:.86rem;">
-      Live weather uses your own OpenWeatherMap key, stored only in this browser (<code>localStorage</code>) — there's no backend yet to keep it server-side, so don't use a key you can't rotate. Get a free key at
-      <a href="https://openweathermap.org/api" target="_blank" rel="noopener" style="font-weight:600;">openweathermap.org/api</a>, then click <strong>Add API key</strong> above. Without a key, DIVA falls back to labeled demo data.
     </div>
   </div>
 
@@ -118,27 +109,6 @@
   </div>
 </template>
 
-<!-- API key modal -->
-<div class="modal fade modal-diva" id="apiKeyModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content p-2">
-      <div class="modal-header border-0">
-        <h5 class="modal-title" style="font-weight:700; color:var(--navy-950);">OpenWeatherMap API key</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <p class="text-muted-diva" style="font-size:.88rem;">Stored only in this browser's local storage. This is a temporary client-side arrangement until the PHP backend proxies OpenWeatherMap requests server-side per spec §35.</p>
-        <label class="form-label-diva" for="apiKeyInput">API key</label>
-        <input type="text" class="form-control form-control-diva" id="apiKeyInput" placeholder="Paste your OpenWeatherMap key" autocomplete="off">
-      </div>
-      <div class="modal-footer border-0">
-        <button type="button" class="btn-diva btn-diva-ghost btn-diva-sm" id="apiKeyClearBtn">Remove key</button>
-        <button type="button" class="btn-diva btn-diva-primary btn-diva-sm" id="apiKeySaveBtn">Save key</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/animejs@4.5.0/lib/anime.iife.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -153,15 +123,7 @@
 <script type="module">
   await DivaAuth.init();
   const user = renderAppShell("weather.html", { title: "Weather" });
-  let map, marker, chart, apiKeyModal;
-
-  const OWM_KEY_STORAGE = "diva_owm_api_key";
-
-  // Hardcode your OpenWeatherMap key here (free tier at https://openweathermap.org/api)
-  // so residents get live weather automatically with no setup. Leave the
-  // placeholder as-is to keep using demo data until a real key is added.
-  const DEFAULT_OWM_API_KEY = "YOUR_OPENWEATHERMAP_API_KEY_HERE";
-  const HAS_DEFAULT_KEY = DEFAULT_OWM_API_KEY && DEFAULT_OWM_API_KEY !== "YOUR_OPENWEATHERMAP_API_KEY_HERE";
+  let map, marker, chart;
 
   const ICON_MAP = {
     "01d": "bi-sun", "01n": "bi-moon-stars",
@@ -174,18 +136,6 @@
     "13d": "bi-snow", "13n": "bi-snow",
     "50d": "bi-cloud-haze", "50n": "bi-cloud-haze",
   };
-
-  function getApiKey() {
-    const stored = (localStorage.getItem(OWM_KEY_STORAGE) || "").trim();
-    return stored || (HAS_DEFAULT_KEY ? DEFAULT_OWM_API_KEY : "");
-  }
-  function hasLiveKey() { return getApiKey().length > 0; }
-
-  function updateApiKeyUI() {
-    const usingDefault = HAS_DEFAULT_KEY && !localStorage.getItem(OWM_KEY_STORAGE);
-    document.getElementById("apiKeyBtnLabel").textContent = usingDefault ? "Using built-in key" : (hasLiveKey() ? "Manage API key" : "Add API key");
-    document.getElementById("apiKeyBanner").classList.toggle("d-none", hasLiveKey());
-  }
 
   const FORECAST_DEMO = [
     { day: "Today", icon: "bi-cloud-sun", hi: 32, lo: 25 },
@@ -284,25 +234,19 @@
   }
 
   async function fetchCurrentByCoords(lat, lng) {
-    const key = getApiKey();
-    const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&units=metric&appid=${key}`;
-    const res = await fetch(url);
+    const res = await fetch(`/api/weather?lat=${lat}&lng=${lng}`);
     if (!res.ok) throw new Error("current weather request failed: " + res.status);
     return res.json();
   }
 
   async function fetchForecastByCoords(lat, lng) {
-    const key = getApiKey();
-    const url = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lng}&units=metric&appid=${key}`;
-    const res = await fetch(url);
+    const res = await fetch(`/api/weather?lat=${lat}&lng=${lng}&forecast=1`);
     if (!res.ok) throw new Error("forecast request failed: " + res.status);
     return res.json();
   }
 
   async function geocodeCity(query) {
-    const key = getApiKey();
-    const url = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(query)}&limit=5&appid=${key}`;
-    const res = await fetch(url);
+    const res = await fetch(`/api/weather?geocode=${encodeURIComponent(query)}`);
     if (!res.ok) throw new Error("geocoding failed: " + res.status);
     return res.json();
   }
@@ -368,14 +312,17 @@
       });
     } catch (err) {
       console.error(err);
-      showWeatherError();
-      divaToast("Live weather request failed — check your API key.", "bi-exclamation-triangle");
+      throw err;
     }
   }
 
-  function loadWeather(cityLabel, lat, lng) {
-    if (hasLiveKey()) loadLiveWeather(cityLabel, lat, lng);
-    else renderDemoWeather(cityLabel || "Calamba, PH");
+  async function loadWeather(cityLabel, lat, lng) {
+    try {
+      await loadLiveWeather(cityLabel, lat, lng);
+    } catch (err) {
+      console.error("Live weather unavailable, falling back to demo data:", err);
+      renderDemoWeather(cityLabel || "Calamba, PH");
+    }
   }
 
   function renderSuggestions(results) {
@@ -399,32 +346,6 @@
   function initWeatherPage() {
     document.getElementById("app-content").appendChild(document.getElementById("weather-content").content.cloneNode(true));
     initializeAnimations();
-    updateApiKeyUI();
-
-    apiKeyModal = new bootstrap.Modal(document.getElementById("apiKeyModal"));
-    document.getElementById("apiKeyBtn").addEventListener("click", () => {
-      document.getElementById("apiKeyInput").value = getApiKey();
-      apiKeyModal.show();
-    });
-    document.getElementById("apiKeySaveBtn").addEventListener("click", () => {
-      const val = document.getElementById("apiKeyInput").value.trim();
-      if (val) localStorage.setItem(OWM_KEY_STORAGE, val); else localStorage.removeItem(OWM_KEY_STORAGE);
-      updateApiKeyUI();
-      apiKeyModal.hide();
-      divaToast(val ? "API key saved" : "API key removed", "bi-key");
-      const search = document.getElementById("citySearch").value.trim();
-      if (search) loadWeather(search, 14.2117, 121.1653);
-      else if (navigator.geolocation) navigator.geolocation.getCurrentPosition((pos) => loadWeather(null, pos.coords.latitude, pos.coords.longitude), () => loadWeather("Calamba, PH", 14.2117, 121.1653));
-      else loadWeather("Calamba, PH", 14.2117, 121.1653);
-    });
-    document.getElementById("apiKeyClearBtn").addEventListener("click", () => {
-      localStorage.removeItem(OWM_KEY_STORAGE);
-      document.getElementById("apiKeyInput").value = "";
-      updateApiKeyUI();
-      apiKeyModal.hide();
-      divaToast("API key removed — showing demo data", "bi-key");
-      renderDemoWeather(document.getElementById("wCity").textContent || "Calamba, PH");
-    });
 
     document.getElementById("retryWeather").addEventListener("click", () => {
       const search = document.getElementById("citySearch").value.trim();
@@ -444,15 +365,14 @@
     searchInput.addEventListener("input", (e) => {
       clearTimeout(searchDebounce);
       const q = e.target.value.trim();
-      if (!hasLiveKey() || q.length < 3) { document.getElementById("citySuggestions").classList.add("d-none"); return; }
+      if (q.length < 3) { document.getElementById("citySuggestions").classList.add("d-none"); return; }
       searchDebounce = setTimeout(async () => {
         try { renderSuggestions(await geocodeCity(q)); } catch (err) { console.error(err); }
       }, 400);
     });
     searchInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && e.target.value.trim() && !hasLiveKey()) {
-        loadWeather(e.target.value.trim(), 14.2117, 121.1653);
-        e.preventDefault();
+      if (e.key === "Enter" && e.target.value.trim()) {
+        document.getElementById("citySuggestions").classList.add("d-none");
       }
     });
     document.addEventListener("click", (e) => {

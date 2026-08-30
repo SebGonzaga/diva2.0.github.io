@@ -34,7 +34,7 @@
 
       <div id="loginError" class="alert-banner level-warning mb-3 d-none" style="opacity:1;">
         <i class="bi bi-exclamation-triangle icon dicon" data-dicon="exclamation-triangle"></i>
-        <div><strong>Invalid email or password.</strong> Please try again, or use one of the demo accounts below.</div>
+        <div><strong>Invalid email or password.</strong> Please try again, or <a href="register.html" style="font-weight:600;">create an account</a>.</div>
       </div>
 
       <form id="loginForm" novalidate>
@@ -51,17 +51,6 @@
         </button>
         <p class="text-center text-muted-diva" style="font-size:.9rem;">Don't have an account? <a href="register.html" style="color:var(--accent-cyan); font-weight:600;">Register</a></p>
       </form>
-
-      <hr class="my-4">
-      <p class="eyebrow mb-2" style="color:var(--ink-400);">Demo accounts (development only)</p>
-      <div class="d-flex flex-column gap-2">
-        <div class="demo-account-chip" data-demo-email="admin@diva.gov.ph" data-demo-pass="AdminDemo123!">
-          <span>Administrator — admin@diva.gov.ph</span><span>Use</span>
-        </div>
-        <div class="demo-account-chip" data-demo-email="resident@diva.gov.ph" data-demo-pass="ResidentDemo123!">
-          <span>Resident — resident@diva.gov.ph</span><span>Use</span>
-        </div>
-      </div>
     </div>
   </div>
 </div>
@@ -74,13 +63,6 @@
 <script src="assets/js/diva-auth.js"></script>
 <script src="assets/js/main.js"></script>
 <script type="module">
-  document.querySelectorAll(".demo-account-chip").forEach((chip) => {
-    chip.addEventListener("click", () => {
-      document.getElementById("email").value = chip.dataset.demoEmail;
-      document.getElementById("password").value = chip.dataset.demoPass;
-    });
-  });
-
   DivaFieldValidation.wireField(
     document.getElementById("email"),
     (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()),
@@ -105,7 +87,7 @@
     submitBtn.disabled = false;
 
     if (!result) {
-      errorText.innerHTML = "<strong>Invalid email or password.</strong> Please try again, or use one of the demo accounts below.";
+      errorText.innerHTML = "<strong>Invalid email or password.</strong> Please try again, or <a href=\"register.html\" style=\"font-weight:600;\">create an account</a>.";
       errorBox.classList.remove("d-none");
       DivaAnim.animateAlertBanner(errorBox);
       return;

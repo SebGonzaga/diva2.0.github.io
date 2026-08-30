@@ -8,7 +8,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { message, history } = req.body || {};
+  const { message, history, lang } = req.body || {};
 
   if (!message || typeof message !== 'string') {
     return res.status(400).json({ error: 'Missing "message" string in request body' });
@@ -22,11 +22,15 @@ export default async function handler(req, res) {
   // Keep the assistant scoped to disaster-preparedness topics, matching
   // DIVA's purpose (see demo-data.js aiReplies for the tone/format used
   // in the frontend's demo mode).
+  const languageInstruction = lang === 'fil'
+    ? 'Respond in Filipino (Tagalog).'
+    : 'Respond in English.';
   const systemPrompt = `You are DIVA, a disaster-preparedness virtual assistant for
 Filipino communities. Give clear, practical, safety-first guidance about
 earthquakes, typhoons, floods, volcanic activity, and emergency preparedness.
 Keep answers concise and actionable. If asked something unrelated to
-disaster safety, gently redirect to how you can help with that instead.`;
+disaster safety, gently redirect to how you can help with that instead.
+${languageInstruction}`;
 
   const messages = [
     { role: 'system', content: systemPrompt },

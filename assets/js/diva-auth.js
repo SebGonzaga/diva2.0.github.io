@@ -13,7 +13,7 @@
      <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
      <script src="assets/js/supabase-client.js"></script>
      <script src="assets/js/diva-auth.js"></script>
-     <script src="assets/js/main.js"></script>   (DivaStore/rest stays here for now)
+     <script src="assets/js/main.js"></script>
    ========================================================================= */
 const DivaAuth = {
   CACHE_KEY: "diva_user",

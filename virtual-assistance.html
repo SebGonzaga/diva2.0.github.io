@@ -93,7 +93,7 @@
     return "default";
   }
 
-  function sendMessage(text) {
+  async function sendMessage(text) {
     if (!text.trim()) return;
     const history = loadHistory();
     appendMessage("user", text, true);
@@ -109,18 +109,35 @@
     host.scrollTop = host.scrollHeight;
     const dotsHandle = DivaAnim.startTypingDots(typingEl.querySelector(".typing-dots"));
 
-    // Simulated OpenAI API call. In production this posts to /api/chat.php,
-    // which calls the OpenAI API server-side (key never exposed to the browser)
-    // with the DIVA disaster-assistance system prompt.
-    setTimeout(() => {
-      DivaAnim.stopTypingDots(dotsHandle);
-      typingEl.remove();
+    // Calls /api/chat.js, which proxies OpenAI server-side so the API key
+    // never touches the browser. Falls back to a canned demo reply if the
+    // request fails (e.g. OPENAI_API_KEY not configured yet in Vercel).
+    let reply;
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: text,
+          lang: currentLang,
+          history: history.slice(-10).map((m) => ({ role: m.role, content: m.message })),
+        }),
+      });
+      if (!res.ok) throw new Error("chat request failed: " + res.status);
+      const data = await res.json();
+      reply = data.reply;
+      if (!reply) throw new Error("empty reply from /api/chat");
+    } catch (err) {
+      console.error("Live chat unavailable, falling back to demo reply:", err);
       const category = classifyPrompt(text);
-      const reply = DIVA_DEMO.aiReplies[currentLang][category];
-      appendMessage("assistant", reply, true);
-      history.push({ role: "assistant", message: reply });
-      saveHistory(history);
-    }, 1100);
+      reply = DIVA_DEMO.aiReplies[currentLang][category];
+    }
+
+    DivaAnim.stopTypingDots(dotsHandle);
+    typingEl.remove();
+    appendMessage("assistant", reply, true);
+    history.push({ role: "assistant", message: reply });
+    saveHistory(history);
   }
 
   function initVaPage() {
