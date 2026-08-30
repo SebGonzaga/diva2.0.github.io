@@ -101,6 +101,10 @@
               <input type="number" step="any" class="form-control form-control-diva" id="alertLng" required placeholder="121.1653">
             </div>
           </div>
+          <div class="d-flex align-items-center gap-2 mt-2">
+            <button type="button" class="btn-diva btn-diva-ghost btn-diva-sm" id="useMyLocationBtn"><i class="bi bi-geo-alt dicon" data-dicon="geo-alt"></i> Use my location</button>
+            <span class="text-muted-diva" style="font-size:.8rem;" id="geoStatus"></span>
+          </div>
           <div class="mb-3 mt-3">
             <label class="form-label-diva" for="alertMessage">Message</label>
             <textarea class="form-control form-control-diva" id="alertMessage" rows="3" required placeholder="Details residents should act on..."></textarea>
@@ -189,11 +193,75 @@
     const modalEl = document.getElementById("alertModal");
     const modal = new bootstrap.Modal(modalEl);
     const form = document.getElementById("alertForm");
+    const areaInput = document.getElementById("alertArea");
+    const latInput = document.getElementById("alertLat");
+    const lngInput = document.getElementById("alertLng");
+    const geoStatus = document.getElementById("geoStatus");
+    const useMyLocationBtn = document.getElementById("useMyLocationBtn");
+
+    // Coords only auto-fill if the admin hasn't typed their own yet, so we
+    // never clobber a manual edit.
+    function coordsAreEmpty() {
+      return !latInput.value.trim() && !lngInput.value.trim();
+    }
+
+    function setGeoStatus(msg, isError) {
+      geoStatus.textContent = msg;
+      geoStatus.style.color = isError ? "var(--status-critical, #d9534f)" : "";
+    }
+
+    let geocodeTimer;
+    areaInput.addEventListener("input", () => {
+      clearTimeout(geocodeTimer);
+      if (!areaInput.value.trim() || !coordsAreEmpty()) return;
+      geocodeTimer = setTimeout(() => geocodeArea(areaInput.value.trim()), 700);
+    });
+
+    async function geocodeArea(query) {
+      setGeoStatus("Looking up coordinates…");
+      try {
+        const url = "https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" + encodeURIComponent(query + ", Philippines");
+        const res = await fetch(url, { headers: { "Accept": "application/json" } });
+        const results = await res.json();
+        if (!coordsAreEmpty()) { setGeoStatus(""); return; } // admin typed while we waited
+        if (results && results.length) {
+          latInput.value = parseFloat(results[0].lat).toFixed(4);
+          lngInput.value = parseFloat(results[0].lon).toFixed(4);
+          setGeoStatus("Coordinates found for \"" + query + "\". You can adjust them if needed.");
+        } else {
+          setGeoStatus("No match found for that area — enter coordinates manually.", true);
+        }
+      } catch (err) {
+        console.error("Geocode error:", err);
+        setGeoStatus("Couldn't look up coordinates — enter them manually.", true);
+      }
+    }
+
+    useMyLocationBtn.addEventListener("click", () => {
+      if (!navigator.geolocation) {
+        setGeoStatus("Geolocation isn't supported in this browser.", true);
+        return;
+      }
+      setGeoStatus("Getting your current location…");
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          latInput.value = pos.coords.latitude.toFixed(4);
+          lngInput.value = pos.coords.longitude.toFixed(4);
+          setGeoStatus("Using your current location. Adjust if the alert covers a different area.");
+        },
+        (err) => {
+          console.error("Geolocation error:", err);
+          setGeoStatus("Couldn't get your location — enter coordinates manually.", true);
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    });
 
     function openForCreate() {
       form.reset();
       document.getElementById("alertId").value = "";
       document.getElementById("alertModalTitle").textContent = "New Alert";
+      setGeoStatus("");
       const now = new Date();
       const soon = new Date(now.getTime() + 2 * 24 * 3600 * 1000);
       document.getElementById("alertStart").value = now.toISOString().slice(0, 16);
@@ -215,6 +283,7 @@
       document.getElementById("alertMessage").value = a.message || "";
       document.getElementById("alertStart").value = a.starts_at ? a.starts_at.slice(0, 16) : "";
       document.getElementById("alertExpires").value = a.expires_at ? a.expires_at.slice(0, 16) : "";
+      setGeoStatus("");
       modal.show();
     }
 
