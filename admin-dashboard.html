@@ -139,6 +139,16 @@
     document.querySelector('[data-count-to]#statVolcanoes').setAttribute("data-count-to", volcanoesMonitored);
     document.getElementById("statPendingNote").textContent = pendingIncidents + " pending review";
 
+    // initializeAnimations() (called above, before this fetch resolved)
+    // already watched these cards scroll into view and animated them to
+    // whatever data-count-to said at that instant — almost always "0",
+    // the HTML placeholder, since these cards are above the fold and the
+    // Supabase fetch hadn't finished yet. That IntersectionObserver has
+    // since unsubscribed itself and won't fire again, so now that the
+    // real numbers are set above, re-run the counter animation on each
+    // card directly rather than relying on it to notice the change.
+    document.querySelectorAll("#statTotalUsers, #statActiveAlerts, #statIncidents, #statVolcanoes").forEach((el) => DivaAnim.animateCounter(el));
+
     // Buckets rows by calendar month over the last N months, keyed off
     // each row's created_at — used for both charts below.
     function countByMonth(rows, months) {
