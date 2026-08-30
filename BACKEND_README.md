@@ -58,3 +58,48 @@ Here's exactly what changed and what you still need to do.
    want that to work.
 8. **Delete the demo account chips** in `login.html` before going live —
    those reference fake local accounts that no longer exist in Supabase.
+
+## Email notifications (new)
+`api/notifications.js` is a new serverless function that sends emails via
+[Resend](https://resend.com) (free tier: 100/day, 3,000/month, no domain
+verification needed if you send from their `onboarding@resend.dev` address
+while testing). It handles three triggers:
+
+1. Admin publishes an alert → every resident with an email gets it.
+2. Resident submits an incident report → every admin gets notified.
+3. Admin changes an incident's status → the reporter gets notified.
+
+Nothing in the frontend calls this function directly — it's driven by
+**Supabase Database Webhooks**, so notifications fire even if the browser
+that triggered them closes immediately after.
+
+### Setup steps
+1. **Create a Resend account** at resend.com and grab an API key. For
+   production, verify your own sending domain there too (otherwise you're
+   limited to sending from `onboarding@resend.dev`, which works fine for
+   testing but looks less official to residents).
+2. **Add these environment variables in Vercel** (Settings → Environment
+   Variables):
+   - `RESEND_API_KEY`
+   - `EMAIL_FROM` — e.g. `DIVA <alerts@yourdomain.com>` or
+     `DIVA <onboarding@resend.dev>` for testing
+   - `SUPABASE_URL` — same project URL as in `assets/js/supabase-client.js`
+   - `SUPABASE_SERVICE_ROLE_KEY` — Supabase → Settings → API →
+     `service_role` secret. **Never put this in any frontend file** — it
+     bypasses every RLS policy. It's only safe here because it's a Vercel
+     env var, used only inside a serverless function.
+   - `EMAIL_WEBHOOK_SECRET` — make up any long random string.
+   - `APP_URL` — e.g. `https://your-app.vercel.app`
+3. **Redeploy** so those env vars take effect.
+4. **In Supabase → Database → Webhooks**, create three webhooks, all
+   pointing at `https://your-app.vercel.app/api/notifications`, all with
+   an HTTP header `x-webhook-secret: <the same string you set above>`:
+   - Table `alerts`, event `INSERT`
+   - Table `incidents`, event `INSERT`
+   - Table `incidents`, event `UPDATE`
+   (The function itself checks *what* changed — e.g. it only emails the
+   reporter on an UPDATE if `status` actually changed — so it's fine that
+   the incidents UPDATE webhook fires on every edit.)
+
+That's it — no changes needed to `report.html` or `admin-alerts.html`;
+they already insert/update the rows that trigger these webhooks.
