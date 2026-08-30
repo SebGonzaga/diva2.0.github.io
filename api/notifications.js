@@ -114,7 +114,7 @@ async function notifyResidentsOfAlert(alert) {
   await sendEmailBatch(
     emails.map((email) => ({
       from: process.env.EMAIL_FROM,
-      to: email,
+      to: [email],
       subject: `DIVA Alert: ${alert.title || 'New alert issued'}`,
       html,
     }))
@@ -138,7 +138,7 @@ async function notifyAdminsOfIncident(incident) {
   await sendEmailBatch(
     emails.map((email) => ({
       from: process.env.EMAIL_FROM,
-      to: email,
+      to: [email],
       subject: `New incident report: ${incident.category || 'Incident'}`,
       html,
     }))
@@ -162,7 +162,7 @@ async function notifyReporterOfStatusChange(incident) {
     <p style="color:#666; font-size:.85em;">Thank you for helping keep your community informed.</p>`;
 
   await sendEmail({
-    to: reporter.email,
+    to: [reporter.email],
     subject: `Update on your incident report: ${statusLabel}`,
     html,
   });
