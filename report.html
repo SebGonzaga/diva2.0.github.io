@@ -122,9 +122,24 @@
       btn.disabled = true;
       btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Submitting...`;
 
-      // Note: photo attachments aren't uploaded anywhere yet — the file
-      // input is accepted but not sent. Wiring this up needs a Supabase
-      // Storage bucket; ask to add that as a follow-up if you need it.
+      // Photo is optional. Upload it into a per-user folder in the
+      // "incident-photos" bucket (see supabase/004_*.sql) before the
+      // insert, then store the public URL on the row so admin-incidents.html
+      // can display it.
+      let photoUrl = null;
+      const file = photoInput.files[0];
+      if (file) {
+        const ext = file.name.includes(".") ? file.name.split(".").pop() : "jpg";
+        const path = `${user.id}/${Date.now()}.${ext}`;
+        const { error: uploadError } = await sb.storage.from("incident-photos").upload(path, file);
+        if (uploadError) {
+          console.error("Photo upload error:", uploadError);
+          divaToast("Report will be submitted, but the photo failed to upload", "bi-exclamation-triangle");
+        } else {
+          photoUrl = sb.storage.from("incident-photos").getPublicUrl(path).data.publicUrl;
+        }
+      }
+
       const { error } = await sb.from("incidents").insert({
         reporter_id: user.id,
         title: `${type || "Incident"} reported`,
@@ -132,6 +147,7 @@
         category: type,
         area: locationText,
         lat, lng,
+        photo_url: photoUrl,
       });
 
       btn.disabled = false;

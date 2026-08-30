@@ -138,6 +138,14 @@
     appendMessage("assistant", reply, true);
     history.push({ role: "assistant", message: reply });
     saveHistory(history);
+
+    // Minimal usage log (who + when only, never the message content) so
+    // the admin dashboard's "Chatbot Usage" chart reflects real activity
+    // instead of a hardcoded array. See supabase/004_*.sql.
+    if (user) {
+      const { error: logError } = await sb.from("chat_logs").insert({ user_id: user.id });
+      if (logError) console.error("Chat log error:", logError);
+    }
   }
 
   function initVaPage() {

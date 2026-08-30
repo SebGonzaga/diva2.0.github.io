@@ -52,13 +52,13 @@
   <div class="row g-4">
     <div class="col-lg-6">
       <div class="diva-card reveal-on-scroll">
-        <div class="card-eyebrow"><span>User Registrations</span><span class="demo-data-tag">DEMO DATA</span></div>
+        <div class="card-eyebrow"><span>User Registrations</span></div>
         <canvas id="regChart" height="180"></canvas>
       </div>
     </div>
     <div class="col-lg-6">
       <div class="diva-card reveal-on-scroll">
-        <div class="card-eyebrow"><span>Chatbot Usage</span><span class="demo-data-tag">DEMO DATA</span></div>
+        <div class="card-eyebrow"><span>Chatbot Usage</span></div>
         <canvas id="chatChart" height="180"></canvas>
       </div>
     </div>
@@ -98,11 +98,13 @@
     // same data admin-users.html, admin-alerts.html, and admin-incidents.html
     // read and write, so this overview never drifts from what's actually
     // in the system. head:true skips fetching rows and just returns the count.
-    const [usersRes, alertsRes, incidentsRes, pendingRes] = await Promise.all([
+    const [usersRes, alertsRes, incidentsRes, pendingRes, profilesCreatedRes, chatLogsRes] = await Promise.all([
       sb.from("profiles").select("*", { count: "exact", head: true }),
       sb.from("alerts").select("*", { count: "exact", head: true }),
       sb.from("incidents").select("*", { count: "exact", head: true }),
       sb.from("incidents").select("*", { count: "exact", head: true }).eq("status", "pending"),
+      sb.from("profiles").select("created_at"),
+      sb.from("chat_logs").select("created_at"),
     ]);
     const totalUsers = usersRes.count || 0;
     const activeAlerts = alertsRes.count || 0;
@@ -114,15 +116,36 @@
     document.querySelector('[data-count-to]#statIncidents').setAttribute("data-count-to", totalIncidents);
     document.getElementById("statPendingNote").textContent = pendingIncidents + " pending review";
 
+    // Buckets rows by calendar month over the last N months, keyed off
+    // each row's created_at — used for both charts below.
+    function countByMonth(rows, months) {
+      const buckets = [];
+      const now = new Date();
+      for (let i = months - 1; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        buckets.push({ key: `${d.getFullYear()}-${d.getMonth()}`, label: d.toLocaleString([], { month: "short" }), count: 0 });
+      }
+      (rows || []).forEach((r) => {
+        const d = new Date(r.created_at);
+        const key = `${d.getFullYear()}-${d.getMonth()}`;
+        const bucket = buckets.find((b) => b.key === key);
+        if (bucket) bucket.count++;
+      });
+      return buckets;
+    }
+
+    const regBuckets = countByMonth(profilesCreatedRes.data, 6);
+    const chatBuckets = countByMonth(chatLogsRes.data, 6);
+
     new Chart(document.getElementById("regChart"), {
       type: "line",
-      data: { labels: ["Mar","Apr","May","Jun","Jul","Aug"], datasets: [{ label: "New users", data: [80,140,190,260,340,Math.max(totalUsers, 340)], borderColor:"#33c9d1", backgroundColor:"rgba(51,201,209,.15)", fill:true, tension:.35 }] },
-      options: { plugins: { legend: { display:false } } },
+      data: { labels: regBuckets.map((b) => b.label), datasets: [{ label: "New users", data: regBuckets.map((b) => b.count), borderColor:"#33c9d1", backgroundColor:"rgba(51,201,209,.15)", fill:true, tension:.35 }] },
+      options: { plugins: { legend: { display:false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } },
     });
     new Chart(document.getElementById("chatChart"), {
       type: "bar",
-      data: { labels: ["Mar","Apr","May","Jun","Jul","Aug"], datasets: [{ label: "Conversations", data: [40,65,90,120,160,210], backgroundColor:"#2c5581", borderRadius:6 }] },
-      options: { plugins: { legend: { display:false } } },
+      data: { labels: chatBuckets.map((b) => b.label), datasets: [{ label: "Conversations", data: chatBuckets.map((b) => b.count), backgroundColor:"#2c5581", borderRadius:6 }] },
+      options: { plugins: { legend: { display:false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } },
     });
   }
 </script>

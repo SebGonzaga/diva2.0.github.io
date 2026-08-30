@@ -49,7 +49,7 @@
   </div>
 
   <div class="diva-card reveal-on-scroll">
-    <div class="card-eyebrow"><span>Chatbot usage trend</span><span class="demo-data-tag">DEMO DATA</span></div>
+    <div class="card-eyebrow"><span>Chatbot usage trend</span></div>
     <p class="text-muted-diva mb-3" style="font-size:.85rem;">Conversation volume is not yet logged server-side, so this trend is illustrative until the PHP + MySQL backend (spec §27–33) tracks real Virtual Assistance sessions.</p>
     <canvas id="chatTrendChart" height="160"></canvas>
   </div>
@@ -78,14 +78,16 @@
     document.getElementById("app-content").appendChild(document.getElementById("admin-analytics-content").content.cloneNode(true));
     initializeAnimations();
 
-    const [incidentsRes, alertsRes, usersRes] = await Promise.all([
+    const [incidentsRes, alertsRes, usersRes, chatLogsRes] = await Promise.all([
       sb.from("incidents").select("category, status"),
       sb.from("alerts").select("severity"),
       sb.from("profiles").select("role"),
+      sb.from("chat_logs").select("created_at"),
     ]);
     if (incidentsRes.error) console.error("Fetch incidents error:", incidentsRes.error);
     if (alertsRes.error) console.error("Fetch alerts error:", alertsRes.error);
     if (usersRes.error) console.error("Fetch profiles error:", usersRes.error);
+    if (chatLogsRes.error) console.error("Fetch chat logs error:", chatLogsRes.error);
     const incidents = incidentsRes.data || [];
     const alerts = alertsRes.data || [];
     const users = usersRes.data || [];
@@ -125,10 +127,28 @@
       options: { plugins: { legend: { position: "bottom", labels: { boxWidth: 10, font: { size: 11 } } } } },
     });
 
+    // Buckets rows by calendar month over the last N months — same
+    // helper as admin-dashboard.html.
+    function countByMonth(rows, months) {
+      const buckets = [];
+      const now = new Date();
+      for (let i = months - 1; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        buckets.push({ key: `${d.getFullYear()}-${d.getMonth()}`, label: d.toLocaleString([], { month: "short" }), count: 0 });
+      }
+      (rows || []).forEach((r) => {
+        const d = new Date(r.created_at);
+        const key = `${d.getFullYear()}-${d.getMonth()}`;
+        const bucket = buckets.find((b) => b.key === key);
+        if (bucket) bucket.count++;
+      });
+      return buckets;
+    }
+    const chatBuckets = countByMonth(chatLogsRes.data, 6);
     new Chart(document.getElementById("chatTrendChart"), {
       type: "line",
-      data: { labels: ["Mar","Apr","May","Jun","Jul","Aug"], datasets: [{ label: "Conversations", data: [40,65,90,120,160,210], borderColor:"#2c5581", backgroundColor:"rgba(44,85,129,.12)", fill:true, tension:.35 }] },
-      options: { plugins: { legend: { display:false } } },
+      data: { labels: chatBuckets.map((b) => b.label), datasets: [{ label: "Conversations", data: chatBuckets.map((b) => b.count), borderColor:"#2c5581", backgroundColor:"rgba(44,85,129,.12)", fill:true, tension:.35 }] },
+      options: { plugins: { legend: { display:false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } },
     });
   }
 
