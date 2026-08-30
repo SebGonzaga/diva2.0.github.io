@@ -807,7 +807,7 @@ a{color:inherit; text-decoration:none;}
   overflow:hidden;
   border:1px solid var(--surface-line);
 }
-#weather-map, #volcano-map, #evac-map{height:340px; width:100%; background:#e9edf2;}
+#weather-map, #volcano-map, #evac-map, #quake-map{height:340px; width:100%; background:#e9edf2;}
 
 .forecast-strip{
   display:flex; gap:.9rem; overflow-x:auto; padding-bottom:.5rem;
