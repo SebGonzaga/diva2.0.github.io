@@ -180,19 +180,34 @@
     document.getElementById("quakeError").classList.remove("d-none");
   }
 
-  function renderMap(userLat, userLng, quakes) {
+  function renderMap(userLat, userLng, quakes, nearest) {
     if (!quakeMap) {
       quakeMap = L.map("quake-map").setView([userLat, userLng], 6);
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: '&copy; OpenStreetMap contributors' }).addTo(quakeMap);
       L.marker([userLat, userLng], { icon: divaPinIcon("user", "bi-person-fill") }).addTo(quakeMap).bindPopup("Your location");
     }
     quakeMarkers.forEach((m) => quakeMap.removeLayer(m));
+    let nearestMarker = null;
     quakeMarkers = quakes.map((q) => {
-      const pulse = q.mag != null && q.mag >= 4.5;
+      const isNearest = nearest && q === nearest;
+      const pulse = isNearest || (q.mag != null && q.mag >= 4.5);
       const marker = L.marker([q.lat, q.lng], { icon: divaPinIcon("quake", "bi-activity", pulse) }).addTo(quakeMap);
-      marker.bindPopup(`<strong>M${q.mag != null ? q.mag.toFixed(1) : "?"}</strong> — ${q.place}<br>Depth: ${q.depthKm != null ? q.depthKm.toFixed(0) + " km" : "—"}<br>${new Date(q.timeMs).toLocaleString()}`);
+      marker.bindPopup(`${isNearest ? "<strong>Nearest epicenter</strong><br>" : ""}<strong>M${q.mag != null ? q.mag.toFixed(1) : "?"}</strong> — ${q.place}<br>Depth: ${q.depthKm != null ? q.depthKm.toFixed(0) + " km" : "—"}<br>${new Date(q.timeMs).toLocaleString()}`);
+      if (isNearest) nearestMarker = marker;
       return marker;
     });
+
+    // "Epicenter Map" should actually center on the nearest epicenter, not
+    // just show a fixed wide view of the user's region — this is what ties
+    // the map to the "Nearest to You" card beside it, and it re-fits every
+    // time the window/magnitude filter changes the nearest quake, not just
+    // once on first load.
+    if (nearest) {
+      quakeMap.fitBounds([[userLat, userLng], [nearest.lat, nearest.lng]], { padding: [40, 40], maxZoom: 9 });
+      nearestMarker?.openPopup();
+    } else {
+      quakeMap.setView([userLat, userLng], 6);
+    }
     setTimeout(() => quakeMap.invalidateSize(), 200);
   }
 
@@ -249,9 +264,10 @@
       // "no earthquakes" purely because the nearest one was 310km out, which
       // reads as "nothing is happening" when something clearly is.
       const byDistance = [...withDist].sort((a, b) => a.distKm - b.distKm);
+      const nearest = byDistance[0] || null;
 
       renderNearest(userLat, userLng, byDistance);
-      renderMap(userLat, userLng, withDist);
+      renderMap(userLat, userLng, withDist, nearest);
       renderList(withDist.sort((a, b) => b.timeMs - a.timeMs));
 
       document.getElementById("qLocSourceNote").textContent = isRealLocation
