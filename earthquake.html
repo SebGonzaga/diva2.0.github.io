@@ -202,13 +202,21 @@
     // the map to the "Nearest to You" card beside it, and it re-fits every
     // time the window/magnitude filter changes the nearest quake, not just
     // once on first load.
-    if (nearest) {
-      quakeMap.fitBounds([[userLat, userLng], [nearest.lat, nearest.lng]], { padding: [40, 40], maxZoom: 9 });
-      nearestMarker?.openPopup();
-    } else {
-      quakeMap.setView([userLat, userLng], 6);
-    }
-    setTimeout(() => quakeMap.invalidateSize(), 200);
+    //
+    // invalidateSize() MUST run before fitBounds()/setView(), not after —
+    // the map container is freshly inserted from a <template> and has no
+    // real size yet, so calling fitBounds() first makes Leaflet compute a
+    // broken view against a zero-size box, leaving a permanently gray map
+    // even once the container is later resized.
+    setTimeout(() => {
+      quakeMap.invalidateSize();
+      if (nearest) {
+        quakeMap.fitBounds([[userLat, userLng], [nearest.lat, nearest.lng]], { padding: [40, 40], maxZoom: 9 });
+        nearestMarker?.openPopup();
+      } else {
+        quakeMap.setView([userLat, userLng], 6);
+      }
+    }, 200);
   }
 
   function renderNearest(userLat, userLng, nearbyQuakes) {
