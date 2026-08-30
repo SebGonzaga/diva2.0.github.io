@@ -44,7 +44,7 @@
     <div class="col-6 col-lg-3">
       <div class="diva-card diva-card-dark reveal-on-scroll">
         <div class="card-eyebrow"><span>Volcanoes Monitored</span><span class="icon-chip tone-safe"><i class="bi bi-triangle dicon" data-dicon="triangle"></i></span></div>
-        <h3 class="card-num" data-count-to="6">0</h3>
+        <h3 class="card-num" id="statVolcanoes" data-count-to="0">0</h3>
       </div>
     </div>
   </div>
@@ -97,23 +97,46 @@
     // Real counts from Supabase instead of hardcoded numbers — this is the
     // same data admin-users.html, admin-alerts.html, and admin-incidents.html
     // read and write, so this overview never drifts from what's actually
-    // in the system. head:true skips fetching rows and just returns the count.
-    const [usersRes, alertsRes, incidentsRes, pendingRes, profilesCreatedRes, chatLogsRes] = await Promise.all([
-      sb.from("profiles").select("*", { count: "exact", head: true }),
-      sb.from("alerts").select("*", { count: "exact", head: true }),
-      sb.from("incidents").select("*", { count: "exact", head: true }),
-      sb.from("incidents").select("*", { count: "exact", head: true }).eq("status", "pending"),
-      sb.from("profiles").select("created_at"),
+    // in the system.
+    //
+    // NOTE: this used to use { count: "exact", head: true } requests, but
+    // those were coming back empty (Total Users / Incident Reports showed
+    // 0 even though real rows existed — visible from the fact that the
+    // User Registrations chart, which fetches actual rows, plotted them
+    // correctly). HEAD-only count requests are the one thing that broke;
+    // plain row fetches + .length works, so every stat below now uses
+    // that instead, for both correctness and consistency with how
+    // admin-users.html / admin-incidents.html compute their own totals.
+    const [usersRes, alertsRes, incidentsRes, chatLogsRes] = await Promise.all([
+      sb.from("profiles").select("id, created_at"),
+      sb.from("alerts").select("id, expires_at"),
+      sb.from("incidents").select("id, status"),
       sb.from("chat_logs").select("created_at"),
     ]);
-    const totalUsers = usersRes.count || 0;
-    const activeAlerts = alertsRes.count || 0;
-    const totalIncidents = incidentsRes.count || 0;
-    const pendingIncidents = pendingRes.count || 0;
+    if (usersRes.error) console.error("Fetch profiles error:", usersRes.error);
+    if (alertsRes.error) console.error("Fetch alerts error:", alertsRes.error);
+    if (incidentsRes.error) console.error("Fetch incidents error:", incidentsRes.error);
+
+    const profiles = usersRes.data || [];
+    const alerts = alertsRes.data || [];
+    const incidents = incidentsRes.data || [];
+
+    const totalUsers = profiles.length;
+    // "Active" means published and not yet expired — a straight row count
+    // would include alerts whose expires_at has already passed.
+    const nowIso = new Date().toISOString();
+    const activeAlerts = alerts.filter((a) => a.expires_at && a.expires_at > nowIso).length;
+    const totalIncidents = incidents.length;
+    const pendingIncidents = incidents.filter((i) => i.status === "pending").length;
+    // Volcano monitoring is still frontend demo data (see demo-data.js),
+    // so this reads the same array volcano.html renders instead of a
+    // hardcoded number that would silently drift if that list changes.
+    const volcanoesMonitored = (typeof DIVA_DEMO !== "undefined" && DIVA_DEMO.volcanoes) ? DIVA_DEMO.volcanoes.length : 0;
 
     document.querySelector('[data-count-to]#statTotalUsers').setAttribute("data-count-to", totalUsers);
     document.querySelector('[data-count-to]#statActiveAlerts').setAttribute("data-count-to", activeAlerts);
     document.querySelector('[data-count-to]#statIncidents').setAttribute("data-count-to", totalIncidents);
+    document.querySelector('[data-count-to]#statVolcanoes').setAttribute("data-count-to", volcanoesMonitored);
     document.getElementById("statPendingNote").textContent = pendingIncidents + " pending review";
 
     // Buckets rows by calendar month over the last N months, keyed off
@@ -134,7 +157,7 @@
       return buckets;
     }
 
-    const regBuckets = countByMonth(profilesCreatedRes.data, 6);
+    const regBuckets = countByMonth(profiles, 6);
     const chatBuckets = countByMonth(chatLogsRes.data, 6);
 
     new Chart(document.getElementById("regChart"), {
