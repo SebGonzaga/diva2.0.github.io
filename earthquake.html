@@ -78,7 +78,7 @@
           <div class="card-eyebrow"><span>Nearest to You</span><span class="demo-data-tag" style="background:var(--accent-cyan); color:#fff;">LIVE</span></div>
           <div id="qNearestEmpty" class="empty-state-inline d-none">
             <i class="bi bi-check-circle glyph dicon" data-dicon="check-circle"></i>
-            <p>No tracked earthquakes within 300 km of your location for this window.</p>
+            <p>No tracked earthquakes match the current time window and magnitude filter.</p>
           </div>
           <div id="qNearestBody" class="d-none">
             <h3 class="card-num" id="qNearestMag" style="font-size:2.6rem;">—</h3>
@@ -142,8 +142,6 @@
   const user = renderAppShell("earthquake.html", { title: "Earthquake" });
   let quakeMap = null;
   let quakeMarkers = [];
-  const NEARBY_QUAKE_KM = 300; // wider than alerts/incidents — shaking is felt far from the epicenter
-
   // Fallback location if geolocation is denied/unavailable — Calamba,
   // Laguna, same fallback used everywhere else in this app. Clearly noted
   // in the UI, never presented as if it were the resident's real GPS.
@@ -246,9 +244,13 @@
     try {
       const quakes = await fetchPhilippineEarthquakes({ days, minMagnitude });
       const withDist = quakes.map((q) => ({ ...q, distKm: haversineKm(userLat, userLng, q.lat, q.lng) }));
-      const nearby = withDist.filter((q) => q.distKm <= NEARBY_QUAKE_KM).sort((a, b) => a.distKm - b.distKm);
+      // "Nearest to You" always shows the closest tracked earthquake, no
+      // matter how far away — a 300km cutoff meant residents sometimes saw
+      // "no earthquakes" purely because the nearest one was 310km out, which
+      // reads as "nothing is happening" when something clearly is.
+      const byDistance = [...withDist].sort((a, b) => a.distKm - b.distKm);
 
-      renderNearest(userLat, userLng, nearby);
+      renderNearest(userLat, userLng, byDistance);
       renderMap(userLat, userLng, withDist);
       renderList(withDist.sort((a, b) => b.timeMs - a.timeMs));
 

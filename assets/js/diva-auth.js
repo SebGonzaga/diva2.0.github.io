@@ -49,7 +49,11 @@ const DivaAuth = {
       .eq("id", session.user.id)
       .single();
 
-    if (error || !profile) { this._clearCache(); return null; }
+    if (error || !profile) {
+      console.error("Supabase profile fetch error:", error);
+      this._clearCache();
+      return null;
+    }
 
     const user = {
       id: session.user.id,
@@ -67,8 +71,13 @@ const DivaAuth = {
    *  suspension isn't wired up in Supabase yet (see note in README). */
   async login(email, password) {
     const { data, error } = await sb.auth.signInWithPassword({ email, password });
-    if (error || !data.session) return null;
-    return this.init(); // populates + returns the cached user
+    if (error || !data.session) {
+      console.error("Supabase sign-in error:", error);
+      return null;
+    }
+    const user = await this.init();
+    if (!user) console.error("Signed in, but profile fetch/init failed — check the 'read own profile' RLS policy and that a profiles row exists for this user.");
+    return user;
   },
 
   /** Registers a new Community Resident account via Supabase Auth.

@@ -125,11 +125,6 @@
   // Fallback coordinates if the live location fetch fails.
   const TAAL_FALLBACK = { lat: 14.0021, lng: 120.9932, elevM: 311 };
 
-  // Provided by the person for this project's own use — OpenWeatherMap key.
-  // Read from localStorage (same key the Weather page's "Add API key" modal
-  // writes to) rather than hardcoded here, so it never ships in page source.
-  const OWM_KEY = (localStorage.getItem("diva_owm_api_key") || "").trim();
-
   const AVIATION_COLOR_META = {
     GREEN: "Green (normal)",
     YELLOW: "Yellow (advisory)",
@@ -192,15 +187,8 @@
     document.getElementById("wxLoading").classList.remove("d-none");
     document.getElementById("wxBody").classList.add("d-none");
     document.getElementById("wxError").classList.add("d-none");
-    if (!OWM_KEY) {
-      document.getElementById("wxLoading").classList.add("d-none");
-      document.getElementById("wxError").classList.remove("d-none");
-      document.getElementById("wxError").querySelector("div").innerHTML = `<strong>No OpenWeatherMap API key set.</strong> Add one on the <a href="weather.html">Weather page</a> first.`;
-      return;
-    }
     try {
-      const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&units=metric&appid=${OWM_KEY}`;
-      const res = await fetch(url);
+      const res = await fetch(`/api/weather?lat=${lat}&lng=${lng}`);
       if (!res.ok) throw new Error("OpenWeatherMap request failed: " + res.status);
       const current = await res.json();
 
