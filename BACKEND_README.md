@@ -61,9 +61,9 @@ Here's exactly what changed and what you still need to do.
 
 ## Email notifications (new)
 `api/notifications.js` is a new serverless function that sends emails via
-[Resend](https://resend.com) (free tier: 100/day, 3,000/month, no domain
-verification needed if you send from their `onboarding@resend.dev` address
-while testing). It handles three triggers:
+**Nodemailer over SMTP** (e.g. a Gmail account with an App Password) — no
+sending domain required, which matters since this project doesn't have one.
+It handles three triggers:
 
 1. Admin publishes an alert → every resident with an email gets it.
 2. Resident submits an incident report → every admin gets notified.
@@ -73,16 +73,28 @@ Nothing in the frontend calls this function directly — it's driven by
 **Supabase Database Webhooks**, so notifications fire even if the browser
 that triggered them closes immediately after.
 
+This is the only file in the project with an npm dependency
+(`nodemailer`, in `package.json`) — `api/chat.js` and `api/weather.js`
+still use plain `fetch()`.
+
 ### Setup steps
-1. **Create a Resend account** at resend.com and grab an API key. For
-   production, verify your own sending domain there too (otherwise you're
-   limited to sending from `onboarding@resend.dev`, which works fine for
-   testing but looks less official to residents).
-2. **Add these environment variables in Vercel** (Settings → Environment
+1. **Create a dedicated Gmail account** for this (e.g.
+   `divaalerts@gmail.com`) rather than using your personal one.
+2. **Turn on 2-Step Verification** on that account (required for app
+   passwords): Google Account → Security → 2-Step Verification.
+3. **Generate an App Password**: Google Account → Security → App
+   Passwords → create one for "Mail". You'll get a 16-character password —
+   copy it, you won't see it again.
+4. **Add these environment variables in Vercel** (Settings → Environment
    Variables):
-   - `RESEND_API_KEY`
-   - `EMAIL_FROM` — e.g. `DIVA <alerts@yourdomain.com>` or
-     `DIVA <onboarding@resend.dev>` for testing
+   - `SMTP_HOST` — `smtp.gmail.com`
+   - `SMTP_PORT` — `465`
+   - `SMTP_SECURE` — `true`
+   - `SMTP_USER` — the Gmail address, e.g. `divaalerts@gmail.com`
+   - `SMTP_PASS` — the 16-character App Password from step 3 (not your
+     normal Gmail password)
+   - `EMAIL_FROM` — e.g. `DIVA Alerts <divaalerts@gmail.com>` (must match
+     `SMTP_USER`'s address or Gmail will reject/rewrite it)
    - `SUPABASE_URL` — same project URL as in `assets/js/supabase-client.js`
    - `SUPABASE_SERVICE_ROLE_KEY` — Supabase → Settings → API →
      `service_role` secret. **Never put this in any frontend file** — it
@@ -90,8 +102,9 @@ that triggered them closes immediately after.
      env var, used only inside a serverless function.
    - `EMAIL_WEBHOOK_SECRET` — make up any long random string.
    - `APP_URL` — e.g. `https://your-app.vercel.app`
-3. **Redeploy** so those env vars take effect.
-4. **In Supabase → Database → Webhooks**, create three webhooks, all
+5. **Redeploy** so those env vars (and the new `package.json` dependency)
+   take effect.
+6. **In Supabase → Database → Webhooks**, create three webhooks, all
    pointing at `https://your-app.vercel.app/api/notifications`, all with
    an HTTP header `x-webhook-secret: <the same string you set above>`:
    - Table `alerts`, event `INSERT`
@@ -103,3 +116,10 @@ that triggered them closes immediately after.
 
 That's it — no changes needed to `report.html` or `admin-alerts.html`;
 they already insert/update the rows that trigger these webhooks.
+
+> **Note on scale:** Gmail SMTP caps out around 500 sends/day, and
+> deliverability can suffer at high volume from a personal-style account.
+> This is a solid fit for tens to low hundreds of residents. If DIVA grows
+> past that, revisit a proper transactional provider (Brevo, SendGrid, or
+> AWS SES) — ask Claude to swap it back in; the webhook/trigger logic in
+> this file won't need to change, only `sendEmail`/`sendEmailBatch`.

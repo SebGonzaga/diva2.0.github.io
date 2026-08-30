@@ -1,10 +1,9 @@
 // /api/notifications.js
 // Serverless function (Vercel Node.js runtime). Receives Supabase Database
-// Webhooks (Dashboard → Database → Webhooks — see supabase/005_*.sql for
-// the exact tables/events to wire up) and sends transactional emails via
-// Resend (https://resend.com). No npm dependencies, same style as
-// api/chat.js and api/weather.js — everything is plain fetch() so this
-// deploys without a package.json/build step.
+// Webhooks (Dashboard -> Database -> Webhooks -- see BACKEND_README.md for
+// the exact tables/events to wire up) and sends emails via Nodemailer over
+// SMTP (e.g. a Gmail account with an App Password). No verified sending
+// domain required -- that's the whole reason this replaced Resend.
 //
 // Handles three triggers, dispatched by table + event:
 //   1. INSERT on alerts     -> email every resident with an email on file
@@ -12,21 +11,47 @@
 //   3. UPDATE on incidents  -> email the reporter, only when status changed
 //
 // Required Vercel environment variables:
-//   RESEND_API_KEY            - from resend.com
-//   EMAIL_FROM                - e.g. "DIVA <alerts@yourdomain.com>", or
-//                                "DIVA <onboarding@resend.dev>" for testing
-//                                without a verified domain
-//   SUPABASE_URL               - same project URL as assets/js/supabase-client.js
-//   SUPABASE_SERVICE_ROLE_KEY  - Supabase → Settings → API → service_role.
-//                                NEVER put this in frontend code — it bypasses
-//                                every RLS policy. It's only safe here because
-//                                this file only ever runs on the server.
-//   EMAIL_WEBHOOK_SECRET       - any random string you make up. Set the same
-//                                value as a custom header on the Supabase
-//                                webhook so this endpoint can reject requests
-//                                that don't come from Supabase.
-//   APP_URL                    - e.g. "https://your-app.vercel.app", used to
-//                                build links inside the emails
+//   SMTP_HOST                  - e.g. "smtp.gmail.com"
+//   SMTP_PORT                  - e.g. 465 (SSL) or 587 (STARTTLS)
+//   SMTP_SECURE                - "true" for port 465, "false" for 587
+//   SMTP_USER                  - the mailbox address, e.g. divaalerts@gmail.com
+//   SMTP_PASS                  - a 16-character Gmail App Password (NOT your
+//                                normal account password -- generate one at
+//                                myaccount.google.com/apppasswords, requires
+//                                2-Step Verification to be turned on first)
+//   EMAIL_FROM                 - e.g. "DIVA Alerts <divaalerts@gmail.com>" --
+//                                must use the same address as SMTP_USER or
+//                                Gmail will reject/rewrite it
+//   SUPABASE_URL                - same project URL as assets/js/supabase-client.js
+//   SUPABASE_SERVICE_ROLE_KEY   - Supabase -> Settings -> API -> service_role.
+//                                 NEVER put this in frontend code -- it bypasses
+//                                 every RLS policy. It's only safe here because
+//                                 this file only ever runs on the server.
+//   EMAIL_WEBHOOK_SECRET        - any random string you make up. Set the same
+//                                 value as a custom header on the Supabase
+//                                 webhook so this endpoint can reject requests
+//                                 that don't come from Supabase.
+//   APP_URL                     - e.g. "https://your-app.vercel.app", used to
+//                                 build links inside the emails
+
+import nodemailer from 'nodemailer';
+
+let transporter; // reused across warm invocations instead of reconnecting every call
+
+function getTransporter() {
+  if (!transporter) {
+    transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: Number(process.env.SMTP_PORT || 465),
+      secure: process.env.SMTP_SECURE !== 'false', // true for 465, false for 587
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+  }
+  return transporter;
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -46,7 +71,7 @@ export default async function handler(req, res) {
     } else if (table === 'incidents' && type === 'UPDATE' && old_record && record.status !== old_record.status) {
       await notifyReporterOfStatusChange(record);
     }
-    // Anything else that matches no branch above is a no-op, not an error —
+    // Anything else that matches no branch above is a no-op, not an error --
     // e.g. an incident UPDATE that didn't touch status.
     return res.status(200).json({ ok: true });
   } catch (err) {
@@ -56,7 +81,7 @@ export default async function handler(req, res) {
 }
 
 // ---------------------------------------------------------------------
-// Supabase REST helper (service role key — bypasses RLS, server-only)
+// Supabase REST helper (service role key -- bypasses RLS, server-only)
 // ---------------------------------------------------------------------
 async function supabaseSelect(pathAndQuery) {
   const res = await fetch(`${process.env.SUPABASE_URL}/rest/v1/${pathAndQuery}`, {
@@ -73,26 +98,24 @@ async function supabaseSelect(pathAndQuery) {
 }
 
 // ---------------------------------------------------------------------
-// Resend helpers
+// Nodemailer helpers
 // ---------------------------------------------------------------------
 async function sendEmail({ to, subject, html }) {
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: process.env.EMAIL_FROM, to, subject, html }),
-  });
-  if (!res.ok) console.error('Resend send error:', await res.text());
+  try {
+    await getTransporter().sendMail({ from: process.env.EMAIL_FROM, to, subject, html });
+  } catch (err) {
+    console.error('SMTP send error:', err.message);
+  }
 }
 
 async function sendEmailBatch(emails) {
-  // Resend's batch endpoint caps at 100 per call, so chunk larger lists.
-  for (let i = 0; i < emails.length; i += 100) {
-    const res = await fetch('https://api.resend.com/emails/batch', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(emails.slice(i, i + 100)),
-    });
-    if (!res.ok) console.error('Resend batch error:', await res.text());
+  // Nodemailer/SMTP has no native batch endpoint like Resend did, so send
+  // each message individually. At resident-list scale (tens to low hundreds)
+  // this is well within Gmail's ~500/day sending limit. Sent one at a time
+  // (not Promise.all) so a slow/failed send can't spike memory or trip
+  // Gmail's rate limiting from a burst of simultaneous connections.
+  for (const email of emails) {
+    await sendEmail(email);
   }
 }
 
@@ -113,8 +136,7 @@ async function notifyResidentsOfAlert(alert) {
 
   await sendEmailBatch(
     emails.map((email) => ({
-      from: process.env.EMAIL_FROM,
-      to: [email],
+      to: email,
       subject: `DIVA Alert: ${alert.title || 'New alert issued'}`,
       html,
     }))
@@ -137,8 +159,7 @@ async function notifyAdminsOfIncident(incident) {
 
   await sendEmailBatch(
     emails.map((email) => ({
-      from: process.env.EMAIL_FROM,
-      to: [email],
+      to: email,
       subject: `New incident report: ${incident.category || 'Incident'}`,
       html,
     }))
@@ -162,7 +183,7 @@ async function notifyReporterOfStatusChange(incident) {
     <p style="color:#666; font-size:.85em;">Thank you for helping keep your community informed.</p>`;
 
   await sendEmail({
-    to: [reporter.email],
+    to: reporter.email,
     subject: `Update on your incident report: ${statusLabel}`,
     html,
   });

@@ -1,0 +1,9 @@
+{
+  "name": "diva",
+  "private": true,
+  "version": "1.0.0",
+  "description": "DIVA -- Vercel serverless functions. Only api/notifications.js has an npm dependency (nodemailer); api/chat.js and api/weather.js still use plain fetch().",
+  "dependencies": {
+    "nodemailer": "^6.9.14"
+  }
+}
