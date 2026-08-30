@@ -180,47 +180,51 @@
     const firstName = (user.name || "there").split(" ")[0];
     document.getElementById("dashGreeting").textContent = `${timeGreeting}, ${firstName}`;
 
-    // Weather stat card — reads the SAME cache the Weather page writes to
-    // (assets/js/main.js: getWeatherCache/setWeatherCache) so this card can
-    // never silently drift from what weather.html actually last showed.
-    // Visiting weather.html at least once populates this; until then, the
-    // card is honest about not having live data yet rather than guessing.
-    (function initWeatherStatCard() {
-      const cache = typeof getWeatherCache === "function" ? getWeatherCache() : null;
+    // Weather stat card — fetches live weather directly via /api/weather,
+    // the same serverless proxy weather.html uses. Previously this only
+    // read a localStorage cache that weather.html wrote to, so the card
+    // stayed stuck on "No data yet" until a resident happened to visit the
+    // Weather page first — this removes that dependency entirely.
+    async function loadWeatherStatCard(lat, lng) {
       const tempEl = document.getElementById("statWeatherTemp");
       const badgeEl = document.getElementById("statWeatherBadge");
       const iconEl = document.getElementById("statWeatherIcon");
       const locEl = document.getElementById("statWeatherLoc");
-      const eyebrow = document.querySelector("#statWeatherTemp").closest(".diva-card").querySelector(".card-eyebrow");
+      const eyebrow = tempEl.closest(".diva-card").querySelector(".card-eyebrow");
+      eyebrow.querySelector(".demo-data-tag")?.remove();
 
-      if (!cache) {
-        tempEl.textContent = "—";
+      try {
+        const res = await fetch(`/api/weather?lat=${lat}&lng=${lng}`);
+        if (!res.ok) throw new Error("weather request failed: " + res.status);
+        const current = await res.json();
+
+        const tempC = Math.round(current.main.temp);
+        const iconCode = current.weather[0].icon;
+        const ICON_MAP = { "01d": "bi-sun", "01n": "bi-moon-stars", "02d": "bi-cloud-sun", "02n": "bi-cloud-moon", "03d": "bi-cloud", "03n": "bi-cloud", "04d": "bi-clouds", "04n": "bi-clouds", "09d": "bi-cloud-drizzle", "09n": "bi-cloud-drizzle", "10d": "bi-cloud-rain", "10n": "bi-cloud-rain", "11d": "bi-cloud-lightning", "11n": "bi-cloud-lightning", "13d": "bi-snow", "13n": "bi-snow", "50d": "bi-cloud-haze", "50n": "bi-cloud-haze" };
+
+        tempEl.textContent = `${tempC}°C`;
+        iconEl.innerHTML = DivaIcons.weatherIconHTML(ICON_MAP[iconCode] || "bi-cloud-sun");
+        locEl.textContent = current.name || "Calamba, Laguna";
+
+        const tone = tempC >= 34 ? "status-critical" : tempC >= 30 ? "status-caution" : "status-safe";
+        const label = tempC >= 34 ? "High heat" : tempC >= 30 ? "Caution" : "Normal";
+        badgeEl.className = `status-badge ${tone}`;
+        badgeEl.innerHTML = `<span class="dot"></span>${label}`;
+        return tempC;
+      } catch (err) {
+        console.error("Dashboard weather fetch failed, falling back to demo reading:", err);
+        tempEl.textContent = "31°C";
+        iconEl.innerHTML = DivaIcons.weatherIconHTML("bi-cloud-sun");
+        locEl.textContent = "Calamba, Laguna";
         badgeEl.className = "status-badge status-caution";
-        badgeEl.innerHTML = `<span class="dot"></span>No data yet`;
-        locEl.textContent = "Visit Weather page";
-        const tag = document.createElement("span");
-        tag.className = "demo-data-tag";
-        tag.textContent = "NOT SET";
-        eyebrow.appendChild(tag);
-        return;
-      }
-
-      tempEl.textContent = `${cache.tempC}°C`;
-      iconEl.innerHTML = DivaIcons.weatherIconHTML(cache.icon || "bi-cloud-sun");
-      locEl.textContent = cache.city || "Calamba, Laguna";
-
-      const tone = cache.tempC >= 34 ? "status-critical" : cache.tempC >= 30 ? "status-caution" : "status-safe";
-      const label = cache.tempC >= 34 ? "High heat" : cache.tempC >= 30 ? "Caution" : "Normal";
-      badgeEl.className = `status-badge ${tone}`;
-      badgeEl.innerHTML = `<span class="dot"></span>${label}`;
-
-      if (!cache.isLive) {
+        badgeEl.innerHTML = `<span class="dot"></span>Normal`;
         const tag = document.createElement("span");
         tag.className = "demo-data-tag";
         tag.textContent = "DEMO DATA";
         eyebrow.appendChild(tag);
+        return null; // excluded honestly from Community Risk below, not guessed
       }
-    })();
+    }
 
     // Fallback used only if the browser has no geolocation support, the user
     // denies the permission prompt, or the request times out — never silently
@@ -237,7 +241,7 @@
     // fabricated static number. Runs inside renderLocationDependent because
     // "nearby" needs the resolved user location. Each category is honest
     // about whether it actually has data to work with.
-    function computeCommunityRisk(userLat, userLng, nearbyAlerts, nearbyIncidents, nearbyQuakes, quakesAvailable) {
+    function computeCommunityRisk(userLat, userLng, nearbyAlerts, nearbyIncidents, nearbyQuakes, quakesAvailable, weatherTempC) {
       const categories = [];
 
       // Alerts — worst nearby severity, with a small bump per additional
@@ -269,14 +273,12 @@
       }
       categories.push({ label: "Volcano", value: volcanoValue, icon: "bi-triangle", hasData: true });
 
-      // Weather — only real, live data (the same cache weather.html writes
-      // to after calling a real weather API). If the resident hasn't visited
-      // Weather yet, this category is honestly excluded rather than guessed.
-      const wx = typeof getWeatherCache === "function" ? getWeatherCache() : null;
+      // Weather — only real, live data (fetched via /api/weather, same as
+      // the stat card above). Honestly excluded if that fetch failed.
       let weatherValue = 0, weatherHasData = false;
-      if (wx && typeof wx.tempC === "number") {
+      if (typeof weatherTempC === "number") {
         weatherHasData = true;
-        weatherValue = wx.tempC >= 36 ? 100 : wx.tempC >= 34 ? 75 : wx.tempC >= 30 ? 45 : wx.tempC >= 25 ? 20 : 10;
+        weatherValue = weatherTempC >= 36 ? 100 : weatherTempC >= 34 ? 75 : weatherTempC >= 30 ? 45 : weatherTempC >= 25 ? 20 : 10;
       }
       categories.push({ label: "Weather", value: weatherValue, icon: "bi-cloud-sun", hasData: weatherHasData });
 
@@ -353,7 +355,7 @@
     // Everything here depends on where the user actually is, so it only runs
     // once we've resolved a real (or explicitly-fallback) location — see the
     // geolocation call at the bottom of this script.
-    async function renderLocationDependent(userLat, userLng, isRealLocation, quakes) {
+    async function renderLocationDependent(userLat, userLng, isRealLocation, quakes, weatherTempC) {
       // "How many alerts affect ME" — computed here, against the resolved
       // location, then reused by both the hero stat card and the map/legend
       // below, instead of each spot hardcoding its own number that can drift.
@@ -400,7 +402,7 @@
       const quakesAvailable = Array.isArray(quakes);
       const nearbyQuakes = quakesAvailable ? quakes.filter((q) => haversineKm(userLat, userLng, q.lat, q.lng) <= QUAKE_RANGE_KM) : [];
 
-      renderRiskMeter(computeCommunityRisk(userLat, userLng, nearbyAlerts, nearbyIncidents, nearbyQuakes, quakesAvailable));
+      renderRiskMeter(computeCommunityRisk(userLat, userLng, nearbyAlerts, nearbyIncidents, nearbyQuakes, quakesAvailable, weatherTempC));
 
       // The map is only ever as "LIVE" as its two weakest links: whether we
       // actually know where the user is, and the fact that alerts/incidents/
@@ -551,7 +553,8 @@
       } catch (err) {
         console.warn("Live earthquake fetch failed for Community Risk.", err);
       }
-      await renderLocationDependent(lat, lng, isRealLocation, quakes);
+      const weatherTempC = await loadWeatherStatCard(lat, lng);
+      await renderLocationDependent(lat, lng, isRealLocation, quakes, weatherTempC);
       initializeAnimations();
     }
     if (navigator.geolocation) {
