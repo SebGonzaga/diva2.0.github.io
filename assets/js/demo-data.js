@@ -77,10 +77,36 @@ const DIVA_DEMO = {
     { name: "NDRRMC Operations Center", number: "(02) 8911-1406", tag: "NDRRMC" },
   ],
 
+  // Each center now carries a `category` (drives the map pin color/icon —
+  // "shelter" | "government" | "mall") and a human-readable `type` label
+  // shown as a badge in the list. Coordinates are town-center approximations
+  // (same convention as assets/js/taal-places.js) — good for nearest-match
+  // and general map placement, not precise addressing.
   evacuationCenters: [
-    { name: "Barangay San Isidro Covered Court", address: "San Isidro, Calamba, Laguna", lat: 14.2120, lng: 121.1650, contact: "(049) 545-1122", facilities: "Water, medical station, generator" },
-    { name: "Calamba City Sports Complex", address: "Real St, Calamba, Laguna", lat: 14.2141, lng: 121.1653, contact: "(049) 545-3390", facilities: "Water, generator, sleeping area" },
-    { name: "Canlubang Elementary School", address: "Canlubang, Calamba, Laguna", lat: 14.1908, lng: 121.1275, contact: "(049) 549-0021", facilities: "Water, first aid" },
+    // --- Calamba, Laguna ---
+    { name: "Barangay San Isidro Covered Court", type: "Covered Court", category: "shelter", address: "San Isidro, Calamba, Laguna", lat: 14.2120, lng: 121.1650, contact: "(049) 545-1122", facilities: "Water, medical station, generator" },
+    { name: "Calamba City Sports Complex", type: "Sports Complex", category: "shelter", address: "Real St, Calamba, Laguna", lat: 14.2141, lng: 121.1653, contact: "(049) 545-3390", facilities: "Water, generator, sleeping area" },
+    { name: "Canlubang Elementary School", type: "School", category: "shelter", address: "Canlubang, Calamba, Laguna", lat: 14.1908, lng: 121.1275, contact: "(049) 549-0021", facilities: "Water, first aid" },
+    { name: "Calamba City Hall", type: "City Hall", category: "government", address: "Brgy. Real, Calamba, Laguna", lat: 14.2145, lng: 121.1649, contact: "(049) 545-1500", facilities: "Command center, registration, medical aid" },
+    { name: "Barangay Real Hall", type: "Barangay Hall", category: "government", address: "Real, Calamba, Laguna", lat: 14.2205, lng: 121.1595, contact: "(049) 545-2202", facilities: "Registration, relief goods distribution" },
+    { name: "Barangay Halang Multi-Purpose Hall", type: "Barangay Hall", category: "government", address: "Halang, Calamba, Laguna", lat: 14.2032, lng: 121.1710, contact: "(049) 545-2201", facilities: "Registration, temporary shelter" },
+    { name: "SM City Calamba", type: "Mall (SM)", category: "mall", address: "National Hwy, Brgy. Real, Calamba, Laguna", lat: 14.2175, lng: 121.1660, contact: "(049) 545-9000", facilities: "Designated evacuation area, generator, security" },
+
+    // --- Near Taal Volcano (Batangas / Cavite) ---
+    { name: "Talisay Municipal Hall", type: "Municipal Hall", category: "government", address: "Talisay, Batangas", lat: 14.0994, lng: 121.0125, contact: "(043) 773-0121", facilities: "Command center, registration" },
+    { name: "Laurel Municipal Hall", type: "Municipal Hall", category: "government", address: "Laurel, Batangas", lat: 14.0000, lng: 120.9167, contact: "(043) 778-0021", facilities: "Command center, relief goods" },
+    { name: "Agoncillo Municipal Hall", type: "Municipal Hall", category: "government", address: "Agoncillo, Batangas", lat: 13.9667, lng: 120.9167, contact: "(043) 773-1021", facilities: "Command center, registration" },
+    { name: "San Nicolas Municipal Hall", type: "Municipal Hall", category: "government", address: "San Nicolas, Batangas", lat: 13.9167, lng: 121.0167, contact: "(043) 706-1021", facilities: "Command center, medical aid" },
+    { name: "Balete Municipal Hall", type: "Municipal Hall", category: "government", address: "Balete, Batangas", lat: 14.0167, lng: 121.0000, contact: "(043) 705-1021", facilities: "Registration, relief goods" },
+    { name: "Sto. Tomas City Hall", type: "City Hall", category: "government", address: "Sto. Tomas, Batangas", lat: 14.1078, lng: 121.1414, contact: "(043) 700-1021", facilities: "Command center, medical station" },
+    { name: "Tanauan City Hall", type: "City Hall", category: "government", address: "Tanauan City, Batangas", lat: 14.0863, lng: 121.1497, contact: "(043) 778-1021", facilities: "Command center, registration" },
+    { name: "SM Center Tanauan", type: "Mall (SM)", category: "mall", address: "J.P. Laurel Hwy, Tanauan City, Batangas", lat: 14.0910, lng: 121.1520, contact: "(043) 778-9000", facilities: "Designated evacuation area, generator" },
+    { name: "Lipa City Hall", type: "City Hall", category: "government", address: "Lipa City, Batangas", lat: 13.9411, lng: 121.1622, contact: "(043) 756-1021", facilities: "Command center, medical station" },
+    { name: "SM City Lipa", type: "Mall (SM)", category: "mall", address: "Marawoy, Lipa City, Batangas", lat: 13.9550, lng: 121.1600, contact: "(043) 756-9000", facilities: "Designated evacuation area, generator, security" },
+    { name: "Batangas City Hall", type: "City Hall", category: "government", address: "Batangas City, Batangas", lat: 13.7565, lng: 121.0583, contact: "(043) 723-1021", facilities: "Command center, medical station" },
+    { name: "SM City Batangas", type: "Mall (SM)", category: "mall", address: "Pallocan West, Batangas City, Batangas", lat: 13.7700, lng: 121.0570, contact: "(043) 723-9000", facilities: "Designated evacuation area, generator" },
+    { name: "Tagaytay City Hall", type: "City Hall", category: "government", address: "Tagaytay City, Cavite", lat: 14.0975, lng: 120.9639, contact: "(046) 483-1021", facilities: "Command center, registration" },
+    { name: "SM City Tagaytay", type: "Mall (SM)", category: "mall", address: "Aguinaldo Hwy, Tagaytay City, Cavite", lat: 14.1030, lng: 120.9450, contact: "(046) 483-9000", facilities: "Designated evacuation area, generator, security" },
   ],
 
   quickPrompts: [

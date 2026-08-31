@@ -449,9 +449,14 @@
           .addTo(groups.incidents);
       });
 
+      // Shelters, barangay/city halls, and SM malls that accept evacuees all
+      // share the "shelters" filter/layer group, but keep their own marker
+      // color via `category` — see assets/js/demo-data.js.
+      const EVAC_ICONS = { shelter: "bi-house-heart-fill", government: "bi-bank2", mall: "bi-shop" };
       DIVA_DEMO.evacuationCenters.forEach((c) => {
-        L.marker([c.lat, c.lng], { icon: pinIcon("shelter", "bi-house-heart-fill") })
-          .bindPopup(`<strong>${c.name}</strong><br>${c.address}`)
+        const cat = c.category || "shelter";
+        L.marker([c.lat, c.lng], { icon: pinIcon(cat, EVAC_ICONS[cat] || EVAC_ICONS.shelter) })
+          .bindPopup(`<strong>${c.name}</strong><br>${c.type || ""}<br>${c.address}`)
           .addTo(groups.shelters);
       });
 

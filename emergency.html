@@ -29,6 +29,12 @@
 
   <div class="diva-card reveal-on-scroll" id="evac">
     <div class="card-eyebrow"><span>Evacuation Centers</span><span class="demo-data-tag">DEMO DATA — sample LGU-style records</span></div>
+    <div class="map-filter-row mb-3" id="evacFilters">
+      <button class="map-filter-btn active" data-filter="all">All</button>
+      <button class="map-filter-btn" data-filter="shelter"><span class="legend-dot dot-shelter"></span> Shelters &amp; Schools</button>
+      <button class="map-filter-btn" data-filter="government"><span class="legend-dot dot-government"></span> Barangay &amp; City Halls</button>
+      <button class="map-filter-btn" data-filter="mall"><span class="legend-dot dot-mall"></span> SM Malls</button>
+    </div>
     <div class="map-frame mb-3"><div id="evac-map"></div></div>
     <div class="d-flex flex-column gap-3" id="evacList"></div>
   </div>
@@ -69,25 +75,40 @@
     });
 
     const userLat = 14.2117, userLng = 121.1653; // demo user location (Calamba, Laguna)
-    const map = L.map("evac-map").setView([userLat, userLng], 13);
+    const map = L.map("evac-map").setView([userLat, userLng], 11);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
     L.marker([userLat, userLng], { icon: divaPinIcon("user", "bi-person-fill"), title: "You are here" }).addTo(map).bindPopup("Your approximate location");
 
+    // Category → { marker icon class/glyph, list badge label } so shelters,
+    // government buildings (barangay/city/municipal halls), and SM malls
+    // that accept evacuees are all visually distinct on the map and list.
+    const CATEGORY_META = {
+      shelter: { icon: "bi-house-heart-fill", label: "Shelter" },
+      government: { icon: "bi-bank2", label: "Government" },
+      mall: { icon: "bi-shop", label: "Mall" },
+    };
+
     const evacList = document.getElementById("evacList");
+    const categoryLayers = { shelter: L.layerGroup(), government: L.layerGroup(), mall: L.layerGroup() };
+    const listItemsByCategory = { shelter: [], government: [], mall: [] };
+
     DIVA_DEMO.evacuationCenters
       .map((c) => ({ ...c, dist: haversineKm(userLat, userLng, c.lat, c.lng) }))
       .sort((a, b) => a.dist - b.dist)
       .forEach((c) => {
-        L.marker([c.lat, c.lng], { icon: divaPinIcon("shelter", "bi-house-heart-fill") })
-          .addTo(map)
-          .bindPopup(`<strong>${c.name}</strong><br>${c.address}`);
+        const cat = c.category || "shelter";
+        const meta = CATEGORY_META[cat] || CATEGORY_META.shelter;
+
+        L.marker([c.lat, c.lng], { icon: divaPinIcon(cat, meta.icon) })
+          .addTo(categoryLayers[cat])
+          .bindPopup(`<strong>${c.name}</strong><br>${c.type || meta.label}<br>${c.address}`);
 
         const el = document.createElement("div");
         el.className = "d-flex justify-content-between align-items-start gap-3 reveal-on-scroll";
         el.style.cssText = "border-bottom:1px solid var(--surface-line); padding-bottom:1rem;";
         el.innerHTML = `
           <div>
-            <div style="font-weight:700; color:var(--navy-950);">${c.name}</div>
+            <div style="font-weight:700; color:var(--navy-950);">${c.name}<span class="evac-type-badge ${cat}">${c.type || meta.label}</span></div>
             <div style="font-size:.85rem; color:var(--ink-600);">${c.address}</div>
             <div style="font-size:.8rem; color:var(--ink-400);"><i class="bi bi-telephone"></i> ${c.contact} · ${c.facilities}</div>
           </div>
@@ -96,7 +117,24 @@
             <a class="btn-diva btn-diva-ghost btn-diva-sm mt-1" target="_blank" rel="noopener" href="https://www.openstreetmap.org/directions?to=${c.lat},${c.lng}"><i class="bi bi-signpost-split"></i> Directions</a>
           </div>`;
         evacList.appendChild(el);
+        listItemsByCategory[cat].push(el);
       });
+
+    Object.values(categoryLayers).forEach((layer) => layer.addTo(map));
+
+    document.querySelectorAll("#evacFilters .map-filter-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll("#evacFilters .map-filter-btn").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        const f = btn.dataset.filter;
+        Object.entries(categoryLayers).forEach(([cat, layer]) => {
+          const show = f === "all" || f === cat;
+          if (show && !map.hasLayer(layer)) layer.addTo(map);
+          else if (!show && map.hasLayer(layer)) map.removeLayer(layer);
+          listItemsByCategory[cat].forEach((el) => { el.style.display = show ? "" : "none"; });
+        });
+      });
+    });
 
     initializeAnimations();
     setTimeout(() => map.invalidateSize(), 200);
