@@ -48,6 +48,23 @@
     </div>
   </div>
 
+  <div class="row g-4 mb-4">
+    <div class="col-12">
+      <div class="diva-card reveal-on-scroll">
+        <div class="card-eyebrow"><span>Users by location</span><span class="cell-muted" id="userLocationTotalLabel"></span></div>
+        <div id="userLocationChartWrap" style="position:relative;">
+          <canvas id="userLocationChart"></canvas>
+        </div>
+        <div class="d-flex flex-wrap gap-3 mt-3" style="font-size:.78rem;">
+          <span class="text-muted-diva"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#e8703a;margin-right:.35rem;"></span>Near Taal Volcano</span>
+          <span class="text-muted-diva"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#33c9d1;margin-right:.35rem;"></span>Laguna / Calamba area</span>
+          <span class="text-muted-diva"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#2c5581;margin-right:.35rem;"></span>Other (typed manually)</span>
+          <span class="text-muted-diva"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#8a94a6;margin-right:.35rem;"></span>Not set</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="diva-card reveal-on-scroll">
     <div class="card-eyebrow"><span>Chatbot usage trend</span></div>
     <p class="text-muted-diva mb-3" style="font-size:.85rem;">Conversation volume is not yet logged server-side, so this trend is illustrative until the PHP + MySQL backend (spec §27–33) tracks real Virtual Assistance sessions.</p>
@@ -64,6 +81,7 @@
 <script src="assets/js/supabase-client.js"></script>
 <script src="assets/js/diva-auth.js"></script>
 <script src="assets/js/main.js"></script>
+<script src="assets/js/taal-places.js"></script>
 <script type="module">
   await DivaAuth.init();
   const user = renderAppShell("admin-analytics.html", { title: "Analytics" });
@@ -81,7 +99,7 @@
     const [incidentsRes, alertsRes, usersRes, chatLogsRes] = await Promise.all([
       sb.from("incidents").select("category, status"),
       sb.from("alerts").select("severity"),
-      sb.from("profiles").select("role"),
+      sb.from("profiles").select("role, barangay"),
       sb.from("chat_logs").select("created_at"),
     ]);
     if (incidentsRes.error) console.error("Fetch incidents error:", incidentsRes.error);
@@ -125,6 +143,49 @@
       type: "doughnut",
       data: { labels: ["Administrators", "Community Residents"], datasets: [{ data: [admins, residents], backgroundColor: ["#e8703a", "#33c9d1"], borderWidth: 0 }] },
       options: { plugins: { legend: { position: "bottom", labels: { boxWidth: 10, font: { size: 11 } } } } },
+    });
+
+    // Where users live — grouped by the City/Municipality picked at
+    // registration (see register.html / profile.html + taal-places.js).
+    // Bars are colored by region so it's easy to see, at a glance, how many
+    // registered residents sit inside Taal's immediate vicinity vs. the
+    // Laguna/Calamba side of DIVA's coverage area.
+    const REGION_COLORS = { "Near Taal Volcano": "#e8703a", "Laguna / Calamba Area": "#33c9d1" };
+    const OTHER_COLOR = "#2c5581";
+    const UNSET_COLOR = "#8a94a6";
+    const placeGroupByName = {};
+    TaalPlaces.PLACES.forEach((p) => { placeGroupByName[p.name] = p.group; });
+
+    const byCity = {};
+    users.forEach((u) => {
+      const c = (u.barangay || "").trim() || "Not set";
+      byCity[c] = (byCity[c] || 0) + 1;
+    });
+    const cityEntries = Object.entries(byCity).sort((a, b) => b[1] - a[1]);
+    const cityLabels = cityEntries.map(([name]) => name);
+    const cityCounts = cityEntries.map(([, count]) => count);
+    const cityColors = cityEntries.map(([name]) => {
+      if (name === "Not set") return UNSET_COLOR;
+      return REGION_COLORS[placeGroupByName[name]] || OTHER_COLOR;
+    });
+
+    document.getElementById("userLocationTotalLabel").textContent = users.length + " total";
+    // Give the chart enough vertical room regardless of how many distinct
+    // cities show up, so labels don't get squeezed together.
+    document.getElementById("userLocationChartWrap").style.height =
+      Math.max(220, cityLabels.length * 36) + "px";
+    new Chart(document.getElementById("userLocationChart"), {
+      type: "bar",
+      data: {
+        labels: cityLabels.length ? cityLabels : ["No accounts yet"],
+        datasets: [{ data: cityCounts.length ? cityCounts : [1], backgroundColor: cityColors.length ? cityColors : [UNSET_COLOR], borderRadius: 6, maxBarThickness: 22 }],
+      },
+      options: {
+        indexAxis: "y",
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { x: { beginAtZero: true, ticks: { precision: 0 } } },
+      },
     });
 
     // Buckets rows by calendar month over the last N months — same
