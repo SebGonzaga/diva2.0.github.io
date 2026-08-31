@@ -123,12 +123,16 @@
     const t = text.toLowerCase();
     const near = /(near me|nearby|malapit)/.test(t);
     const howMany = /how many|ilan/.test(t);
+    // "today/now/current(ly)/right now/ngayon/kasalukuyan" -- covers phrasing
+    // like "any alerts today?" or "incidents right now?" that ask about the
+    // present state without using "near me" or "how many".
+    const recency = /(today|now|currently|current|right now|ngayon|kasalukuyan)/.test(t);
     if (/taal|bulkang taal/.test(t) && /(status|alert level|update)/.test(t)) return "volcano";
-    if (/incident/.test(t) && (near || howMany || /report/.test(t))) return "incidents";
+    if (/incident/.test(t) && (near || howMany || recency || /report/.test(t))) return "incidents";
     if (/(evacuation center|shelter|paglikas)/.test(t)) return "shelters";
-    if (/\balert/.test(t) && !/alert level/.test(t) && (near || howMany || /active/.test(t) || /babala/.test(t))) return "alerts";
-    if (/(epicenter|earthquake|lindol|quake)/.test(t) && (near || /nearest|latest|recent|last|newest/.test(t))) return "earthquake";
-    if (/(weather|panahon|ulan)/.test(t) && /(today|now|current|currently|ngayon|right now)/.test(t)) return "weather";
+    if (/\balert/.test(t) && !/alert level/.test(t) && (near || howMany || recency || /active|any/.test(t) || /babala/.test(t))) return "alerts";
+    if (/(epicenter|earthquake|lindol|quake)/.test(t) && (near || recency || /nearest|latest|recent|last|newest/.test(t))) return "earthquake";
+    if (/(weather|panahon|ulan)/.test(t) && recency) return "weather";
     return null;
   }
 

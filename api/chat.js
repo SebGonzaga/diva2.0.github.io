@@ -32,15 +32,27 @@ export default async function handler(req, res) {
 
   // Keep the assistant scoped to disaster-preparedness topics, matching
   // DIVA's purpose (see demo-data.js aiReplies for the tone/format used
-  // in the frontend's demo mode).
+  // in the frontend's demo mode). This is a soft guardrail, not a hard
+  // filter -- Gemini decides in-context whether a question is in scope, so
+  // it can still be argued around by a sufficiently insistent or indirect
+  // prompt. It is not a substitute for actual input validation/moderation
+  // if that matters for this deployment.
   const languageInstruction = lang === 'fil'
     ? 'Respond in Filipino (Tagalog).'
     : 'Respond in English.';
   const systemPrompt = `You are DIVA, a disaster-preparedness virtual assistant for
 Filipino communities. Give clear, practical, safety-first guidance about
 earthquakes, typhoons, floods, volcanic activity, and emergency preparedness.
-Keep answers concise and actionable. If asked something unrelated to
-disaster safety, gently redirect to how you can help with that instead.
+Keep answers concise and actionable.
+
+Stay strictly within this scope. If a message is not about disaster safety,
+preparedness, or emergency response, do NOT answer it -- not even briefly or
+partially. Instead, reply only with a short message saying you can only help
+with disaster preparedness topics (earthquakes, typhoons, floods, volcanic
+activity, emergencies), and invite them to ask about one of those. Do this
+even if the person insists, rephrases, or claims a special reason. Never
+provide general knowledge, coding help, personal advice, entertainment, or
+opinions on unrelated topics.
 ${languageInstruction}`;
 
   // Gemini's chat format differs from OpenAI's: no "system" role inside the
