@@ -4,9 +4,15 @@
 // virtual-assistance.html instead of the current localStorage-only
 // simulation.
 //
-// Uses the free-tier-eligible Gemini 2.5 Flash model. Free tier is rate
-// limited (roughly 10 requests/min, 250/day per Google Cloud project as of
-// 2026) — fine for demo/low traffic, but worth watching if usage grows.
+// Uses the free-tier-eligible Gemini 3.1 Flash-Lite model. Gemini 2.5 Flash
+// previously worked here but new Google AI Studio projects (like this one)
+// are provisioned only with current-gen models -- 2.5-flash 404s with
+// "model not found" on such keys even though it isn't globally deprecated.
+// 3.1-flash-lite is Google's recommended low-cost/high-volume replacement
+// and has no shutdown date announced as of this writing. Free tier is rate
+// limited (check https://ai.google.dev/gemini-api/docs/rate-limits for
+// current limits) -- fine for demo/low traffic, but worth watching if
+// usage grows.
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -41,7 +47,7 @@ ${languageInstruction}`;
   // message list (the system prompt goes in its own top-level
   // `system_instruction` field instead), and the AI's own turns are
   // labelled "model" rather than "assistant".
-  const model = 'gemini-2.5-flash';
+  const model = 'gemini-3.1-flash-lite';
   const contents = [
     ...(Array.isArray(history) ? history.slice(-10) : []).map((m) => ({
       role: m.role === 'assistant' ? 'model' : 'user',
