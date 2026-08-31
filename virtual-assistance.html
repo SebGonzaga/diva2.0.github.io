@@ -93,6 +93,45 @@
     return "default";
   }
 
+  // Some questions ask for live numbers the chatbot has no way to know —
+  // how many incidents/alerts are near the user right now, today's actual
+  // weather, the nearest recent earthquake. Rather than let the AI guess or
+  // make something up, these route straight to the DIVA page that already
+  // shows that data live (Supabase-backed maps, the weather API proxy, the
+  // USGS earthquake feed). Checked before the AI call — no tokens spent,
+  // and it works even if the AI/backend is down.
+  const DATA_INTENT_REPLIES = {
+    en: {
+      incidents: { icon: "bi-geo-alt", heading: "Live incident map", intro: "I can't count incidents from here, but the Situation Map plots every resident-reported incident near you in real time.", cta: { label: "Open incident map", href: "dashboard.html?focus=incidents" } },
+      alerts: { icon: "bi-megaphone", heading: "Active alerts", intro: "I don't have live alert counts in this chat, but the Alerts page lists everything currently active for your area.", cta: { label: "View active alerts", href: "alerts.html" } },
+      weather: { icon: "bi-cloud-sun", heading: "Current weather", intro: "I can't pull today's actual conditions into chat, but the Weather page shows live conditions and the forecast for your location.", cta: { label: "Check the weather", href: "weather.html" } },
+      earthquake: { icon: "bi-activity", heading: "Latest earthquake data", intro: "I don't have live seismic data here, but the Earthquake page tracks the most recent quakes near the Philippines, including distance and magnitude.", cta: { label: "View recent earthquakes", href: "earthquake.html" } },
+      shelters: { icon: "bi-house-heart", heading: "Nearby evacuation centers", intro: "For the closest evacuation centers and their live status, the Situation Map has you covered.", cta: { label: "Find evacuation centers", href: "dashboard.html?focus=shelters" } },
+      volcano: { icon: "bi-triangle", heading: "Taal Volcano status", intro: "For the current PHIVOLCS-style alert level and monitoring details, check the Volcano page.", cta: { label: "View volcano monitoring", href: "volcano.html" } },
+    },
+    fil: {
+      incidents: { icon: "bi-geo-alt", heading: "Live na mapa ng insidente", intro: "Hindi ko mabibilang ang mga insidente dito, pero ipinapakita ng Situation Map ang lahat ng iniulat na insidente malapit sa iyo, real-time.", cta: { label: "Buksan ang mapa ng insidente", href: "dashboard.html?focus=incidents" } },
+      alerts: { icon: "bi-megaphone", heading: "Mga aktibong alerto", intro: "Wala akong live na bilang ng alerto dito, pero nakalista sa Alerts page ang lahat ng kasalukuyang aktibo sa inyong lugar.", cta: { label: "Tingnan ang mga alerto", href: "alerts.html" } },
+      weather: { icon: "bi-cloud-sun", heading: "Kasalukuyang panahon", intro: "Hindi ko makuha ang aktwal na kondisyon ngayon dito, pero ipinapakita ng Weather page ang live na kondisyon at forecast para sa inyong lokasyon.", cta: { label: "Tingnan ang panahon", href: "weather.html" } },
+      earthquake: { icon: "bi-activity", heading: "Pinakabagong datos ng lindol", intro: "Wala akong live na datos ng lindol dito, pero sinusubaybayan ng Earthquake page ang mga pinakabagong lindol malapit sa Pilipinas, kasama ang distansya at magnitude.", cta: { label: "Tingnan ang mga lindol", href: "earthquake.html" } },
+      shelters: { icon: "bi-house-heart", heading: "Pinakamalapit na evacuation center", intro: "Para sa pinakamalapit na evacuation center at kanilang status, tingnan ang Situation Map.", cta: { label: "Hanapin ang evacuation center", href: "dashboard.html?focus=shelters" } },
+      volcano: { icon: "bi-triangle", heading: "Status ng Bulkang Taal", intro: "Para sa kasalukuyang alert level at detalye ng monitoring, tingnan ang Volcano page.", cta: { label: "Tingnan ang volcano monitoring", href: "volcano.html" } },
+    },
+  };
+
+  function detectDataIntent(text) {
+    const t = text.toLowerCase();
+    const near = /(near me|nearby|malapit)/.test(t);
+    const howMany = /how many|ilan/.test(t);
+    if (/taal|bulkang taal/.test(t) && /(status|alert level|update)/.test(t)) return "volcano";
+    if (/incident/.test(t) && (near || howMany || /report/.test(t))) return "incidents";
+    if (/(evacuation center|shelter|paglikas)/.test(t)) return "shelters";
+    if (/\balert/.test(t) && !/alert level/.test(t) && (near || howMany || /active/.test(t) || /babala/.test(t))) return "alerts";
+    if (/(epicenter|earthquake|lindol|quake)/.test(t) && (near || /nearest|latest|recent|last|newest/.test(t))) return "earthquake";
+    if (/(weather|panahon|ulan)/.test(t) && /(today|now|current|currently|ngayon|right now)/.test(t)) return "weather";
+    return null;
+  }
+
   async function sendMessage(text) {
     if (!text.trim()) return;
     const history = loadHistory();
@@ -109,10 +148,29 @@
     host.scrollTop = host.scrollHeight;
     const dotsHandle = DivaAnim.startTypingDots(typingEl.querySelector(".typing-dots"));
 
-    // Calls /api/chat.js, which proxies OpenAI server-side so the API key
-    // never touches the browser. Falls back to a canned demo reply if the
-    // request fails (e.g. OPENAI_API_KEY not configured yet in Vercel).
+    // If this looks like a request for live data (incidents/alerts/weather/
+    // quakes near the user), skip the AI call entirely and point them at
+    // the DIVA page that actually has that data. Deterministic and free —
+    // see detectDataIntent() above.
+    const dataIntent = detectDataIntent(text);
     let reply;
+    if (dataIntent) {
+      reply = divaQuickLinkReply({ tone: "info", ...DATA_INTENT_REPLIES[currentLang][dataIntent] });
+      DivaAnim.stopTypingDots(dotsHandle);
+      typingEl.remove();
+      appendMessage("assistant", reply, true);
+      history.push({ role: "assistant", message: reply });
+      saveHistory(history);
+      if (user) {
+        const { error: logError } = await sb.from("chat_logs").insert({ user_id: user.id });
+        if (logError) console.error("Chat log error:", logError);
+      }
+      return;
+    }
+
+    // Calls /api/chat.js, which proxies Gemini server-side so the API key
+    // never touches the browser. Falls back to a canned demo reply if the
+    // request fails (e.g. GEMINI_API_KEY not configured yet in Vercel).
     try {
       const res = await fetch("/api/chat", {
         method: "POST",

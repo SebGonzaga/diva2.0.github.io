@@ -20,6 +20,20 @@ function divaStructuredReply(r) {
   </div>`;
 }
 
+// Lighter variant of divaStructuredReply for questions the chatbot can't
+// answer with live numbers (incidents/alerts/weather/quakes near you) —
+// no "What to do" steps list, just a short note + a button to the page
+// that actually has that data. See virtual-assistance.html's
+// detectDataIntent().
+function divaQuickLinkReply(r) {
+  const cta = r.cta ? `<a href="${r.cta.href}" class="btn-diva btn-diva-primary btn-diva-sm mt-2">${r.cta.label} <i class="bi bi-arrow-right"></i></a>` : "";
+  return `<div class="diva-reply tone-${r.tone || "info"}">
+    <div class="diva-reply-heading"><i class="bi ${r.icon}"></i> ${r.heading}</div>
+    <p class="diva-reply-intro">${r.intro}</p>
+    ${cta}
+  </div>`;
+}
+
 const DIVA_DEMO = {
   // Composite community risk score for the Dashboard's risk meter.
   // DEMO DATA — a real deployment would derive this from live PAGASA/

@@ -496,6 +496,14 @@
         });
       });
 
+      // Deep-link support: ?focus=incidents|alerts|shelters pre-selects the
+      // matching map filter. Used by the Virtual Assistance chatbot to send
+      // people straight to the live data it can't answer inline (see
+      // virtual-assistance.html's detectDataIntent()).
+      const focusParam = new URLSearchParams(window.location.search).get("focus");
+      const focusBtn = focusParam && document.querySelector(`#mapFilters .map-filter-btn[data-filter="${focusParam}"]`);
+      if (focusBtn) focusBtn.click();
+
       setTimeout(() => map.invalidateSize(), 200);
     }
 

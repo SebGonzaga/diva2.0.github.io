@@ -9,8 +9,8 @@ Here's exactly what changed and what you still need to do.
 - `assets/js/diva-auth.js` — replaces the old localStorage-only `DivaAuth`.
   Same method names (`getUser`, `isAdmin`, `login`, `register`, `logout`),
   now backed by real Supabase Auth. `login`/`register`/`logout` are async.
-- `api/chat.js` — Vercel serverless function proxying OpenAI for
-  `virtual-assistance.html`, so your OpenAI key stays server-side.
+- `api/chat.js` — Vercel serverless function proxying Google's Gemini API
+  for `virtual-assistance.html`, so your Gemini key stays server-side.
 - `api/weather.js` — same idea for OpenWeatherMap.
 - `supabase/schema.sql` — the database schema (already run in your project,
   kept here for reference / re-deploying to a fresh project later).
@@ -36,7 +36,7 @@ Here's exactly what changed and what you still need to do.
 ## Still to do
 1. **Deploy this to Vercel** (push to your connected GitHub repo).
 2. **Environment variables** in Vercel → Settings → Environment Variables:
-   `OPENAI_API_KEY`, `OPENWEATHER_API_KEY`.
+   `GEMINI_API_KEY`, `OPENWEATHER_API_KEY`.
 3. **Run `supabase/002_add_information_severity.sql`** in the SQL Editor —
    a one-line addition so the alerts form's "Information" severity option
    matches the database enum (schema.sql only had advisory/warning/critical).
