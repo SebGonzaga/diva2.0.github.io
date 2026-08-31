@@ -136,31 +136,34 @@
   // and it works even if the AI/backend is down.
   const DATA_INTENT_REPLIES = {
     en: {
-      incidents: { icon: "bi-geo-alt", heading: "Live incident map", intro: "I can't count incidents from here, but the Situation Map plots every resident-reported incident near you in real time.", cta: { label: "Open incident map", href: "dashboard.html?focus=incidents" } },
-      alerts: { icon: "bi-megaphone", heading: "Active alerts", intro: "I don't have live alert counts in this chat, but the Alerts page lists everything currently active for your area.", cta: { label: "View active alerts", href: "alerts.html" } },
-      weather: { icon: "bi-cloud-sun", heading: "Current weather", intro: "I can't pull today's actual conditions into chat, but the Weather page shows live conditions and the forecast for your location.", cta: { label: "Check the weather", href: "weather.html" } },
-      earthquake: { icon: "bi-activity", heading: "Latest earthquake data", intro: "I don't have live seismic data here, but the Earthquake page tracks the most recent quakes near the Philippines, including distance and magnitude.", cta: { label: "View recent earthquakes", href: "earthquake.html" } },
-      shelters: { icon: "bi-house-heart", heading: "Nearby evacuation centers", intro: "For the closest evacuation centers and their live status, the Situation Map has you covered.", cta: { label: "Find evacuation centers", href: "dashboard.html?focus=shelters" } },
-      volcano: { icon: "bi-triangle", heading: "Taal Volcano status", intro: "For the current PHIVOLCS-style alert level and monitoring details, check the Volcano page.", cta: { label: "View volcano monitoring", href: "volcano.html" } },
+      incidents: { icon: "bi-geo-alt", heading: "Live incident map", intro: "The Situation Map plots every resident-reported incident near you in real time.", cta: { label: "Open incident map", href: "dashboard.html?focus=incidents" } },
+      alerts: { icon: "bi-megaphone", heading: "Active alerts", intro: "The Alerts page lists everything currently active for your area.", cta: { label: "View active alerts", href: "alerts.html" } },
+      weather: { icon: "bi-cloud-sun", heading: "Current weather", intro: "The Weather page shows live conditions and the forecast for your location.", cta: { label: "Check the weather", href: "weather.html" } },
+      earthquake: { icon: "bi-activity", heading: "Latest earthquake data", intro: "The Earthquake page tracks the most recent quakes near the Philippines, including distance and magnitude.", cta: { label: "View recent earthquakes", href: "earthquake.html" } },
+      shelters: { icon: "bi-house-heart", heading: "Nearby evacuation centers", intro: "The Situation Map shows the closest evacuation centers and their live status.", cta: { label: "Find evacuation centers", href: "dashboard.html?focus=shelters" } },
+      volcano: { icon: "bi-triangle", heading: "Taal Volcano status", intro: "The Volcano page has the current PHIVOLCS-style alert level and monitoring details.", cta: { label: "View volcano monitoring", href: "volcano.html" } },
     },
     fil: {
-      incidents: { icon: "bi-geo-alt", heading: "Live na mapa ng insidente", intro: "Hindi ko mabibilang ang mga insidente dito, pero ipinapakita ng Situation Map ang lahat ng iniulat na insidente malapit sa iyo, real-time.", cta: { label: "Buksan ang mapa ng insidente", href: "dashboard.html?focus=incidents" } },
-      alerts: { icon: "bi-megaphone", heading: "Mga aktibong alerto", intro: "Wala akong live na bilang ng alerto dito, pero nakalista sa Alerts page ang lahat ng kasalukuyang aktibo sa inyong lugar.", cta: { label: "Tingnan ang mga alerto", href: "alerts.html" } },
-      weather: { icon: "bi-cloud-sun", heading: "Kasalukuyang panahon", intro: "Hindi ko makuha ang aktwal na kondisyon ngayon dito, pero ipinapakita ng Weather page ang live na kondisyon at forecast para sa inyong lokasyon.", cta: { label: "Tingnan ang panahon", href: "weather.html" } },
-      earthquake: { icon: "bi-activity", heading: "Pinakabagong datos ng lindol", intro: "Wala akong live na datos ng lindol dito, pero sinusubaybayan ng Earthquake page ang mga pinakabagong lindol malapit sa Pilipinas, kasama ang distansya at magnitude.", cta: { label: "Tingnan ang mga lindol", href: "earthquake.html" } },
-      shelters: { icon: "bi-house-heart", heading: "Pinakamalapit na evacuation center", intro: "Para sa pinakamalapit na evacuation center at kanilang status, tingnan ang Situation Map.", cta: { label: "Hanapin ang evacuation center", href: "dashboard.html?focus=shelters" } },
-      volcano: { icon: "bi-triangle", heading: "Status ng Bulkang Taal", intro: "Para sa kasalukuyang alert level at detalye ng monitoring, tingnan ang Volcano page.", cta: { label: "Tingnan ang volcano monitoring", href: "volcano.html" } },
+      incidents: { icon: "bi-geo-alt", heading: "Live na mapa ng insidente", intro: "Ipinapakita ng Situation Map ang lahat ng iniulat na insidente malapit sa iyo, real-time.", cta: { label: "Buksan ang mapa ng insidente", href: "dashboard.html?focus=incidents" } },
+      alerts: { icon: "bi-megaphone", heading: "Mga aktibong alerto", intro: "Nakalista sa Alerts page ang lahat ng kasalukuyang aktibo sa inyong lugar.", cta: { label: "Tingnan ang mga alerto", href: "alerts.html" } },
+      weather: { icon: "bi-cloud-sun", heading: "Kasalukuyang panahon", intro: "Ipinapakita ng Weather page ang live na kondisyon at forecast para sa inyong lokasyon.", cta: { label: "Tingnan ang panahon", href: "weather.html" } },
+      earthquake: { icon: "bi-activity", heading: "Pinakabagong datos ng lindol", intro: "Sinusubaybayan ng Earthquake page ang mga pinakabagong lindol malapit sa Pilipinas, kasama ang distansya at magnitude.", cta: { label: "Tingnan ang mga lindol", href: "earthquake.html" } },
+      shelters: { icon: "bi-house-heart", heading: "Pinakamalapit na evacuation center", intro: "Ipinapakita ng Situation Map ang pinakamalapit na evacuation center at kanilang status.", cta: { label: "Hanapin ang evacuation center", href: "dashboard.html?focus=shelters" } },
+      volcano: { icon: "bi-triangle", heading: "Status ng Bulkang Taal", intro: "Makikita sa Volcano page ang kasalukuyang alert level at detalye ng monitoring.", cta: { label: "Tingnan ang volcano monitoring", href: "volcano.html" } },
     },
   };
 
   function detectDataIntent(text) {
     const t = text.toLowerCase();
-    const near = /(near me|nearby|malapit)/.test(t);
-    // "today/now/current(ly)/right now/ngayon/kasalukuyan" -- covers phrasing
-    // like "any earthquakes today?" that asks about the present state
-    // without using "near me" or "how many".
-    const recency = /(today|now|currently|current|right now|ngayon|kasalukuyan)/.test(t);
-    if (/taal|bulkang taal/.test(t) && /(status|alert level|update)/.test(t)) return "volcano";
+    // Words that signal a "how do I prepare / what do I do" question --
+    // these stay with the AI/demo reply, which gives real guidance and
+    // steps. Anything else that names one of these topics is treated as a
+    // status/live-data ask and routed straight to the page that has it,
+    // rather than requiring specific phrasing like "today" or "status" to
+    // trigger the redirect (that gate was letting things like "how is
+    // taal" or "weather?" slip through to the AI, which then pointed
+    // people at external government sites instead of the app's own pages).
+    const prepWords = /(prepare|preparation|paghahanda|paghahandaan|paano.*handa|handa(?!n)|what (should|do) i do|what to do|paano ang gagawin|kit|steps|hakbang|safety tips|dapat gawin)/;
     // Incidents, shelters, and alerts have no legitimate "how do I prepare
     // for an alert" meaning distinct from "what's happening right now" --
     // any mention of them is a request for live data DIVA can't see, so
@@ -170,11 +173,13 @@
     if (/incident/.test(t)) return "incidents";
     if (/(evacuation center|shelter|paglikas)/.test(t)) return "shelters";
     if (/\balert/.test(t) && !/alert level/.test(t)) return "alerts";
-    // Earthquake/weather DO have a legitimate non-live-data meaning ("how
-    // do I prepare for an earthquake"), so only intercept when the phrasing
-    // is clearly asking about the current/live state.
-    if (/(epicenter|earthquake|lindol|quake)/.test(t) && (near || recency || /nearest|latest|recent|last|newest/.test(t))) return "earthquake";
-    if (/(weather|panahon|ulan)/.test(t) && recency) return "weather";
+    // Earthquake/weather/volcano DO have a legitimate non-live-data meaning
+    // ("how do I prepare for an earthquake", "what to do if Taal erupts"),
+    // so only skip the redirect when the phrasing clearly asks for
+    // preparedness guidance rather than current status.
+    if (/taal|bulkang taal/.test(t) && !prepWords.test(t)) return "volcano";
+    if (/(epicenter|earthquake|lindol|quake)/.test(t) && !prepWords.test(t)) return "earthquake";
+    if (/(weather|panahon|ulan)/.test(t) && !prepWords.test(t)) return "weather";
     return null;
   }
 
