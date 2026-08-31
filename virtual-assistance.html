@@ -122,15 +122,23 @@
   function detectDataIntent(text) {
     const t = text.toLowerCase();
     const near = /(near me|nearby|malapit)/.test(t);
-    const howMany = /how many|ilan/.test(t);
     // "today/now/current(ly)/right now/ngayon/kasalukuyan" -- covers phrasing
-    // like "any alerts today?" or "incidents right now?" that ask about the
-    // present state without using "near me" or "how many".
+    // like "any earthquakes today?" that asks about the present state
+    // without using "near me" or "how many".
     const recency = /(today|now|currently|current|right now|ngayon|kasalukuyan)/.test(t);
     if (/taal|bulkang taal/.test(t) && /(status|alert level|update)/.test(t)) return "volcano";
-    if (/incident/.test(t) && (near || howMany || recency || /report/.test(t))) return "incidents";
+    // Incidents, shelters, and alerts have no legitimate "how do I prepare
+    // for an alert" meaning distinct from "what's happening right now" --
+    // any mention of them is a request for live data DIVA can't see, so
+    // route to the relevant page unconditionally instead of gating on
+    // specific phrasing (which is what let "any alerts today?" slip through
+    // to the AI before).
+    if (/incident/.test(t)) return "incidents";
     if (/(evacuation center|shelter|paglikas)/.test(t)) return "shelters";
-    if (/\balert/.test(t) && !/alert level/.test(t) && (near || howMany || recency || /active|any/.test(t) || /babala/.test(t))) return "alerts";
+    if (/\balert/.test(t) && !/alert level/.test(t)) return "alerts";
+    // Earthquake/weather DO have a legitimate non-live-data meaning ("how
+    // do I prepare for an earthquake"), so only intercept when the phrasing
+    // is clearly asking about the current/live state.
     if (/(epicenter|earthquake|lindol|quake)/.test(t) && (near || recency || /nearest|latest|recent|last|newest/.test(t))) return "earthquake";
     if (/(weather|panahon|ulan)/.test(t) && recency) return "weather";
     return null;
