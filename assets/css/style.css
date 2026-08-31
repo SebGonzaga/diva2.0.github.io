@@ -987,6 +987,15 @@ a{color:inherit; text-decoration:none;}
   opacity:.3;
 }
 
+/* Rendered markdown from the live Gemini reply (see renderMarkdown() in
+   virtual-assistance.html) -- paragraphs, bullet lists, bold, links. */
+.bubble-md p{margin:0 0 .65rem;}
+.bubble-md p:last-child{margin-bottom:0;}
+.bubble-md ul{margin:0 0 .65rem; padding-left:1.15rem; display:flex; flex-direction:column; gap:.35rem;}
+.bubble-md ul:last-child{margin-bottom:0;}
+.bubble-md strong{font-weight:700;}
+.bubble-md a{color:var(--accent-cyan); text-decoration:underline;}
+
 /* Structured AI reply card (heading, intro, numbered "what to do" list, CTA) */
 .diva-reply{font-size:.92rem;}
 .diva-reply-heading{

@@ -70,6 +70,40 @@
     </div>`;
   }
 
+  // Gemini returns markdown (**bold**, "- " bullet lines, blank-line
+  // paragraphs) as plain text. Browsers don't interpret that on their own,
+  // and by default collapse newlines/whitespace, which is why replies were
+  // showing up as one run-on line with literal asterisks. This converts
+  // that markdown into real HTML before it goes into the bubble.
+  // Deliberately small/naive (bold, links, bullet lists, paragraphs) --
+  // it's just enough for the kind of formatting Gemini tends to use here,
+  // not a general-purpose markdown parser.
+  function escapeHtml(s) {
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+  function renderMarkdown(text) {
+    const escaped = escapeHtml(text);
+    // Split into blocks on blank lines; each block is either a run of
+    // "- "/"* " bullet lines or a plain paragraph.
+    const blocks = escaped.trim().split(/\n\s*\n/);
+    const html = blocks.map((block) => {
+      const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
+      const isList = lines.length > 0 && lines.every((l) => /^[-*]\s+/.test(l));
+      if (isList) {
+        const items = lines.map((l) => `<li>${inlineMarkdown(l.replace(/^[-*]\s+/, ""))}</li>`).join("");
+        return `<ul>${items}</ul>`;
+      }
+      return `<p>${lines.map(inlineMarkdown).join("<br>")}</p>`;
+    }).join("");
+    return `<div class="bubble-md">${html}</div>`;
+  }
+  function inlineMarkdown(line) {
+    return line
+      .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+      .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+      .replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, "<em>$1</em>");
+  }
+
   function appendMessage(role, text, animate) {
     const host = document.getElementById("chatMessages");
     const empty = document.getElementById("chatEmptyState");
@@ -183,6 +217,8 @@
     // Calls /api/chat.js, which proxies Gemini server-side so the API key
     // never touches the browser. Falls back to a canned demo reply if the
     // request fails (e.g. GEMINI_API_KEY not configured yet in Vercel).
+    let displayReply;
+    let usedLiveApi = false;
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
@@ -197,16 +233,24 @@
       const data = await res.json();
       reply = data.reply;
       if (!reply) throw new Error("empty reply from /api/chat");
+      // reply stays as raw markdown text (saved to history/localStorage and
+      // sent back to Gemini as context on the next turn); displayReply is
+      // the rendered HTML actually shown in the bubble.
+      displayReply = renderMarkdown(reply);
+      usedLiveApi = true;
     } catch (err) {
       console.error("Live chat unavailable, falling back to demo reply:", err);
       const category = classifyPrompt(text);
       reply = DIVA_DEMO.aiReplies[currentLang][category];
+      // Demo replies are pre-built HTML (or plain text for "default") --
+      // show as-is, don't run through the markdown renderer.
+      displayReply = reply;
     }
 
     DivaAnim.stopTypingDots(dotsHandle);
     typingEl.remove();
-    appendMessage("assistant", reply, true);
-    history.push({ role: "assistant", message: reply });
+    appendMessage("assistant", displayReply, true);
+    history.push({ role: "assistant", message: reply, format: usedLiveApi ? "md" : "html" });
     saveHistory(history);
 
     // Minimal usage log (who + when only, never the message content) so
@@ -227,7 +271,7 @@
     if (!history.length) {
       host.innerHTML = emptyStateHtml();
     } else {
-      history.forEach((m) => appendMessage(m.role, m.message, false));
+      history.forEach((m) => appendMessage(m.role, m.format === "md" ? renderMarkdown(m.message) : m.message, false));
     }
 
     // Event delegation: quick-topic buttons only exist in the empty state,
