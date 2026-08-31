@@ -254,13 +254,27 @@ function divaToast(message, icon) {
    ========================================================================= */
 const DivaEmergencyMode = {
   _built: false,
+  _userLat: 14.2117, _userLng: 121.1653, // fallback: Calamba, Laguna — replaced by real GPS in open() when available
+
+  /** Picks the closest evacuation center to a given point (falls back to
+   *  the first listed center if none/no coords) — shared by _build() and
+   *  the live update in open(). */
+  _nearestShelter(lat, lng) {
+    const centers = (window.DIVA_DEMO && window.DIVA_DEMO.evacuationCenters) || [];
+    if (!centers.length) return null;
+    return centers.reduce((best, c) => {
+      const d = haversineKm(lat, lng, c.lat, c.lng);
+      return !best || d < best.dist ? { ...c, dist: d } : best;
+    }, null);
+  },
+
   _build() {
     if (this._built) return;
     const data = (window.DIVA_DEMO) || { alerts: [], evacuationCenters: [], emergencyContacts: [] };
     const topAlert = data.alerts && data.alerts.length
       ? [...data.alerts].sort((a, b) => (b.severity === "critical") - (a.severity === "critical"))[0]
       : null;
-    const nearestShelter = data.evacuationCenters && data.evacuationCenters[0];
+    const nearestShelter = this._nearestShelter(this._userLat, this._userLng);
     const primaryContact = (data.emergencyContacts && data.emergencyContacts.find((c) => c.tag === "NDRRMC")) || (data.emergencyContacts && data.emergencyContacts[0]);
 
     const overlay = document.createElement("div");
@@ -275,8 +289,8 @@ const DivaEmergencyMode = {
       <div class="em-title">${topAlert ? topAlert.title : "Stay alert in your area"}</div>
       <p class="em-desc">${topAlert ? `${topAlert.message} — ${topAlert.area}.` : "Monitor official updates and be ready to act. Use the options below for immediate help."}</p>
       <div class="em-actions">
-        <a class="em-action-btn primary" href="emergency.html#evac" data-press><i class="bi bi-signpost-split-fill"></i> Find Evacuation Center${nearestShelter ? ` — ${nearestShelter.name}` : ""}</a>
-        <a class="em-action-btn" href="${nearestShelter ? `https://www.openstreetmap.org/directions?to=${nearestShelter.lat},${nearestShelter.lng}` : "emergency.html#evac"}" target="_blank" rel="noopener" data-press><i class="bi bi-compass-fill"></i> Get Directions</a>
+        <a class="em-action-btn primary" href="emergency.html#evac" data-press id="emFindShelterBtn"><i class="bi bi-signpost-split-fill"></i> <span id="emFindShelterLabel">Find Evacuation Center${nearestShelter ? ` — ${nearestShelter.name}` : ""}</span></a>
+        <a class="em-action-btn" href="${nearestShelter ? `https://www.openstreetmap.org/directions?to=${nearestShelter.lat},${nearestShelter.lng}` : "emergency.html#evac"}" target="_blank" rel="noopener" data-press id="emDirectionsBtn"><i class="bi bi-compass-fill"></i> Get Directions</a>
         <a class="em-action-btn" href="tel:${primaryContact ? primaryContact.number.replace(/[^\d+]/g, "") : "911"}" data-press><i class="bi bi-telephone-fill"></i> Call Emergency Contact${primaryContact ? ` — ${primaryContact.number}` : ""}</a>
         <a class="em-action-btn" href="report.html" data-press><i class="bi bi-flag-fill"></i> Report Incident</a>
       </div>
@@ -287,10 +301,39 @@ const DivaEmergencyMode = {
     this._built = true;
     this._overlay = overlay;
   },
+
+  /** Re-picks the nearest shelter for real coordinates and updates the
+   *  already-built overlay's "Find Evacuation Center" / "Get Directions"
+   *  links in place, without rebuilding the whole overlay. */
+  _updateNearestShelter(lat, lng) {
+    if (!this._overlay) return;
+    const nearestShelter = this._nearestShelter(lat, lng);
+    if (!nearestShelter) return;
+    const label = this._overlay.querySelector("#emFindShelterLabel");
+    const directionsBtn = this._overlay.querySelector("#emDirectionsBtn");
+    if (label) label.textContent = `Find Evacuation Center — ${nearestShelter.name}`;
+    if (directionsBtn) directionsBtn.href = `https://www.openstreetmap.org/directions?to=${nearestShelter.lat},${nearestShelter.lng}`;
+  },
+
   open() {
     this._build();
     document.body.style.overflow = "hidden";
     this._overlay.classList.add("show");
+
+    // Refine "nearest shelter" with the user's real location — the overlay
+    // opens instantly using the Calamba fallback above, then quietly
+    // upgrades once (or if) GPS resolves so it doesn't block the UI.
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          this._userLat = pos.coords.latitude;
+          this._userLng = pos.coords.longitude;
+          this._updateNearestShelter(this._userLat, this._userLng);
+        },
+        () => {}, // keep the fallback silently — no need to alarm the user in an emergency overlay
+        { timeout: 8000 }
+      );
+    }
     if (window.DivaAnim) {
       if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
       if (window.anime) {
