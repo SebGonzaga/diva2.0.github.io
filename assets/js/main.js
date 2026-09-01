@@ -72,19 +72,25 @@ const DIVA_BOTTOM_NAV = {
   resident: [
     { href: "dashboard.html", icon: "bi-house-door-fill", label: "Home" },
     { href: "alerts.html", icon: "bi-bell-fill", label: "Alerts" },
-    { href: "dashboard.html#situationMap", icon: "bi-geo-alt-fill", label: "Map" },
     { href: "virtual-assistance.html", icon: "bi-robot", label: "DIVA" },
+    // "#more" is a sentinel href (not a real page): renderAppShell()
+    // intercepts it below and opens the same full sidebar menu the
+    // hamburger button opens, instead of navigating. This is how phones
+    // reach Weather/Volcano/Earthquake/Report Incident/Profile — the bar
+    // itself only has room for a few tabs, so it borrows the sidebar as
+    // its "More" sheet rather than leaving those pages one tap short of
+    // reachable.
+    { href: "#more", icon: "bi-grid-3x3-gap-fill", label: "More" },
     // Emergency Mode has to be one tap away on mobile — this is a disaster
-    // app, not a settings menu. "#emergency" is a sentinel href (not a real
-    // page): renderAppShell() intercepts it below and opens the overlay
-    // in place instead of navigating.
+    // app, not a settings menu. "#emergency" is a sentinel href, same
+    // pattern: intercepted below to open the overlay in place.
     { href: "#emergency", icon: "bi-exclamation-triangle-fill", label: "SOS", emergency: true },
   ],
   admin: [
     { href: "admin-dashboard.html", icon: "bi-house-door-fill", label: "Home" },
     { href: "admin-alerts.html", icon: "bi-bell-fill", label: "Alerts" },
-    { href: "dashboard.html#situationMap", icon: "bi-geo-alt-fill", label: "Map" },
     { href: "virtual-assistance.html", icon: "bi-robot", label: "DIVA" },
+    { href: "#more", icon: "bi-grid-3x3-gap-fill", label: "More" },
     { href: "#emergency", icon: "bi-exclamation-triangle-fill", label: "SOS", emergency: true },
   ],
 };
@@ -407,14 +413,22 @@ function renderAppShell(activePage, opts) {
     <nav class="bottom-nav" id="bottomNav" aria-label="Primary"></nav>
   `;
 
+  // Sidebar open/close, shared by the topbar hamburger button and the
+  // bottom nav's "More" tab (defined below) so both trigger the exact same
+  // overlay instead of duplicating the animation logic.
+  const sidebarEl = document.getElementById("appSidebar");
+  const sidebarOverlayEl = document.getElementById("sidebarOverlay");
+  function openSidebar() { DivaAnim.animateSidebarOpen(sidebarEl, sidebarOverlayEl); }
+  function closeSidebar() { DivaAnim.animateSidebarClose(sidebarEl, sidebarOverlayEl); }
+
   // Mobile bottom navigation (resident vs. admin), mirrors the sidebar links
   const bottomNavHost = document.getElementById("bottomNav");
   if (bottomNavHost) {
     const bnLinks = isAdminRole ? DIVA_BOTTOM_NAV.admin : DIVA_BOTTOM_NAV.resident;
     bottomNavHost.innerHTML = bnLinks.map((l) => {
-      const isActive = !l.emergency && activePage === l.href.split("#")[0];
+      const isActive = !l.emergency && l.href !== "#more" && activePage === l.href.split("#")[0];
       const emergencyClass = l.emergency ? "bn-emergency" : "";
-      return `<a class="bn-link ${emergencyClass} ${isActive ? "active" : ""}" href="${l.href}" ${isActive ? 'aria-current="page"' : ""} ${l.emergency ? 'data-emergency-trigger="true"' : ""}><i class="bi ${l.icon}"></i><span>${l.label}</span></a>`;
+      return `<a class="bn-link ${emergencyClass} ${isActive ? "active" : ""}" href="${l.href}" ${isActive ? 'aria-current="page"' : ""} ${l.emergency ? 'data-emergency-trigger="true"' : ""} ${l.href === "#more" ? 'data-more-trigger="true"' : ""}><i class="bi ${l.icon}"></i><span>${l.label}</span></a>`;
     }).join("");
     // The "SOS" tab opens Emergency Mode in place rather than navigating,
     // same as the topbar's Emergency Mode button.
@@ -423,6 +437,17 @@ function renderAppShell(activePage, opts) {
       emergencyTab.addEventListener("click", (e) => {
         e.preventDefault();
         DivaEmergencyMode.open();
+      });
+    }
+    // The "More" tab opens the same sidebar the hamburger button does,
+    // giving mobile users one-tap access to every link (Weather, Volcano,
+    // Earthquake, Report Incident, Profile, and the admin-only pages)
+    // instead of just the 3 tabs that fit in the bar itself.
+    const moreTab = bottomNavHost.querySelector('[data-more-trigger="true"]');
+    if (moreTab) {
+      moreTab.addEventListener("click", (e) => {
+        e.preventDefault();
+        openSidebar();
       });
     }
   }
@@ -446,18 +471,12 @@ function renderAppShell(activePage, opts) {
 
   document.getElementById("logoutBtn").addEventListener("click", () => DivaAuth.logout());
   const toggle = document.getElementById("sidebarToggle");
-  const sidebar = document.getElementById("appSidebar");
-  const overlay = document.getElementById("sidebarOverlay");
   if (toggle) {
     toggle.addEventListener("click", () => {
-      if (sidebar.classList.contains("show")) {
-        DivaAnim.animateSidebarClose(sidebar, overlay);
-      } else {
-        DivaAnim.animateSidebarOpen(sidebar, overlay);
-      }
+      if (sidebarEl.classList.contains("show")) closeSidebar(); else openSidebar();
     });
   }
-  if (overlay) overlay.addEventListener("click", () => DivaAnim.animateSidebarClose(sidebar, overlay));
+  if (sidebarOverlayEl) sidebarOverlayEl.addEventListener("click", closeSidebar);
 
   // Offline detection (spec §38)
   const offlineBanner = document.getElementById("offlineBanner");
