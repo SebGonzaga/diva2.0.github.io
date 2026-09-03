@@ -82,15 +82,22 @@ const DivaAuth = {
 
   /** Registers a new Community Resident account via Supabase Auth.
    *  A database trigger (see supabase/schema.sql) auto-creates the
-   *  matching profiles row. Returns the created session's user, or null
-   *  on failure (e.g. email already registered, weak password). */
+   *  matching profiles row. Returns the created session's user, or
+   *  { error: "message" } on failure (e.g. email already registered,
+   *  weak password, or a server-side trigger/database error). */
   async register({ name, email, password, city }) {
     const { data, error } = await sb.auth.signUp({
       email,
       password,
       options: { data: { full_name: name } },
     });
-    if (error || !data.user) return null;
+    if (error || !data.user) {
+      // Log the FULL error object (status, code, message) — the generic
+      // banner text was hiding real causes like a failing DB trigger,
+      // email rate limiting, or "Database error saving new user".
+      console.error("Supabase sign-up error:", error);
+      return { error: (error && error.message) || "Registration failed. Please try again." };
+    }
 
     // If email confirmation is enabled in Supabase Auth settings, there's
     // no active session yet — the user must confirm via email before
