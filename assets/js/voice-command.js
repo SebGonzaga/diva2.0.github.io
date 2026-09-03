@@ -160,7 +160,24 @@ const VoiceCommand = {
     this._els.widget.classList.toggle("is-listening", state === "listening");
     this._els.widget.classList.toggle("is-processing", state === "processing");
     this._els.thinking.classList.toggle("show", state === "listening" || state === "processing");
-    this._els.mic.disabled = state !== "idle";
+    // Only disable the mic while a command is actively being processed —
+    // it stays tappable during "listening" so tapping again is how the
+    // user tells IRIS they're finished talking (see _onMicTap()).
+    this._els.mic.disabled = state === "processing";
+    this._syncMicIcon(state);
+  },
+
+  _syncMicIcon(state) {
+    const { mic } = this._els;
+    if (state === "listening") {
+      mic.innerHTML = '<i class="bi bi-stop-fill"></i>';
+      mic.setAttribute("aria-label", "Stop listening and send your command");
+      mic.setAttribute("title", "Tap again when you\u2019re done talking");
+    } else {
+      mic.innerHTML = '<i class="bi bi-mic-fill"></i>';
+      mic.setAttribute("aria-label", "Activate Hey IRIS voice command");
+      mic.setAttribute("title", "Hey IRIS \u2014 tap and say a command");
+    }
   },
 
   _showResponseBubble(text, autoHideMs) {
@@ -178,7 +195,14 @@ const VoiceCommand = {
   },
 
   _onMicTap() {
-    if (this._state !== "idle") return; // already listening/processing — ignore extra taps
+    // Tap-to-finish: while IRIS is listening, tapping the mic again is how
+    // the user says "that's everything" — .stop() finalizes whatever's
+    // been captured so far instead of discarding it.
+    if (this._state === "listening") {
+      if (this._recognition) { try { this._recognition.stop(); } catch (e) {} }
+      return;
+    }
+    if (this._state !== "idle") return; // a command is still processing — ignore extra taps
     // Unlock speechSynthesis for this page session. Chrome and mobile
     // Safari both require speech output to be tied to a direct user
     // gesture the *first* time it's used per page — by the time our real
@@ -204,39 +228,75 @@ const VoiceCommand = {
     } catch (e) { /* non-fatal — worst case the first real reply stays silent */ }
   },
 
+  // How long IRIS keeps listening on its own if the user never taps the
+  // mic again to say they're done — generous enough not to feel like a
+  // cutoff, just a safety net against the mic staying open indefinitely.
+  MAX_LISTEN_MS: 20000,
+
   _startListening() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     const rec = new SR();
     rec.lang = (navigator.language && navigator.language.toLowerCase().startsWith("en")) ? navigator.language : "en-US";
-    rec.continuous = false;
-    rec.interimResults = false;
+    // continuous + interim results, rather than the single-shot default,
+    // so a normal mid-sentence pause (thinking about wording, a breath)
+    // doesn't get treated as "done" by the browser's own pause detector —
+    // recognition keeps running, accumulating each finalized chunk, until
+    // the user explicitly taps the mic again (or the safety timeout below).
+    rec.continuous = true;
+    rec.interimResults = true;
     rec.maxAlternatives = 1;
 
+    let finalTranscript = "";
+
     rec.onresult = (e) => {
-      const transcript = (e.results && e.results[0] && e.results[0][0] && e.results[0][0].transcript) || "";
-      this._handleTranscript(transcript);
+      let interim = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const chunk = e.results[i][0].transcript;
+        if (e.results[i].isFinal) finalTranscript += chunk + " ";
+        else interim += chunk;
+      }
+      // Live "here's what I'm hearing" feedback while they keep talking —
+      // also doubles as visible proof the mic didn't just silently die.
+      this._showResponseBubble((finalTranscript + interim).trim() || "Listening\u2026");
     };
     rec.onerror = (e) => {
+      clearTimeout(this._listenTimeout);
       this._setState("idle");
+      this._hideResponseBubble();
       if (e.error === "no-speech") {
         divaToast('Didn\u2019t catch that \u2014 try "Hey IRIS" again.', "bi-mic-mute");
       } else if (e.error === "not-allowed" || e.error === "service-not-allowed") {
         divaToast("Microphone access is blocked for this site.", "bi-mic-mute");
-      } else {
+      } else if (e.error !== "aborted") {
         divaToast("Voice command couldn't start. Please try again.", "bi-exclamation-triangle");
       }
     };
     rec.onend = () => {
-      // Only reset here if we never got as far as processing a result
-      // (e.g. silence/timeout) — a successful result already moved state
-      // to "processing" and this shouldn't stomp on that.
-      if (this._state === "listening") this._setState("idle");
+      clearTimeout(this._listenTimeout);
+      // Only act here if we're still in "listening" — this fires whether
+      // the user tapped to stop, the safety timeout hit, or the browser
+      // gave up entirely (e.g. total silence), so it's the one place that
+      // decides what happens with whatever got captured.
+      if (this._state !== "listening") return;
+      const transcript = finalTranscript.trim();
+      if (transcript) {
+        this._handleTranscript(transcript);
+      } else {
+        this._setState("idle");
+        this._hideResponseBubble();
+        divaToast('Say "Hey IRIS" followed by a command.', "bi-mic");
+      }
     };
 
     this._recognition = rec;
     this._setState("listening");
     try {
       rec.start();
+      this._listenTimeout = setTimeout(() => {
+        if (this._recognition === rec && this._state === "listening") {
+          try { rec.stop(); } catch (e) {}
+        }
+      }, this.MAX_LISTEN_MS);
     } catch (err) {
       console.error("VoiceCommand: recognition failed to start:", err);
       this._setState("idle");
