@@ -68,15 +68,39 @@ const VoiceCommand = {
 
   /** Call once per page load, after the app shell has been built. No-ops if
    *  already mounted (defensive — renderAppShell() only calls this once
-   *  per page anyway) or if the browser lacks either Web Speech API. */
+   *  per page anyway). If SpeechRecognition isn't available, still mounts
+   *  a disabled mic with an explanatory note instead of hiding entirely —
+   *  a silently-missing button is indistinguishable from a bug. */
   mount() {
     if (this._mounted) return;
-    if (!this._supported()) return; // hide the feature entirely — see file header
     this._mounted = true;
+    if (!this._speechSupported()) {
+      this._buildUnsupportedWidget();
+      return;
+    }
     this._muted = this._getMutedPref();
     this._buildWidget();
     this._wireEvents();
     this._primeVoices();
+  },
+
+  _buildUnsupportedWidget() {
+    const el = document.createElement("div");
+    el.className = "voice-widget voice-widget-unsupported";
+    el.id = "voiceWidget";
+    el.innerHTML = `
+      <div class="voice-response-bubble show" id="voiceUnsupportedNote">
+        Voice commands ("Hey IRIS") need Chrome or Edge — not supported in this browser.
+      </div>
+      <button type="button" class="voice-mic-btn" disabled aria-label="Hey IRIS voice command — not supported in this browser" title="Not supported in this browser">
+        <i class="bi bi-mic-mute-fill"></i>
+      </button>
+    `;
+    document.body.appendChild(el);
+    setTimeout(() => {
+      const note = document.getElementById("voiceUnsupportedNote");
+      if (note) note.classList.remove("show");
+    }, 6000);
   },
 
   // Chrome (especially on first page load) returns an empty voice list
@@ -155,12 +179,29 @@ const VoiceCommand = {
 
   _onMicTap() {
     if (this._state !== "idle") return; // already listening/processing — ignore extra taps
+    // Unlock speechSynthesis for this page session. Chrome and mobile
+    // Safari both require speech output to be tied to a direct user
+    // gesture the *first* time it's used per page — by the time our real
+    // reply is ready (after speech recognition + an async chat fetch),
+    // that gesture context is long gone and speak() gets silently
+    // swallowed. Speaking an empty utterance here, inside the actual
+    // click handler, registers the gesture up front so later speak()
+    // calls in this session go through normally.
+    this._unlockSpeechSynthesis();
     // A new command always wins over IRIS still talking from the last one.
     if (this._ttsSupported() && (window.speechSynthesis.speaking || window.speechSynthesis.pending)) {
       window.speechSynthesis.cancel();
     }
     this._hideResponseBubble();
     this._startListening();
+  },
+
+  _unlockSpeechSynthesis() {
+    if (this._synthUnlocked || !this._ttsSupported()) return;
+    this._synthUnlocked = true;
+    try {
+      window.speechSynthesis.speak(new SpeechSynthesisUtterance(""));
+    } catch (e) { /* non-fatal — worst case the first real reply stays silent */ }
   },
 
   _startListening() {
@@ -350,7 +391,11 @@ const VoiceCommand = {
       }, 8000);
     };
     utter.onend = (e) => { stopKeepAlive(); if (originalOnEnd) originalOnEnd(e); };
-    utter.onerror = (e) => { stopKeepAlive(); if (originalOnError) originalOnError(e); };
+    utter.onerror = (e) => {
+      stopKeepAlive();
+      console.error("VoiceCommand: speechSynthesis error:", e.error || e);
+      if (originalOnError) originalOnError(e);
+    };
 
     const doSpeak = () => synth.speak(utter);
     if (wasBusy) setTimeout(doSpeak, 50);

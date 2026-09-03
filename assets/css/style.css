@@ -1650,6 +1650,15 @@ a{color:inherit; text-decoration:none;}
 .voice-mute-btn:hover{ background:rgba(6,14,28,.92); }
 .voice-mute-btn.is-muted{ color:var(--ink-400); }
 
+/* Rendered instead of the working widget when SpeechRecognition isn't
+   available (see VoiceCommand._buildUnsupportedWidget()) — visibly present
+   and explained, rather than silently missing. */
+.voice-widget-unsupported .voice-mic-btn{
+  background:rgba(255,255,255,.08); color:var(--ink-400);
+  box-shadow:none; border:1px solid rgba(255,255,255,.16);
+}
+.voice-widget-unsupported .voice-mic-btn:hover{ transform:none; }
+
 /* Pulsing-dot "thinking" indicator — shown while listening and while the
    command is being processed, removed the moment a response or navigation
    happens (see VoiceCommand._setState() in voice-command.js). */
