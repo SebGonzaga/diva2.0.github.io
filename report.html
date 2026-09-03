@@ -108,7 +108,7 @@
     // "Hey IRIS, I want to report an incident" lands here via
     // assets/js/voice-command.js — consumeIntent() reads (and clears) the
     // sessionStorage hint it left, so a page refresh doesn't re-trigger this.
-    if (window.VoiceCommand) {
+    if (typeof VoiceCommand !== "undefined") {
       const voiceIntent = VoiceCommand.consumeIntent();
       if (voiceIntent && voiceIntent.voiceIntent === "report_incident") {
         document.getElementById("incidentType").focus();

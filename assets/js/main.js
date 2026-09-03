@@ -518,7 +518,7 @@ function renderAppShell(activePage, opts) {
   // the persistent mic button for free, and it only ever appears for a
   // logged-in user (we're already past the requireLogin() check above).
   // Guarded because voice-command.js may not be loaded on every page yet.
-  if (window.VoiceCommand && typeof VoiceCommand.mount === "function") {
+  if (typeof VoiceCommand !== "undefined" && typeof VoiceCommand.mount === "function") {
     VoiceCommand.mount(user);
   }
 
