@@ -46,6 +46,7 @@
 <script src="assets/js/supabase-client.js"></script>
 <script src="assets/js/diva-auth.js"></script>
 <script src="assets/js/main.js"></script>
+<script src="assets/js/voice-command.js"></script>
 <script type="module">
   await DivaAuth.init();
   const user = renderAppShell("virtual-assistance.html", { title: "Virtual Assistance" });
@@ -225,19 +226,11 @@
     let displayReply;
     let usedLiveApi = false;
     try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: text,
-          lang: currentLang,
-          history: history.slice(-10).map((m) => ({ role: m.role, content: m.message })),
-        }),
-      });
-      if (!res.ok) throw new Error("chat request failed: " + res.status);
-      const data = await res.json();
-      reply = data.reply;
-      if (!reply) throw new Error("empty reply from /api/chat");
+      // DivaChatAPI.send() (assets/js/main.js) is the shared client for
+      // /api/chat — also used by the "Hey IRIS" voice command fallback
+      // (assets/js/voice-command.js), so the request/parsing logic only
+      // lives in one place.
+      reply = await DivaChatAPI.send(text, { lang: currentLang, history });
       // reply stays as raw markdown text (saved to history/localStorage and
       // sent back to Gemini as context on the next turn); displayReply is
       // the rendered HTML actually shown in the bubble.

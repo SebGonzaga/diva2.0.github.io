@@ -72,6 +72,7 @@
 <script src="assets/js/supabase-client.js"></script>
 <script src="assets/js/diva-auth.js"></script>
 <script src="assets/js/main.js"></script>
+<script src="assets/js/voice-command.js"></script>
 <script type="module">
   await DivaAuth.init();
   const user = renderAppShell("report.html", { title: "Report Incident" });
@@ -103,6 +104,16 @@
       (v) => v.trim().length >= 10,
       "Please describe what you observed (at least 10 characters)."
     );
+
+    // "Hey IRIS, I want to report an incident" lands here via
+    // assets/js/voice-command.js — consumeIntent() reads (and clears) the
+    // sessionStorage hint it left, so a page refresh doesn't re-trigger this.
+    if (window.VoiceCommand) {
+      const voiceIntent = VoiceCommand.consumeIntent();
+      if (voiceIntent && voiceIntent.voiceIntent === "report_incident") {
+        document.getElementById("incidentType").focus();
+      }
+    }
 
     document.getElementById("reportForm").addEventListener("submit", async (e) => {
       e.preventDefault();

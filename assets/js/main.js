@@ -240,6 +240,32 @@ const DivaFieldValidation = {
   },
 };
 
+/** Shared client for the Gemini-backed chat endpoint (api/chat.js) — used
+ *  by virtual-assistance.html's chat UI AND the "Hey IRIS" voice command
+ *  fallback (assets/js/voice-command.js), so the request shape/parsing only
+ *  lives in one place instead of being copy-pasted between the two. Returns
+ *  the raw markdown reply string on success; throws on any failure (bad
+ *  status, network error, empty reply) so each caller can apply its own
+ *  fallback (virtual-assistance.html shows a canned demo reply, the voice
+ *  command falls back to a short spoken/displayed error). */
+const DivaChatAPI = {
+  async send(message, { lang = "en", history = [] } = {}) {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message,
+        lang,
+        history: history.slice(-10).map((m) => ({ role: m.role, content: m.message })),
+      }),
+    });
+    if (!res.ok) throw new Error("chat request failed: " + res.status);
+    const data = await res.json();
+    if (!data.reply) throw new Error("empty reply from /api/chat");
+    return data.reply;
+  },
+};
+
 function divaToast(message, icon) {
   icon = icon || "bi-check-circle";
   const el = document.createElement("div");
@@ -486,6 +512,15 @@ function renderAppShell(activePage, opts) {
   window.addEventListener("online", updateOnlineStatus);
   window.addEventListener("offline", updateOnlineStatus);
   updateOnlineStatus();
+
+  // "Hey IRIS" voice command mic (assets/js/voice-command.js). Mounted here
+  // — rather than per-page — so every page that builds the app shell gets
+  // the persistent mic button for free, and it only ever appears for a
+  // logged-in user (we're already past the requireLogin() check above).
+  // Guarded because voice-command.js may not be loaded on every page yet.
+  if (window.VoiceCommand && typeof VoiceCommand.mount === "function") {
+    VoiceCommand.mount(user);
+  }
 
   return user;
 }
