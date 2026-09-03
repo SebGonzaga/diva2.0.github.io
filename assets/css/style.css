@@ -1692,8 +1692,11 @@ a{color:inherit; text-decoration:none;}
 .voice-response-bubble.show{ display:block; animation:voice-bubble-in .22s ease-out; }
 @keyframes voice-bubble-in{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
 
+/* Note: unlike the rest of the app's decorative motion, the mic's listening
+   pulse and the thinking dots are functional status indicators (they're
+   how you know IRIS is actually listening/working) rather than flourish,
+   so they intentionally keep animating even under prefers-reduced-motion —
+   only the purely decorative response-bubble entrance is suppressed. */
 @media (prefers-reduced-motion: reduce){
-  .voice-widget.is-listening .voice-mic-btn::after{ animation:none; }
-  .voice-thinking span{ animation:none; opacity:1; transform:none; }
   .voice-response-bubble.show{ animation:none; }
 }
