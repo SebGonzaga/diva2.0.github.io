@@ -76,6 +76,16 @@ const VoiceCommand = {
     this._muted = this._getMutedPref();
     this._buildWidget();
     this._wireEvents();
+    this._primeVoices();
+  },
+
+  // Chrome (especially on first page load) returns an empty voice list
+  // until the async 'voiceschanged' event fires once. Priming it here just
+  // triggers that load early, so the first spoken response can already
+  // pick a matching voice instead of falling back to the engine default.
+  _primeVoices() {
+    if (window.speechSynthesis.getVoices().length) return;
+    window.speechSynthesis.addEventListener("voiceschanged", () => {}, { once: true });
   },
 
   _buildWidget() {
@@ -290,10 +300,9 @@ const VoiceCommand = {
 
   _speak(text) {
     if (this._muted || !this._ttsSupported() || !text) return;
-    window.speechSynthesis.cancel();
     const utter = new SpeechSynthesisUtterance(text);
     this._applyVoiceDefaults(utter);
-    window.speechSynthesis.speak(utter);
+    this._safeSpeak(utter);
   },
 
   /** Speaks a confirmation, then navigates once speech finishes (so the
@@ -303,7 +312,6 @@ const VoiceCommand = {
   _speakThenNavigate(text, href) {
     const go = () => { window.location.href = href; };
     if (this._muted || !this._ttsSupported()) { go(); return; }
-    window.speechSynthesis.cancel();
     const utter = new SpeechSynthesisUtterance(text);
     this._applyVoiceDefaults(utter);
     let navigated = false;
@@ -311,8 +319,44 @@ const VoiceCommand = {
     utter.onend = navigateOnce;
     utter.onerror = navigateOnce;
     setTimeout(navigateOnce, 4000);
-    window.speechSynthesis.speak(utter);
+    this._safeSpeak(utter);
   },
+
+  /** Cancels anything currently speaking/queued and speaks `utter`, working
+   *  around two long-standing Chrome speechSynthesis bugs that otherwise
+   *  make voice output silently fail (most visible on desktop Chrome):
+   *   1. Calling speak() in the same tick as cancel() can get the new
+   *      utterance silently dropped — cancel() isn't fully synchronous
+   *      internally, so the new speak() races it. Queuing speak() on the
+   *      next tick avoids that.
+   *   2. speechSynthesis can just stop mid-utterance after ~15s on longer
+   *      text (e.g. a multi-sentence Gemini reply) — a still-open Chromium
+   *      bug. Nudging it with pause()/resume() every few seconds while it's
+   *      actively speaking keeps it from stalling, with no audible glitch. */
+  _safeSpeak(utter) {
+    const synth = window.speechSynthesis;
+    const wasBusy = synth.speaking || synth.pending;
+    if (wasBusy) synth.cancel();
+
+    let keepAliveTimer = null;
+    const stopKeepAlive = () => { if (keepAliveTimer) { clearInterval(keepAliveTimer); keepAliveTimer = null; } };
+    const originalOnEnd = utter.onend;
+    const originalOnError = utter.onerror;
+    utter.onstart = () => {
+      keepAliveTimer = setInterval(() => {
+        if (!synth.speaking) { stopKeepAlive(); return; }
+        synth.pause();
+        synth.resume();
+      }, 8000);
+    };
+    utter.onend = (e) => { stopKeepAlive(); if (originalOnEnd) originalOnEnd(e); };
+    utter.onerror = (e) => { stopKeepAlive(); if (originalOnError) originalOnError(e); };
+
+    const doSpeak = () => synth.speak(utter);
+    if (wasBusy) setTimeout(doSpeak, 50);
+    else doSpeak();
+  },
+
 
   /** Reads back ({voiceIntent, raw} or null) and clears the sessionStorage
    *  entry a matched intent left for the destination page — one-shot, so a
