@@ -1,5 +1,5 @@
 /* =========================================================================
-   DIVA — AI-Powered Disaster Preparedness and Response Guidance System
+   RAIN — AI-Powered Disaster Preparedness and Response Guidance System
    Design system: "Operations Center" — an emergency-monitoring aesthetic
    built around a night-watch navy field, a scanning-radar signature motif,
    and status colors borrowed from PHIVOLCS/PAGASA-style alert language.
@@ -103,7 +103,7 @@
   /* ---- Theme-aware tokens (dark = default) ----
      --bg-primary drives the app canvas; --canvas-* is for text placed
      directly on that canvas (not inside a card); --card-bg/--card-border
-     are used by .diva-card. Sidebar/topbar/bottom-nav intentionally stay
+     are used by .rain-card. Sidebar/topbar/bottom-nav intentionally stay
      on the fixed navy "chrome" in both themes, like most app shells. */
   --canvas-heading:#ffffff;
   --canvas-body:rgba(255,255,255,.7);
@@ -143,7 +143,7 @@ h1,h2,h3,h4,.font-display{
 
 a{color:inherit; text-decoration:none;}
 
-.text-muted-diva{color:var(--ink-600);}
+.text-muted-rain{color:var(--ink-600);}
 
 .eyebrow{
   font-family:var(--font-mono);
@@ -174,7 +174,7 @@ a{color:inherit; text-decoration:none;}
 /* =========================================================================
    Buttons
    ========================================================================= */
-.btn-diva{
+.btn-rain{
   font-family:var(--font-body);
   font-weight:600;
   border-radius:999px;
@@ -185,44 +185,44 @@ a{color:inherit; text-decoration:none;}
   gap:.5rem;
   transition:transform .15s ease, box-shadow .15s ease, background .35s ease, background-position .35s ease;
 }
-.btn-diva:active{transform:scale(.97);}
+.btn-rain:active{transform:scale(.97);}
 
-.btn-diva-primary{
+.btn-rain-primary{
   background:linear-gradient(135deg, #4fd8de, var(--accent-cyan) 55%, var(--accent-cyan-hover));
   background-size:160% 160%;
   background-position:0% 50%;
   color:var(--navy-950);
   box-shadow:0 6px 16px -8px rgba(51,201,209,.5);
 }
-.btn-diva-primary:hover{
+.btn-rain-primary:hover{
   background-position:100% 50%;
   box-shadow:0 10px 24px -8px rgba(51,201,209,.6);
   color:var(--navy-950);
 }
 
-.btn-diva-outline{
+.btn-rain-outline{
   background:transparent;
   border-color:rgba(255,255,255,.35);
   color:#fff;
 }
-.btn-diva-outline:hover{
+.btn-rain-outline:hover{
   background:rgba(255,255,255,.08);
   border-color:#fff;
   color:#fff;
 }
 
-.btn-diva-ghost{
+.btn-rain-ghost{
   background:transparent;
   border-color:var(--ghost-border, var(--surface-line));
   color:var(--ghost-text, var(--ink-900));
 }
-.btn-diva-ghost:hover{
+.btn-rain-ghost:hover{
   background:var(--navy-900);
   color:#fff;
   border-color:var(--navy-900);
 }
 
-.btn-diva-sm{padding:.45rem 1rem; font-size:.85rem;}
+.btn-rain-sm{padding:.45rem 1rem; font-size:.85rem;}
 
 .btn-emergency{
   background:linear-gradient(135deg, #ef5b6b, var(--status-critical) 60%, #b52b3b);
@@ -244,7 +244,7 @@ a{color:inherit; text-decoration:none;}
 /* =========================================================================
    Navbar (public)
    ========================================================================= */
-.diva-navbar{
+.rain-navbar{
   position:fixed; top:0; left:0; right:0; z-index:1000;
   padding:.9rem 0;
   background:rgba(6,14,28,.72);
@@ -252,7 +252,7 @@ a{color:inherit; text-decoration:none;}
   -webkit-backdrop-filter:blur(14px);
   border-bottom:1px solid rgba(255,255,255,.06);
 }
-.diva-navbar .navbar-brand{
+.rain-navbar .navbar-brand{
   font-family:var(--font-display);
   font-weight:700;
   font-size:1.35rem;
@@ -261,7 +261,7 @@ a{color:inherit; text-decoration:none;}
   align-items:center;
   gap:.55rem;
 }
-.diva-navbar .navbar-brand .brand-mark{
+.rain-navbar .navbar-brand .brand-mark{
   width:30px;height:30px;
   border-radius:8px;
   background:linear-gradient(145deg, var(--accent-cyan), var(--accent-cyan-hover));
@@ -270,18 +270,18 @@ a{color:inherit; text-decoration:none;}
   font-weight:700;
   font-size:.85rem;
 }
-.diva-navbar .nav-link{
+.rain-navbar .nav-link{
   color:rgba(255,255,255,.75);
   font-weight:500;
   font-size:.92rem;
   padding:.5rem 1rem !important;
 }
-.diva-navbar .nav-link:hover{color:#fff;}
+.rain-navbar .nav-link:hover{color:#fff;}
 
 /* =========================================================================
    Hero
    ========================================================================= */
-.diva-hero{
+.rain-hero{
   position:relative;
   background:
     radial-gradient(ellipse at 78% 12%, rgba(51,201,209,.16), transparent 55%),
@@ -294,7 +294,7 @@ a{color:inherit; text-decoration:none;}
   --ghost-text:#fff;
   --ghost-border:rgba(255,255,255,.4);
 }
-.diva-hero::before{
+.rain-hero::before{
   /* faint radar sweep grid */
   content:"";
   position:absolute; inset:0;
@@ -429,16 +429,16 @@ a{color:inherit; text-decoration:none;}
 .icon-badge.tone-red{background:linear-gradient(145deg, #fdedec, var(--status-critical-bg)); color:var(--status-critical);}
 .icon-badge.tone-navy{background:linear-gradient(145deg, var(--navy-800), var(--navy-950)); color:var(--accent-cyan);}
 
-.diva-footer{
+.rain-footer{
   background:linear-gradient(180deg, var(--navy-950), #050b16);
   color:rgba(255,255,255,.6);
   padding:clamp(2.25rem,6vw,3.5rem) 0 clamp(1.25rem,4vw,2rem);
   font-size:.9rem;
 }
-.diva-footer h5{color:#fff; font-family:var(--font-display); font-weight:700; margin-bottom:1rem;}
-.diva-footer a{color:rgba(255,255,255,.6);}
-.diva-footer a:hover{color:var(--accent-cyan);}
-.diva-footer hr{border-color:rgba(255,255,255,.1); margin:2rem 0 1.4rem;}
+.rain-footer h5{color:#fff; font-family:var(--font-display); font-weight:700; margin-bottom:1rem;}
+.rain-footer a{color:rgba(255,255,255,.6);}
+.rain-footer a:hover{color:var(--accent-cyan);}
+.rain-footer hr{border-color:rgba(255,255,255,.1); margin:2rem 0 1.4rem;}
 
 /* =========================================================================
    Auth pages
@@ -485,26 +485,26 @@ a{color:inherit; text-decoration:none;}
   display:flex; align-items:center; justify-content:center;
   color:var(--navy-950); font-weight:700; font-size:.9rem;
 }
-.form-label-diva{
+.form-label-rain{
   font-size:.82rem; font-weight:600; color:var(--navy-950); margin-bottom:.35rem;
 }
-.form-control-diva{
+.form-control-rain{
   border-radius:10px;
   border:1px solid var(--surface-line);
   padding:.72rem .9rem;
   font-size:.95rem;
 }
-.form-control-diva:focus{
+.form-control-rain:focus{
   border-color:var(--accent-cyan);
   box-shadow:0 0 0 3px rgba(51,201,209,.18);
 }
-.form-control-diva.is-invalid,
-.form-control-diva.is-invalid:focus{
+.form-control-rain.is-invalid,
+.form-control-rain.is-invalid:focus{
   border-color:var(--status-critical);
   box-shadow:0 0 0 3px rgba(216,57,74,.14);
 }
-.form-control-diva.is-valid,
-.form-control-diva.is-valid:focus{
+.form-control-rain.is-valid,
+.form-control-rain.is-valid:focus{
   border-color:var(--status-safe);
   box-shadow:0 0 0 3px rgba(31,157,124,.12);
 }
@@ -654,7 +654,7 @@ a{color:inherit; text-decoration:none;}
 
 .app-content{padding:1.75rem; flex:1; padding-bottom:2.5rem;
   /* Ghost buttons / empty-states placed directly on the canvas (not inside
-     a .diva-card) need colors that adapt to the canvas theme. Any .diva-card
+     a .rain-card) need colors that adapt to the canvas theme. Any .rain-card
      re-asserts the light-card versions below, since cards stay light in
      both themes. */
   --ghost-text:var(--canvas-heading);
@@ -667,7 +667,7 @@ a{color:inherit; text-decoration:none;}
 /* =========================================================================
    Cards / status
    ========================================================================= */
-.diva-card{
+.rain-card{
   position:relative;
   background:var(--card-bg);
   border:1px solid var(--card-border);
@@ -685,29 +685,29 @@ a{color:inherit; text-decoration:none;}
   --state-text:var(--ink-600);
   /* visibility handled by JS reveal; never hide by default */
 }
-.diva-card::before{
+.rain-card::before{
   content:"";
   position:absolute; top:0; left:0; right:0; height:3px;
   background:linear-gradient(90deg, var(--accent-cyan), transparent 85%);
   opacity:.55;
 }
-.diva-card.diva-card-dark::before{background:linear-gradient(90deg, var(--accent-cyan), rgba(51,201,209,0) 85%); opacity:.8;}
-.diva-card:hover{
+.rain-card.rain-card-dark::before{background:linear-gradient(90deg, var(--accent-cyan), rgba(51,201,209,0) 85%); opacity:.8;}
+.rain-card:hover{
   background:var(--card-bg);
   box-shadow:0 1px 2px rgba(6,14,28,.2), 0 30px 56px -22px rgba(6,14,28,.5);
   transform:translateY(-3px);
 }
-[data-theme="light"] .diva-card:hover{box-shadow:0 1px 2px rgba(10,24,48,.06), 0 22px 40px -18px rgba(10,24,48,.22);}
+[data-theme="light"] .rain-card:hover{box-shadow:0 1px 2px rgba(10,24,48,.06), 0 22px 40px -18px rgba(10,24,48,.22);}
 /* Cards hosting a Leaflet map must never be transformed — a transformed
    ancestor breaks Leaflet's internal tile/marker positioning math. */
-.diva-card:has(.map-frame):hover{transform:none;}
-.diva-card .card-eyebrow{
+.rain-card:has(.map-frame):hover{transform:none;}
+.rain-card .card-eyebrow{
   font-family:var(--font-mono); font-size:.68rem; letter-spacing:.08em;
   text-transform:uppercase; color:var(--ink-400);
   display:flex; align-items:center; justify-content:space-between;
   margin-bottom:.75rem;
 }
-.diva-card h3.card-num{
+.rain-card h3.card-num{
   font-family:var(--font-display); font-size:2rem; font-weight:700; color:var(--navy-950);
   margin-bottom:.15rem;
   font-variant-numeric:tabular-nums;
@@ -716,16 +716,16 @@ a{color:inherit; text-decoration:none;}
 /* Dark "spotlight" variant — intentionally stays on a fixed navy surface in
    both themes (like the sidebar) so it always reads as an emphasized,
    operations-center accent: risk meter, live map, AI quick-access, admin stats. */
-.diva-card.diva-card-dark{
+.rain-card.rain-card-dark{
   background:linear-gradient(160deg, var(--navy-800), var(--navy-950) 75%);
   border:1px solid var(--app-border);
   color:var(--app-text-primary);
 }
-.diva-card.diva-card-dark .card-eyebrow{color:var(--app-text-muted);}
-.diva-card.diva-card-dark h2,
-.diva-card.diva-card-dark h3,
-.diva-card.diva-card-dark h4{color:#fff;}
-.diva-card.diva-card-dark p{color:var(--app-text-secondary);}
+.rain-card.rain-card-dark .card-eyebrow{color:var(--app-text-muted);}
+.rain-card.rain-card-dark h2,
+.rain-card.rain-card-dark h3,
+.rain-card.rain-card-dark h4{color:#fff;}
+.rain-card.rain-card-dark p{color:var(--app-text-secondary);}
 
 .status-badge{
   display:inline-flex; align-items:center; gap:.4rem;
@@ -777,30 +777,30 @@ a{color:inherit; text-decoration:none;}
 /* =========================================================================
    Admin data tables — used by admin-alerts, admin-incidents, admin-users
    ========================================================================= */
-.table-diva{width:100%; border-collapse:separate; border-spacing:0; font-size:.9rem;}
-.table-diva thead th{
+.table-rain{width:100%; border-collapse:separate; border-spacing:0; font-size:.9rem;}
+.table-rain thead th{
   text-align:left; font-family:var(--font-mono); font-size:.68rem; letter-spacing:.08em;
   text-transform:uppercase; color:var(--ink-400); font-weight:600;
   padding:.6rem .75rem; border-bottom:1px solid var(--surface-line);
   white-space:nowrap;
 }
-.table-diva tbody td{
+.table-rain tbody td{
   padding:.85rem .75rem; border-bottom:1px solid var(--surface-line);
   color:var(--ink-900); vertical-align:middle;
 }
-.table-diva tbody tr:last-child td{border-bottom:none;}
-.table-diva tbody tr{transition:background .15s ease;}
-.table-diva tbody tr:hover{background:rgba(51,201,209,.06);}
-.table-diva .cell-muted{color:var(--ink-400); font-size:.82rem;}
-.table-diva-wrap{overflow-x:auto; margin:0 -.25rem;}
-.table-diva-wrap .table-diva{min-width:640px;}
-.icon-btn-diva{
+.table-rain tbody tr:last-child td{border-bottom:none;}
+.table-rain tbody tr{transition:background .15s ease;}
+.table-rain tbody tr:hover{background:rgba(51,201,209,.06);}
+.table-rain .cell-muted{color:var(--ink-400); font-size:.82rem;}
+.table-rain-wrap{overflow-x:auto; margin:0 -.25rem;}
+.table-rain-wrap .table-rain{min-width:640px;}
+.icon-btn-rain{
   width:34px; height:34px; border-radius:9px; border:1px solid var(--surface-line);
   background:#fff; color:var(--ink-600); display:inline-flex; align-items:center; justify-content:center;
   transition:background .15s ease, color .15s ease, border-color .15s ease, transform .15s ease;
 }
-.icon-btn-diva:hover{background:var(--navy-950); color:#fff; border-color:var(--navy-950); transform:translateY(-1px);}
-.icon-btn-diva.danger:hover{background:linear-gradient(135deg, #ef5b6b, var(--status-critical)); border-color:var(--status-critical);}
+.icon-btn-rain:hover{background:var(--navy-950); color:#fff; border-color:var(--navy-950); transform:translateY(-1px);}
+.icon-btn-rain.danger:hover{background:linear-gradient(135deg, #ef5b6b, var(--status-critical)); border-color:var(--status-critical);}
 
 .map-frame{
   border-radius:var(--radius-md);
@@ -940,7 +940,7 @@ a{color:inherit; text-decoration:none;}
   box-shadow:var(--shadow-card);
   overflow:hidden;
   /* Always a light panel regardless of theme — keep ghost buttons/empty
-     states inside it using the light-surface colors, like .diva-card. */
+     states inside it using the light-surface colors, like .rain-card. */
   --ghost-text:var(--ink-900);
   --ghost-border:var(--surface-line);
   --state-text:var(--ink-600);
@@ -997,21 +997,21 @@ a{color:inherit; text-decoration:none;}
 .bubble-md a{color:var(--accent-cyan); text-decoration:underline;}
 
 /* Structured AI reply card (heading, intro, numbered "what to do" list, CTA) */
-.diva-reply{font-size:.92rem;}
-.diva-reply-heading{
+.rain-reply{font-size:.92rem;}
+.rain-reply-heading{
   display:flex; align-items:center; gap:.5rem;
   font-family:var(--font-mono); font-weight:700; font-size:.78rem; letter-spacing:.05em;
   margin-bottom:.5rem;
 }
-.diva-reply.tone-critical .diva-reply-heading{color:var(--status-critical);}
-.diva-reply.tone-warning .diva-reply-heading{color:var(--status-warning);}
-.diva-reply.tone-caution .diva-reply-heading{color:var(--caution-text);}
-.diva-reply.tone-info .diva-reply-heading{color:var(--info-text);}
-.diva-reply-intro{margin-bottom:.7rem; color:var(--ink-600);}
-.diva-reply-label{font-family:var(--font-mono); font-size:.65rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-400); margin-bottom:.4rem;}
-.diva-reply-steps{list-style:none; margin:0 0 .3rem; padding:0; display:flex; flex-direction:column; gap:.45rem;}
-.diva-reply-steps li{display:flex; align-items:flex-start; gap:.6rem;}
-.diva-reply-steps .step-num{
+.rain-reply.tone-critical .rain-reply-heading{color:var(--status-critical);}
+.rain-reply.tone-warning .rain-reply-heading{color:var(--status-warning);}
+.rain-reply.tone-caution .rain-reply-heading{color:var(--caution-text);}
+.rain-reply.tone-info .rain-reply-heading{color:var(--info-text);}
+.rain-reply-intro{margin-bottom:.7rem; color:var(--ink-600);}
+.rain-reply-label{font-family:var(--font-mono); font-size:.65rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-400); margin-bottom:.4rem;}
+.rain-reply-steps{list-style:none; margin:0 0 .3rem; padding:0; display:flex; flex-direction:column; gap:.45rem;}
+.rain-reply-steps li{display:flex; align-items:flex-start; gap:.6rem;}
+.rain-reply-steps .step-num{
   font-family:var(--font-mono); font-weight:700; font-size:.72rem;
   color:var(--accent-cyan); flex-shrink:0; margin-top:.1rem;
 }
@@ -1046,12 +1046,12 @@ a{color:inherit; text-decoration:none;}
 .icon-chip.tone-caution{background:linear-gradient(145deg, #fcf1cf, var(--status-caution-bg)); color:var(--caution-text);}
 .icon-chip.tone-warning{background:linear-gradient(145deg, #fce1cd, var(--status-warning-bg)); color:var(--status-warning);}
 .icon-chip.tone-critical{background:linear-gradient(145deg, #fad3d8, var(--status-critical-bg)); color:var(--status-critical);}
-.diva-card-dark .icon-chip{background:rgba(255,255,255,.12);}
-.diva-card-dark .icon-chip.tone-cyan{color:var(--accent-cyan);}
-.diva-card-dark .icon-chip.tone-safe{color:var(--dark-tone-safe);}
-.diva-card-dark .icon-chip.tone-caution{color:#f0c44d;}
-.diva-card-dark .icon-chip.tone-warning{color:var(--dark-tone-warning);}
-.diva-card-dark .icon-chip.tone-critical{color:var(--dark-tone-critical);}
+.rain-card-dark .icon-chip{background:rgba(255,255,255,.12);}
+.rain-card-dark .icon-chip.tone-cyan{color:var(--accent-cyan);}
+.rain-card-dark .icon-chip.tone-safe{color:var(--dark-tone-safe);}
+.rain-card-dark .icon-chip.tone-caution{color:#f0c44d;}
+.rain-card-dark .icon-chip.tone-warning{color:var(--dark-tone-warning);}
+.rain-card-dark .icon-chip.tone-critical{color:var(--dark-tone-critical);}
 
 .quick-prompts{display:flex; flex-wrap:wrap; gap:.5rem; padding:0 1.4rem 1rem;}
 .quick-prompt-btn{
@@ -1106,7 +1106,7 @@ a{color:inherit; text-decoration:none;}
 .alert-banner.level-warning{background:var(--status-warning-bg); border-color:#f4c7a9; color:#a34b1f;}
 .alert-banner.level-critical{background:var(--status-critical-bg); border-color:#f0b7bd; color:#a1202f;}
 
-.toast-diva{
+.toast-rain{
   position:fixed; right:1.5rem; bottom:1.5rem; z-index:2000;
   background:var(--navy-950); color:#fff;
   padding:.9rem 1.2rem; border-radius:12px;
@@ -1115,11 +1115,11 @@ a{color:inherit; text-decoration:none;}
   box-shadow:0 20px 40px -12px rgba(6,14,28,.5);
 }
 
-.diva-loading{
+.rain-loading{
   display:flex; flex-direction:column; align-items:center; justify-content:center;
   gap:.7rem; padding:clamp(1.5rem,6vw,2.5rem); color:var(--ink-600);
 }
-.diva-loading .spinner{
+.rain-loading .spinner{
   width:34px;height:34px; border-radius:50%;
   border:3px solid var(--surface-line);
   border-top-color:var(--accent-cyan);
@@ -1133,7 +1133,7 @@ a{color:inherit; text-decoration:none;}
 .empty-state .glyph, .error-state .glyph{font-size:2rem; margin-bottom:.6rem;}
 .error-state{color:var(--status-critical);}
 
-.modal-diva .modal-content{border-radius:var(--radius-lg); border:none;}
+.modal-rain .modal-content{border-radius:var(--radius-lg); border:none;}
 
 /* Below 576px, long forms (like New Alert) become a full-screen sheet
    instead of a small centered box: the header and footer stay pinned so
@@ -1141,14 +1141,14 @@ a{color:inherit; text-decoration:none;}
    actual form fields — scrolls in between. Paired with .modal-fullscreen-
    sm-down on the .modal-dialog in markup. */
 @media (max-width: 575.98px){
-  .modal-diva .modal-content{
+  .modal-rain .modal-content{
     height:100%; border-radius:0;
     display:flex; flex-direction:column;
   }
-  .modal-diva .modal-header{flex:0 0 auto;}
-  .modal-diva form{display:flex; flex-direction:column; min-height:0; flex:1 1 auto;}
-  .modal-diva .modal-body{flex:1 1 auto; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch;}
-  .modal-diva .modal-footer{
+  .modal-rain .modal-header{flex:0 0 auto;}
+  .modal-rain form{display:flex; flex-direction:column; min-height:0; flex:1 1 auto;}
+  .modal-rain .modal-body{flex:1 1 auto; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch;}
+  .modal-rain .modal-footer{
     flex:0 0 auto;
     padding-bottom:calc(.75rem + env(safe-area-inset-bottom));
   }
@@ -1162,6 +1162,22 @@ a{color:inherit; text-decoration:none;}
   display:none;
 }
 .offline-banner.show{display:block;}
+.offline-banner .offline-banner-sub{
+  display:block; font-size:.74rem; font-weight:500;
+  color:rgba(255,255,255,.65); margin-top:.15rem;
+}
+
+/* "showing saved data" tag — used on cards that fell back to a cached
+   snapshot (alerts/weather/volcano/quakes) while offline, same visual
+   language as .demo-data-tag but distinct wording/color so residents can
+   tell "demo placeholder" and "real data, just not fresh" apart. */
+.cached-data-tag{
+  display:inline-flex; align-items:center; gap:.3rem;
+  font-family:var(--font-mono); font-size:.62rem; font-weight:700; letter-spacing:.04em;
+  text-transform:uppercase; color:var(--accent-cyan);
+  background:rgba(51,201,209,.12); border:1px solid rgba(51,201,209,.35);
+  border-radius:999px; padding:.15rem .55rem; margin-left:.5rem;
+}
 
 /* =========================================================================
    Data freshness
@@ -1176,7 +1192,7 @@ a{color:inherit; text-decoration:none;}
   font-family:var(--font-mono); font-size:.7rem; color:var(--ink-400);
   display:flex; align-items:center; gap:.4rem; flex-wrap:wrap;
 }
-.diva-card-dark .freshness{color:var(--app-text-muted);}
+.rain-card-dark .freshness{color:var(--app-text-muted);}
 
 /* =========================================================================
    Community Risk meter
@@ -1221,7 +1237,7 @@ a{color:inherit; text-decoration:none;}
 .map-filter-btn:hover{background:rgba(255,255,255,.12); color:#fff;}
 .map-filter-btn.active{background:var(--brand); border-color:var(--brand); color:var(--navy-950);}
 
-/* Light-card variant — used on cards without the dark diva-card-dark
+/* Light-card variant — used on cards without the dark rain-card-dark
    background (e.g. the Evacuation Centers filter row on emergency.html),
    where the default white-on-transparent .map-filter-btn text is invisible. */
 .map-filter-btn.light{
@@ -1263,7 +1279,7 @@ a{color:inherit; text-decoration:none;}
   font-family:var(--font-mono); font-weight:700; color:#fff; min-width:1.1em; text-align:right;
 }
 .map-info-panel .legend-row .legend-label{flex:1;}
-/* The panel floats on its own dark scrim (not inside .diva-card-dark), so it
+/* The panel floats on its own dark scrim (not inside .rain-card-dark), so it
    needs the same higher-contrast icon-chip treatment applied explicitly. */
 .map-info-panel .icon-chip{background:rgba(255,255,255,.14);}
 .map-info-panel .icon-chip.tone-cyan{color:#7fe3e8;}
@@ -1445,7 +1461,7 @@ a{color:inherit; text-decoration:none;}
 /* =========================================================================
    Empty states inside list-style widgets (dashboard alert/volcano feeds,
    admin tables) — compact variant of .empty-state for use inside an
-   existing .diva-card without its own padding/border.
+   existing .rain-card without its own padding/border.
    ========================================================================= */
 .empty-state-inline{
   text-align:center; padding:1.4rem .5rem; color:var(--canvas-muted);
@@ -1454,42 +1470,42 @@ a{color:inherit; text-decoration:none;}
 .empty-state-inline p{margin:0; font-size:.85rem;}
 
 /* =========================================================================
-   Responsive "card" tables — opt-in via .table-diva-wrap.cards-on-mobile.
+   Responsive "card" tables — opt-in via .table-rain-wrap.cards-on-mobile.
    Below 576px the table collapses from a horizontally-scrolling grid into
    a stack of labeled cards (one per row), reading much better on a phone
    than sideways scrolling. Each <td> needs a data-label attribute that
    mirrors its column header; see admin-users.html / admin-alerts.html.
    ========================================================================= */
 @media (max-width: 575.98px){
-  .table-diva-wrap.cards-on-mobile{overflow-x:visible; margin:0;}
-  .table-diva-wrap.cards-on-mobile .table-diva{min-width:0; width:100%;}
-  .table-diva-wrap.cards-on-mobile .table-diva thead{
+  .table-rain-wrap.cards-on-mobile{overflow-x:visible; margin:0;}
+  .table-rain-wrap.cards-on-mobile .table-rain{min-width:0; width:100%;}
+  .table-rain-wrap.cards-on-mobile .table-rain thead{
     position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0);
   }
-  .table-diva-wrap.cards-on-mobile .table-diva,
-  .table-diva-wrap.cards-on-mobile .table-diva tbody,
-  .table-diva-wrap.cards-on-mobile .table-diva tr,
-  .table-diva-wrap.cards-on-mobile .table-diva td{display:block; width:100%;}
-  .table-diva-wrap.cards-on-mobile .table-diva tr{
+  .table-rain-wrap.cards-on-mobile .table-rain,
+  .table-rain-wrap.cards-on-mobile .table-rain tbody,
+  .table-rain-wrap.cards-on-mobile .table-rain tr,
+  .table-rain-wrap.cards-on-mobile .table-rain td{display:block; width:100%;}
+  .table-rain-wrap.cards-on-mobile .table-rain tr{
     background:var(--card-bg); border:1px solid var(--card-border); border-radius:var(--radius-md);
     padding:.85rem 1rem; margin-bottom:.75rem; box-shadow:var(--shadow-card);
   }
-  .table-diva-wrap.cards-on-mobile .table-diva tbody tr:hover{background:var(--card-bg);}
-  .table-diva-wrap.cards-on-mobile .table-diva td{
+  .table-rain-wrap.cards-on-mobile .table-rain tbody tr:hover{background:var(--card-bg);}
+  .table-rain-wrap.cards-on-mobile .table-rain td{
     display:flex; justify-content:space-between; align-items:center; gap:.75rem;
     border-bottom:1px solid var(--surface-line); padding:.55rem 0; text-align:right;
   }
-  .table-diva-wrap.cards-on-mobile .table-diva td:last-child{border-bottom:none; padding-bottom:0;}
-  .table-diva-wrap.cards-on-mobile .table-diva td:first-child{padding-top:0;}
-  .table-diva-wrap.cards-on-mobile .table-diva td[data-label]::before{
+  .table-rain-wrap.cards-on-mobile .table-rain td:last-child{border-bottom:none; padding-bottom:0;}
+  .table-rain-wrap.cards-on-mobile .table-rain td:first-child{padding-top:0;}
+  .table-rain-wrap.cards-on-mobile .table-rain td[data-label]::before{
     content:attr(data-label); font-family:var(--font-mono); font-size:.66rem; text-transform:uppercase;
     letter-spacing:.06em; color:var(--ink-400); text-align:left; flex-shrink:0;
   }
-  .table-diva-wrap.cards-on-mobile .table-diva td.row-actions{
+  .table-rain-wrap.cards-on-mobile .table-rain td.row-actions{
     display:block; text-align:left; padding-top:.7rem;
   }
-  .table-diva-wrap.cards-on-mobile .table-diva td.row-actions::before{content:none;}
-  .table-diva-wrap.cards-on-mobile .table-diva td.row-actions > div{justify-content:flex-start !important;}
+  .table-rain-wrap.cards-on-mobile .table-rain td.row-actions::before{content:none;}
+  .table-rain-wrap.cards-on-mobile .table-rain td.row-actions > div{justify-content:flex-start !important;}
 }
 
 /* =========================================================================
@@ -1603,7 +1619,7 @@ a{color:inherit; text-decoration:none;}
 }
 
 /* =========================================================================
-   "Hey IRIS" voice command widget (assets/js/voice-command.js)
+   "Hey RAIN" voice command widget (assets/js/voice-command.js)
    Persistent floating mic + mute toggle, mounted on every app-shell page.
    Sits above the mobile bottom-nav (z-index 1030) but below the sidebar
    (1040/1050) and the emergency overlay (3000), same tier as the toast.
@@ -1694,7 +1710,7 @@ a{color:inherit; text-decoration:none;}
 
 /* Note: unlike the rest of the app's decorative motion, the mic's listening
    pulse and the thinking dots are functional status indicators (they're
-   how you know IRIS is actually listening/working) rather than flourish,
+   how you know RAIN is actually listening/working) rather than flourish,
    so they intentionally keep animating even under prefers-reduced-motion —
    only the purely decorative response-bubble entrance is suppressed. */
 @media (prefers-reduced-motion: reduce){

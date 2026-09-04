@@ -1,14 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>(function(){try{var t=localStorage.getItem("diva_theme")||"dark";document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<script>(function(){try{var t=localStorage.getItem("rain_theme")||"dark";document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Dashboard — DIVA</title>
+<title>Dashboard — RAIN</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="assets/css/style.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a1830">
+<link rel="apple-touch-icon" href="assets/icons/icon-192.png">
 </head>
 <body>
 <div id="app-shell-root"></div>
@@ -21,7 +24,7 @@
 
   <div class="row g-4 mb-4">
     <div class="col-lg-5">
-      <div class="diva-card diva-card-dark reveal-on-scroll h-100">
+      <div class="rain-card rain-card-dark reveal-on-scroll h-100">
         <div class="card-eyebrow"><span>Community Risk</span><span class="live-badge"><span class="dot pulse-dot"></span>LIVE</span></div>
         <div class="risk-meter">
           <div class="risk-ring-wrap">
@@ -41,7 +44,7 @@
     </div>
 
     <div class="col-lg-7">
-      <div class="diva-card diva-card-dark reveal-on-scroll h-100" style="padding-bottom:1.1rem;">
+      <div class="rain-card rain-card-dark reveal-on-scroll h-100" style="padding-bottom:1.1rem;">
         <div class="card-eyebrow" id="situationMapEyebrow"><span>Live Situation Map</span><span class="live-badge"><span class="dot pulse-dot"></span>LIVE</span></div>
         <div class="map-filter-row" id="mapFilters">
           <button class="map-filter-btn active" data-filter="all">All</button>
@@ -85,7 +88,7 @@
 
   <div class="row g-3 mb-4">
     <div class="col-6 col-lg-3">
-      <div class="diva-card reveal-on-scroll">
+      <div class="rain-card reveal-on-scroll">
         <div class="card-eyebrow"><span>Weather</span><span class="icon-chip tone-cyan" id="statWeatherIcon"><i class="bi bi-cloud-sun dicon" data-dicon="cloud-sun"></i></span></div>
         <h3 class="card-num" id="statWeatherTemp">—</h3>
         <span class="status-badge status-caution" id="statWeatherBadge"><span class="dot"></span>—</span>
@@ -93,7 +96,7 @@
       </div>
     </div>
     <div class="col-6 col-lg-3">
-      <div class="diva-card reveal-on-scroll">
+      <div class="rain-card reveal-on-scroll">
         <div class="card-eyebrow"><span>Volcano</span><span class="icon-chip tone-warning"><i class="bi bi-triangle dicon" data-dicon="triangle"></i></span></div>
         <h3 class="card-num">AL 3</h3>
         <span class="status-badge status-warning"><span class="dot pulse-dot"></span>Mayon — Warning</span>
@@ -101,14 +104,14 @@
       </div>
     </div>
     <div class="col-6 col-lg-3">
-      <div class="diva-card reveal-on-scroll">
+      <div class="rain-card reveal-on-scroll">
         <div class="card-eyebrow"><span>Active alerts</span><span class="icon-chip tone-critical"><i class="bi bi-bell dicon" data-dicon="bell"></i></span></div>
         <h3 class="card-num" id="statActiveAlerts" data-count-to="0">0</h3>
         <span class="status-badge status-caution" id="statActiveAlertsBadge"><span class="dot"></span>—</span>
       </div>
     </div>
     <div class="col-6 col-lg-3">
-      <div class="diva-card reveal-on-scroll">
+      <div class="rain-card reveal-on-scroll">
         <div class="card-eyebrow"><span>Overall status</span><span class="icon-chip tone-safe"><i class="bi bi-shield-check dicon" data-dicon="shield-check"></i></span></div>
         <h3 class="card-num" style="font-size:1.4rem;">Stay Alert</h3>
         <span class="status-badge status-caution"><span class="dot"></span>Elevated</span>
@@ -118,26 +121,26 @@
 
   <div class="row g-4">
     <div class="col-lg-7">
-      <div class="diva-card reveal-on-scroll mb-4">
+      <div class="rain-card reveal-on-scroll mb-4">
         <div class="d-flex justify-content-between align-items-center mb-3">
-          <h2 style="font-size:1.1rem; font-weight:700; color:var(--navy-950); margin:0;">Latest alerts</h2>
+          <h2 style="font-size:1.1rem; font-weight:700; color:var(--navy-950); margin:0;">Latest alerts <span class="cached-data-tag d-none" id="dashAlertsCacheTag"><i class="bi bi-cloud-slash"></i> Saved data</span></h2>
           <a href="alerts.html" class="text-decoration-none" style="font-size:.85rem; color:var(--accent-cyan); font-weight:600;">View all <i class="bi bi-arrow-right dicon" data-dicon="arrow-right"></i></a>
         </div>
         <div class="d-flex flex-column gap-3" id="dashAlerts"></div>
       </div>
 
-      <div class="diva-card reveal-on-scroll">
+      <div class="rain-card reveal-on-scroll">
         <h2 style="font-size:1.1rem; font-weight:700; color:var(--navy-950); margin-bottom:1rem;">Emergency access</h2>
         <div class="row g-3">
-          <div class="col-4"><a href="emergency.html" class="btn-diva btn-diva-ghost w-100 flex-column py-3" style="height:100%;" data-press><i class="bi bi-telephone fs-4 mb-1 dicon" data-dicon="telephone"></i><span style="font-size:.8rem;">Contacts</span></a></div>
-          <div class="col-4"><a href="emergency.html#evac" class="btn-diva btn-diva-ghost w-100 flex-column py-3" style="height:100%;" data-press><i class="bi bi-signpost-split fs-4 mb-1 dicon" data-dicon="signpost-split"></i><span style="font-size:.8rem;">Evacuation</span></a></div>
-          <div class="col-4"><a href="virtual-assistance.html" class="btn-diva btn-diva-ghost w-100 flex-column py-3" style="height:100%;" data-press><i class="bi bi-chat-dots fs-4 mb-1 dicon" data-dicon="chat-dots"></i><span style="font-size:.8rem;">Ask DIVA</span></a></div>
+          <div class="col-4"><a href="emergency.html" class="btn-rain btn-rain-ghost w-100 flex-column py-3" style="height:100%;" data-press><i class="bi bi-telephone fs-4 mb-1 dicon" data-dicon="telephone"></i><span style="font-size:.8rem;">Contacts</span></a></div>
+          <div class="col-4"><a href="emergency.html#evac" class="btn-rain btn-rain-ghost w-100 flex-column py-3" style="height:100%;" data-press><i class="bi bi-signpost-split fs-4 mb-1 dicon" data-dicon="signpost-split"></i><span style="font-size:.8rem;">Evacuation</span></a></div>
+          <div class="col-4"><a href="virtual-assistance.html" class="btn-rain btn-rain-ghost w-100 flex-column py-3" style="height:100%;" data-press><i class="bi bi-chat-dots fs-4 mb-1 dicon" data-dicon="chat-dots"></i><span style="font-size:.8rem;">Ask RAIN</span></a></div>
         </div>
       </div>
     </div>
 
     <div class="col-lg-5">
-      <div class="diva-card diva-card-dark reveal-on-scroll" style="background:linear-gradient(160deg, rgba(51,201,209,.16), transparent), linear-gradient(160deg, var(--navy-800), var(--navy-950) 75%);">
+      <div class="rain-card rain-card-dark reveal-on-scroll" style="background:linear-gradient(160deg, rgba(51,201,209,.16), transparent), linear-gradient(160deg, var(--navy-800), var(--navy-950) 75%);">
         <div class="d-flex align-items-center gap-2 mb-3">
           <i class="bi bi-robot fs-4 dicon" style="color:var(--accent-cyan);" data-dicon="robot"></i>
           <div>
@@ -146,13 +149,13 @@
           </div>
         </div>
         <p style="color:rgba(255,255,255,.7); font-size:.9rem;">Get calm, practical guidance on earthquakes, typhoons, floods, and eruptions — in English or Filipino.</p>
-        <a href="virtual-assistance.html" class="btn-diva btn-diva-primary w-100 justify-content-center" data-press><i class="bi bi-chat-dots dicon" data-dicon="chat-dots"></i> Ask DIVA</a>
+        <a href="virtual-assistance.html" class="btn-rain btn-rain-primary w-100 justify-content-center" data-press><i class="bi bi-chat-dots dicon" data-dicon="chat-dots"></i> Ask RAIN</a>
       </div>
 
-      <div class="diva-card reveal-on-scroll mt-4">
+      <div class="rain-card reveal-on-scroll mt-4">
         <h2 style="font-size:1.1rem; font-weight:700; color:var(--navy-950); margin-bottom:1rem;">Volcano watch</h2>
         <div class="d-flex flex-column gap-3" id="dashVolcanoes"></div>
-        <a href="volcano.html" class="btn-diva btn-diva-ghost w-100 justify-content-center mt-3" data-press>View volcano monitoring</a>
+        <a href="volcano.html" class="btn-rain btn-rain-ghost w-100 justify-content-center mt-3" data-press>View volcano monitoring</a>
       </div>
     </div>
   </div>
@@ -166,11 +169,12 @@
 <script src="assets/js/demo-data.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/js/supabase-client.js"></script>
-<script src="assets/js/diva-auth.js"></script>
+<script src="assets/js/rain-auth.js"></script>
+<script src="assets/js/offline-store.js"></script>
 <script src="assets/js/main.js"></script>
 <script src="assets/js/voice-command.js"></script>
 <script type="module">
-  await DivaAuth.init();
+  await RainAuth.init();
   const user = renderAppShell("dashboard.html", { title: "Dashboard" });
   if (user) {
     document.getElementById("app-content").appendChild(document.getElementById("dashboard-content").content.cloneNode(true));
@@ -191,7 +195,7 @@
       const badgeEl = document.getElementById("statWeatherBadge");
       const iconEl = document.getElementById("statWeatherIcon");
       const locEl = document.getElementById("statWeatherLoc");
-      const eyebrow = tempEl.closest(".diva-card").querySelector(".card-eyebrow");
+      const eyebrow = tempEl.closest(".rain-card").querySelector(".card-eyebrow");
       eyebrow.querySelector(".demo-data-tag")?.remove();
 
       try {
@@ -204,7 +208,7 @@
         const ICON_MAP = { "01d": "bi-sun", "01n": "bi-moon-stars", "02d": "bi-cloud-sun", "02n": "bi-cloud-moon", "03d": "bi-cloud", "03n": "bi-cloud", "04d": "bi-clouds", "04n": "bi-clouds", "09d": "bi-cloud-drizzle", "09n": "bi-cloud-drizzle", "10d": "bi-cloud-rain", "10n": "bi-cloud-rain", "11d": "bi-cloud-lightning", "11n": "bi-cloud-lightning", "13d": "bi-snow", "13n": "bi-snow", "50d": "bi-cloud-haze", "50n": "bi-cloud-haze" };
 
         tempEl.textContent = `${tempC}°C`;
-        iconEl.innerHTML = DivaIcons.weatherIconHTML(ICON_MAP[iconCode] || "bi-cloud-sun");
+        iconEl.innerHTML = RainIcons.weatherIconHTML(ICON_MAP[iconCode] || "bi-cloud-sun");
         locEl.textContent = current.name || "Calamba, Laguna";
 
         const tone = tempC >= 34 ? "status-critical" : tempC >= 30 ? "status-caution" : "status-safe";
@@ -215,7 +219,7 @@
       } catch (err) {
         console.error("Dashboard weather fetch failed, falling back to demo reading:", err);
         tempEl.textContent = "31°C";
-        iconEl.innerHTML = DivaIcons.weatherIconHTML("bi-cloud-sun");
+        iconEl.innerHTML = RainIcons.weatherIconHTML("bi-cloud-sun");
         locEl.textContent = "Calamba, Laguna";
         badgeEl.className = "status-badge status-caution";
         badgeEl.innerHTML = `<span class="dot"></span>Normal`;
@@ -233,8 +237,17 @@
     const FALLBACK_LAT = 14.2117, FALLBACK_LNG = 121.1653; // Calamba, Laguna
     const NEARBY_RADIUS_KM = 60;
     const { data: liveAlertsRaw, error: alertsFetchError } = await sb.from("alerts").select("*").order("created_at", { ascending: false });
-    if (alertsFetchError) console.error("Fetch alerts error:", alertsFetchError);
-    const liveAlerts = liveAlertsRaw || [];
+    let liveAlerts;
+    let dashboardUsingCachedAlerts = false;
+    if (alertsFetchError) {
+      console.error("Fetch alerts error, falling back to last saved alerts:", alertsFetchError);
+      const cachedAlerts = RainOffline.load("alerts");
+      liveAlerts = cachedAlerts ? cachedAlerts.data : [];
+      dashboardUsingCachedAlerts = !!cachedAlerts;
+    } else {
+      liveAlerts = liveAlertsRaw || [];
+      RainOffline.save("alerts", liveAlerts); // shared snapshot — also read by alerts.html and the shell's offline reminder
+    }
 
     // Community Risk — computed live from the app's real current state
     // (nearby active alerts, resident-submitted incidents, the nearest
@@ -262,7 +275,7 @@
       // worst level anywhere in the country. A Mayon eruption ~470km away
       // shouldn't spike a Calamba resident's risk score; Taal, ~30km away,
       // should carry far more weight here.
-      const volcanoes = DIVA_DEMO.volcanoes || [];
+      const volcanoes = RAIN_DEMO.volcanoes || [];
       let volcanoValue = 0, nearestVolcano = null, nearestDistKm = Infinity;
       volcanoes.forEach((v) => {
         const d = haversineKm(userLat, userLng, v.lat, v.lng);
@@ -393,7 +406,7 @@
         area: r.profiles?.full_name ? `Reported by ${r.profiles.full_name}` : "Resident report",
         updated: new Date(r.created_at).toLocaleString(),
       }));
-      const allIncidents = [...(DIVA_DEMO.incidents || []), ...reportedWithCoords];
+      const allIncidents = [...(RAIN_DEMO.incidents || []), ...reportedWithCoords];
       const nearbyIncidents = allIncidents.filter((inc) => haversineKm(userLat, userLng, inc.lat, inc.lng) <= NEARBY_RADIUS_KM);
 
       // Earthquakes — quakes is null if the live USGS fetch failed (see
@@ -423,7 +436,7 @@
       const map = L.map("situationMap", { zoomControl: true }).setView([userLat, userLng], 13);
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
 
-      const pinIcon = divaPinIcon; // shared helper — see assets/js/main.js
+      const pinIcon = rainPinIcon; // shared helper — see assets/js/main.js
 
       const groups = {
         user: L.layerGroup([L.marker([userLat, userLng], { icon: pinIcon("user", "bi-person-fill") }).bindPopup(isRealLocation ? "Your location" : "Approximate location (GPS unavailable — showing Calamba, Laguna)")]),
@@ -454,7 +467,7 @@
       // share the "shelters" filter/layer group, but keep their own marker
       // color via `category` — see assets/js/demo-data.js.
       const EVAC_ICONS = { shelter: "bi-house-heart-fill", government: "bi-bank2", mall: "bi-shop" };
-      DIVA_DEMO.evacuationCenters.forEach((c) => {
+      RAIN_DEMO.evacuationCenters.forEach((c) => {
         const cat = c.category || "shelter";
         L.marker([c.lat, c.lng], { icon: pinIcon(cat, EVAC_ICONS[cat] || EVAC_ICONS.shelter) })
           .bindPopup(`<strong>${c.name}</strong><br>${c.type || ""}<br>${c.address}`)
@@ -475,7 +488,7 @@
       if (alertsLabel && nearbyAlerts.length !== liveAlerts.length) {
         alertsLabel.textContent = `Nearby Alerts (of ${liveAlerts.length} total)`;
       }
-      document.getElementById("miShelters").textContent = DIVA_DEMO.evacuationCenters.length;
+      document.getElementById("miShelters").textContent = RAIN_DEMO.evacuationCenters.length;
       document.getElementById("miIncidents").textContent = allIncidents.length;
 
       // Collapsible info panel — starts collapsed on small screens so it
@@ -516,6 +529,7 @@
     const severityMap = { information: "level-info", advisory: "level-advisory", warning: "level-warning", critical: "level-critical" };
     const statusMap = { information: "status-safe", advisory: "status-caution", warning: "status-warning", critical: "status-critical" };
     const alertsHost = document.getElementById("dashAlerts");
+    document.getElementById("dashAlertsCacheTag")?.classList.toggle("d-none", !dashboardUsingCachedAlerts);
     if (!liveAlerts.length) {
       alertsHost.innerHTML = `<div class="empty-state-inline"><i class="bi bi-check-circle glyph dicon" data-dicon="check-circle"></i><p>No active alerts near you right now.</p></div>`;
     } else {
@@ -537,7 +551,7 @@
 
     const volcHost = document.getElementById("dashVolcanoes");
     const levelColor = (l) => (l === 0 ? "status-safe" : l <= 1 ? "status-caution" : l <= 3 ? "status-warning" : "status-critical");
-    const volcanoes = (DIVA_DEMO.volcanoes || []).slice(0, 3);
+    const volcanoes = (RAIN_DEMO.volcanoes || []).slice(0, 3);
     if (!volcanoes.length) {
       volcHost.innerHTML = `<div class="empty-state-inline"><i class="bi bi-triangle glyph dicon" data-dicon="triangle"></i><p>No volcano data available right now.</p></div>`;
     } else {

@@ -1,14 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>(function(){try{var t=localStorage.getItem("diva_theme")||"dark";document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<script>(function(){try{var t=localStorage.getItem("rain_theme")||"dark";document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Earthquake — DIVA</title>
+<title>Earthquake — RAIN</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="assets/css/style.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a1830">
+<link rel="apple-touch-icon" href="assets/icons/icon-192.png">
 </head>
 <body>
 <div id="app-shell-root"></div>
@@ -27,37 +30,37 @@
 
   <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-4">
     <div class="d-flex flex-wrap gap-2" id="quakeFilters">
-      <select class="form-select form-control-diva" id="quakeWindow" style="width:auto;">
+      <select class="form-select form-control-rain" id="quakeWindow" style="width:auto;">
         <option value="1">Past 24 hours</option>
         <option value="7" selected>Past 7 days</option>
         <option value="30">Past 30 days</option>
       </select>
-      <select class="form-select form-control-diva" id="quakeMinMag" style="width:auto;">
+      <select class="form-select form-control-rain" id="quakeMinMag" style="width:auto;">
         <option value="1.5">M1.5+</option>
         <option value="2.5" selected>M2.5+</option>
         <option value="4.5">M4.5+</option>
       </select>
     </div>
-    <button class="btn-diva btn-diva-ghost btn-diva-sm" id="quakeRefreshBtn" data-press><i class="bi bi-arrow-clockwise dicon" data-dicon="arrow-clockwise"></i> Refresh</button>
+    <button class="btn-rain btn-rain-ghost btn-rain-sm" id="quakeRefreshBtn" data-press><i class="bi bi-arrow-clockwise dicon" data-dicon="arrow-clockwise"></i> Refresh</button>
   </div>
 
   <div id="quakeSkeleton" aria-live="polite" aria-label="Loading earthquake data">
     <div class="row g-4 mb-4">
       <div class="col-lg-5">
-        <div class="diva-card h-100">
+        <div class="rain-card h-100">
           <span class="skeleton d-block mb-3" style="width:45%; height:14px;"></span>
           <span class="skeleton d-block mb-3" style="width:55%; height:2.4rem;"></span>
           <span class="skeleton d-block" style="width:70%; height:16px;"></span>
         </div>
       </div>
       <div class="col-lg-7">
-        <div class="diva-card h-100">
+        <div class="rain-card h-100">
           <span class="skeleton d-block mb-3" style="width:35%; height:14px;"></span>
           <span class="skeleton d-block" style="height:220px;"></span>
         </div>
       </div>
     </div>
-    <div class="diva-card">
+    <div class="rain-card">
       <span class="skeleton d-block mb-3" style="width:30%; height:14px;"></span>
       <span class="skeleton d-block mb-2" style="height:56px;"></span>
       <span class="skeleton d-block mb-2" style="height:56px;"></span>
@@ -68,13 +71,13 @@
   <div id="quakeError" class="error-state d-none">
     <div class="glyph"><i class="bi bi-exclamation-octagon dicon" data-dicon="exclamation-octagon"></i></div>
     <div><strong>Unable to reach the USGS earthquake feed.</strong> Check your connection and try again.</div>
-    <button class="btn-diva btn-diva-ghost btn-diva-sm mt-3" id="retryQuake">Retry</button>
+    <button class="btn-rain btn-rain-ghost btn-rain-sm mt-3" id="retryQuake">Retry</button>
   </div>
 
   <div id="quakeBody" class="d-none">
     <div class="row g-4 mb-4">
       <div class="col-lg-5">
-        <div class="diva-card reveal-on-scroll h-100">
+        <div class="rain-card reveal-on-scroll h-100">
           <div class="card-eyebrow"><span>Nearest to You</span><span class="demo-data-tag" style="background:var(--accent-cyan); color:#fff;">LIVE</span></div>
           <div id="qNearestEmpty" class="empty-state-inline d-none">
             <i class="bi bi-check-circle glyph dicon" data-dicon="check-circle"></i>
@@ -84,24 +87,24 @@
             <h3 class="card-num" id="qNearestMag" style="font-size:2.6rem;">—</h3>
             <div style="font-weight:600; color:var(--navy-950);" id="qNearestPlace">—</div>
             <div class="row g-2 mt-2" style="font-size:.85rem;">
-              <div class="col-6"><span class="text-muted-diva">Distance</span><div style="font-weight:600;" id="qNearestDist">—</div></div>
-              <div class="col-6"><span class="text-muted-diva">Depth</span><div style="font-weight:600;" id="qNearestDepth">—</div></div>
+              <div class="col-6"><span class="text-muted-rain">Distance</span><div style="font-weight:600;" id="qNearestDist">—</div></div>
+              <div class="col-6"><span class="text-muted-rain">Depth</span><div style="font-weight:600;" id="qNearestDepth">—</div></div>
             </div>
             <div class="data-source-line mt-2"><i class="bi bi-clock-history dicon" data-dicon="clock-history"></i> <span id="qNearestTime">—</span></div>
-            <a href="#" target="_blank" rel="noopener" class="btn-diva btn-diva-ghost btn-diva-sm mt-3" id="qNearestLink">View on USGS &rarr;</a>
+            <a href="#" target="_blank" rel="noopener" class="btn-rain btn-rain-ghost btn-rain-sm mt-3" id="qNearestLink">View on USGS &rarr;</a>
           </div>
           <div class="mt-3" style="font-size:.78rem; color:var(--ink-400);" id="qLocSourceNote"></div>
         </div>
       </div>
       <div class="col-lg-7">
-        <div class="diva-card reveal-on-scroll h-100" style="padding-bottom:1rem;">
+        <div class="rain-card reveal-on-scroll h-100" style="padding-bottom:1rem;">
           <div class="card-eyebrow"><span>Epicenter Map</span><span class="demo-data-tag" style="background:var(--accent-cyan); color:#fff;">LIVE</span></div>
           <div class="map-frame"><div id="quake-map"></div></div>
         </div>
       </div>
     </div>
 
-    <div class="diva-card reveal-on-scroll mb-4">
+    <div class="rain-card reveal-on-scroll mb-4">
       <div class="card-eyebrow">
         <span>Recent Activity</span>
         <span class="status-badge status-caution" id="qCountBadge"><span class="dot"></span>0 tracked</span>
@@ -114,7 +117,7 @@
     </div>
   </div>
 
-  <div class="diva-card reveal-on-scroll">
+  <div class="rain-card reveal-on-scroll">
     <div class="card-eyebrow"><span>About This Data</span><i class="bi bi-info-circle dicon" style="color:var(--accent-cyan);" data-dicon="info-circle"></i></div>
     <p style="font-size:.87rem; color:var(--ink-600);">
       Events are pulled live from the USGS FDSN earthquake catalog, filtered to a bounding box around the Philippine
@@ -135,11 +138,12 @@
 <script src="assets/js/demo-data.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/js/supabase-client.js"></script>
-<script src="assets/js/diva-auth.js"></script>
+<script src="assets/js/rain-auth.js"></script>
+<script src="assets/js/offline-store.js"></script>
 <script src="assets/js/main.js"></script>
 <script src="assets/js/voice-command.js"></script>
 <script type="module">
-  await DivaAuth.init();
+  await RainAuth.init();
   const user = renderAppShell("earthquake.html", { title: "Earthquake" });
   let quakeMap = null;
   let quakeMarkers = [];
@@ -185,14 +189,14 @@
     if (!quakeMap) {
       quakeMap = L.map("quake-map").setView([userLat, userLng], 6);
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: '&copy; OpenStreetMap contributors' }).addTo(quakeMap);
-      L.marker([userLat, userLng], { icon: divaPinIcon("user", "bi-person-fill") }).addTo(quakeMap).bindPopup("Your location");
+      L.marker([userLat, userLng], { icon: rainPinIcon("user", "bi-person-fill") }).addTo(quakeMap).bindPopup("Your location");
     }
     quakeMarkers.forEach((m) => quakeMap.removeLayer(m));
     let nearestMarker = null;
     quakeMarkers = quakes.map((q) => {
       const isNearest = nearest && q === nearest;
       const pulse = isNearest || (q.mag != null && q.mag >= 4.5);
-      const marker = L.marker([q.lat, q.lng], { icon: divaPinIcon("quake", "bi-activity", pulse) }).addTo(quakeMap);
+      const marker = L.marker([q.lat, q.lng], { icon: rainPinIcon("quake", "bi-activity", pulse) }).addTo(quakeMap);
       marker.bindPopup(`${isNearest ? "<strong>Nearest epicenter</strong><br>" : ""}<strong>M${q.mag != null ? q.mag.toFixed(1) : "?"}</strong> — ${q.place}<br>Depth: ${q.depthKm != null ? q.depthKm.toFixed(0) + " km" : "—"}<br>${new Date(q.timeMs).toLocaleString()}`);
       if (isNearest) nearestMarker = marker;
       return marker;
@@ -284,10 +288,26 @@
         : "Distances use an approximate location (GPS unavailable) — showing Calamba, Laguna.";
 
       showBody();
-      DivaAnim.initScrollReveal(".reveal-on-scroll");
+      RainAnim.initScrollReveal(".reveal-on-scroll");
+      // Save the raw (undistanced) list — distance is recomputed on
+      // fallback since a saved snapshot's userLat/userLng may be stale.
+      RainOffline.save("earthquakes", quakes);
     } catch (err) {
       console.error(err);
-      showError();
+      const cached = RainOffline.load("earthquakes");
+      if (cached && !RainOffline.isOnline()) {
+        const withDist = cached.data.map((q) => ({ ...q, distKm: haversineKm(userLat, userLng, q.lat, q.lng) }));
+        const byDistance = [...withDist].sort((a, b) => a.distKm - b.distKm);
+        renderNearest(userLat, userLng, byDistance);
+        renderMap(userLat, userLng, withDist, byDistance[0] || null);
+        renderList(withDist.sort((a, b) => b.timeMs - a.timeMs));
+        document.getElementById("qLocSourceNote").innerHTML =
+          `<span class="cached-data-tag"><i class="bi bi-cloud-slash"></i> Saved data</span> Offline — showing earthquakes saved ${RainOffline.timeAgo(cached.savedAt)}.`;
+        showBody();
+        RainAnim.initScrollReveal(".reveal-on-scroll");
+      } else {
+        showError();
+      }
     }
   }
 

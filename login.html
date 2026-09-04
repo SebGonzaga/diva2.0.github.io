@@ -3,17 +3,20 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Sign In — DIVA</title>
+<title>Sign In — RAIN</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 <link rel="stylesheet" href="assets/css/style.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a1830">
+<link rel="apple-touch-icon" href="assets/icons/icon-192.png">
 </head>
 <body>
 <a href="#main" class="skip-link">Skip to content</a>
 <div class="auth-shell">
   <div class="auth-side d-none d-lg-flex">
     <a href="index.html" class="navbar-brand text-white text-decoration-none d-flex align-items-center gap-2" style="font-family:var(--font-display); font-weight:700; font-size:1.3rem;">
-      <span class="brand-mark" style="width:30px;height:30px;border-radius:8px;background:linear-gradient(145deg, var(--accent-cyan), #1f8489); display:flex; align-items:center; justify-content:center; color:var(--navy-950); font-size:.85rem;">D</span> DIVA
+      <span class="brand-mark" style="width:30px;height:30px;border-radius:8px;background:linear-gradient(145deg, var(--accent-cyan), #1f8489); display:flex; align-items:center; justify-content:center; color:var(--navy-950); font-size:.85rem;">R</span>AIN
     </a>
     <div>
       <div class="eyebrow mb-3">Operations status</div>
@@ -28,9 +31,9 @@
 
   <div class="auth-form-col" id="main">
     <div class="auth-card">
-      <a href="index.html" class="brand d-lg-none"><span class="brand-mark">D</span> DIVA</a>
-      <h1 style="font-size:1.6rem; font-weight:700; color:var(--navy-950);">Sign in to DIVA</h1>
-      <p class="text-muted-diva mb-4">Monitor hazards and get disaster guidance for your community.</p>
+      <a href="index.html" class="brand d-lg-none"><span class="brand-mark">R</span>AIN</a>
+      <h1 style="font-size:1.6rem; font-weight:700; color:var(--navy-950);">Sign in to RAIN</h1>
+      <p class="text-muted-rain mb-4">Monitor hazards and get disaster guidance for your community.</p>
 
       <div id="loginError" class="alert-banner level-warning mb-3 d-none" style="opacity:1;">
         <i class="bi bi-exclamation-triangle icon dicon" data-dicon="exclamation-triangle"></i>
@@ -39,17 +42,17 @@
 
       <form id="loginForm" novalidate>
         <div class="mb-3">
-          <label class="form-label-diva" for="email">Email address</label>
-          <input type="email" class="form-control form-control-diva" id="email" required autocomplete="email">
+          <label class="form-label-rain" for="email">Email address</label>
+          <input type="email" class="form-control form-control-rain" id="email" required autocomplete="email">
         </div>
         <div class="mb-3">
-          <label class="form-label-diva" for="password">Password</label>
-          <input type="password" class="form-control form-control-diva" id="password" required autocomplete="current-password">
+          <label class="form-label-rain" for="password">Password</label>
+          <input type="password" class="form-control form-control-rain" id="password" required autocomplete="current-password">
         </div>
-        <button type="submit" class="btn-diva btn-diva-primary w-100 justify-content-center mb-3" data-press>
+        <button type="submit" class="btn-rain btn-rain-primary w-100 justify-content-center mb-3" data-press>
           <i class="bi bi-box-arrow-in-right dicon" data-dicon="box-arrow-in-right"></i> Sign In
         </button>
-        <p class="text-center text-muted-diva" style="font-size:.9rem;">Don't have an account? <a href="register.html" style="color:var(--accent-cyan); font-weight:600;">Register</a></p>
+        <p class="text-center text-muted-rain" style="font-size:.9rem;">Don't have an account? <a href="register.html" style="color:var(--accent-cyan); font-weight:600;">Register</a></p>
       </form>
     </div>
   </div>
@@ -60,15 +63,16 @@
 <script src="assets/js/icons.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/js/supabase-client.js"></script>
-<script src="assets/js/diva-auth.js"></script>
+<script src="assets/js/rain-auth.js"></script>
+<script src="assets/js/offline-store.js"></script>
 <script src="assets/js/main.js"></script>
 <script type="module">
-  DivaFieldValidation.wireField(
+  RainFieldValidation.wireField(
     document.getElementById("email"),
     (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()),
     "Enter a valid email address."
   );
-  DivaFieldValidation.wireField(
+  RainFieldValidation.wireField(
     document.getElementById("password"),
     (v) => v.length > 0,
     "Password is required."
@@ -83,17 +87,17 @@
     const errorText = errorBox.querySelector("div");
 
     submitBtn.disabled = true;
-    const result = await DivaAuth.login(email, pass);
+    const result = await RainAuth.login(email, pass);
     submitBtn.disabled = false;
 
     if (!result) {
       errorText.innerHTML = "<strong>Invalid email or password.</strong> Please try again, or <a href=\"register.html\" style=\"font-weight:600;\">create an account</a>.";
       errorBox.classList.remove("d-none");
-      DivaAnim.animateAlertBanner(errorBox);
+      RainAnim.animateAlertBanner(errorBox);
       return;
     }
     errorBox.classList.add("d-none");
-    window.location.href = DivaAuth.isAdmin(result) ? "admin-dashboard.html" : "dashboard.html";
+    window.location.href = RainAuth.isAdmin(result) ? "admin-dashboard.html" : "dashboard.html";
   });
 </script>
 </body>

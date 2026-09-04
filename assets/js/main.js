@@ -1,12 +1,12 @@
 /* =========================================================================
-   DIVA — assets/js/main.js
+   RAIN — assets/js/main.js
    Shared app-shell rendering (sidebar/topbar/footer), a lightweight demo
    auth guard, toast helper, and the animation initializer dispatcher.
    This is a frontend-only prototype: "auth" is simulated in localStorage
    until the PHP session-based backend (see spec §8) is wired in.
    ========================================================================= */
 
-const DIVA_NAV = {
+const RAIN_NAV = {
   resident: [
     { section: "Monitor", links: [
       { href: "dashboard.html", icon: "bi-grid-1x2", label: "Dashboard" },
@@ -49,8 +49,8 @@ const DIVA_NAV = {
    app-shell page also runs a tiny inline copy of the "apply" step before
    paint, so switching themes never causes a flash of the wrong colors.
    ========================================================================= */
-const DivaTheme = {
-  KEY: "diva_theme",
+const RainTheme = {
+  KEY: "rain_theme",
   get() {
     try { return localStorage.getItem(this.KEY) || "dark"; } catch (e) { return "dark"; }
   },
@@ -68,11 +68,11 @@ const DivaTheme = {
   },
 };
 
-const DIVA_BOTTOM_NAV = {
+const RAIN_BOTTOM_NAV = {
   resident: [
     { href: "dashboard.html", icon: "bi-house-door-fill", label: "Home" },
     { href: "alerts.html", icon: "bi-bell-fill", label: "Alerts" },
-    { href: "virtual-assistance.html", icon: "bi-robot", label: "DIVA" },
+    { href: "virtual-assistance.html", icon: "bi-robot", label: "RAIN" },
     // "#more" is a sentinel href (not a real page): renderAppShell()
     // intercepts it below and opens the same full sidebar menu the
     // hamburger button opens, instead of navigating. This is how phones
@@ -89,23 +89,23 @@ const DIVA_BOTTOM_NAV = {
   admin: [
     { href: "admin-dashboard.html", icon: "bi-house-door-fill", label: "Home" },
     { href: "admin-alerts.html", icon: "bi-bell-fill", label: "Alerts" },
-    { href: "virtual-assistance.html", icon: "bi-robot", label: "DIVA" },
+    { href: "virtual-assistance.html", icon: "bi-robot", label: "RAIN" },
     { href: "#more", icon: "bi-grid-3x3-gap-fill", label: "More" },
     { href: "#emergency", icon: "bi-exclamation-triangle-fill", label: "SOS", emergency: true },
   ],
 };
 
-// DivaStore (the old localStorage prototype "database" for users/alerts/
+// RainStore (the old localStorage prototype "database" for users/alerts/
 // incidents) has been fully replaced by Supabase — every page now reads
 // and writes the real profiles/alerts/incidents tables instead.
-// DivaAuth now lives in assets/js/diva-auth.js (Supabase-backed).
+// RainAuth now lives in assets/js/rain-auth.js (Supabase-backed).
 // Make sure that file is loaded on this page BEFORE main.js.
 
 /** Shared Leaflet pin icon — same visual language everywhere on the app
  *  (dashboard's Live Situation Map, Emergency's evacuation map, etc.) so a
  *  "shelter" pin always looks like a shelter pin no matter which page it's
  *  on, instead of one page using icon pins and another using flat dots. */
-function divaPinIcon(cls, icon, pulse) {
+function rainPinIcon(cls, icon, pulse) {
   return L.divIcon({
     className: "",
     html: `<div class="map-marker-pin ${cls} ${pulse ? "map-marker-pulse" : ""}"><i class="bi ${icon}"></i></div>`,
@@ -190,7 +190,7 @@ function quakeRiskValue(mag) {
  *  page that needs a weather summary. This is what keeps the dashboard's
  *  weather card from silently disagreeing with the Weather page: there is
  *  exactly one place weather data gets written, and everyone else reads it. */
-const WEATHER_CACHE_KEY = "diva_weather_cache";
+const WEATHER_CACHE_KEY = "rain_weather_cache";
 function setWeatherCache(snapshot) {
   try {
     localStorage.setItem(WEATHER_CACHE_KEY, JSON.stringify({ ...snapshot, cachedAt: Date.now() }));
@@ -208,7 +208,7 @@ function getWeatherCache() {
    and re-validates on every keystroke after that first interaction so the
    error clears the moment it's fixed instead of waiting for another submit.
    ========================================================================= */
-const DivaFieldValidation = {
+const RainFieldValidation = {
   /**
    * @param {HTMLInputElement} input
    * @param {(value:string, input:HTMLInputElement) => boolean} validate
@@ -241,14 +241,14 @@ const DivaFieldValidation = {
 };
 
 /** Shared client for the Gemini-backed chat endpoint (api/chat.js) — used
- *  by virtual-assistance.html's chat UI AND the "Hey IRIS" voice command
+ *  by virtual-assistance.html's chat UI AND the "Hey RAIN" voice command
  *  fallback (assets/js/voice-command.js), so the request shape/parsing only
  *  lives in one place instead of being copy-pasted between the two. Returns
  *  the raw markdown reply string on success; throws on any failure (bad
  *  status, network error, empty reply) so each caller can apply its own
  *  fallback (virtual-assistance.html shows a canned demo reply, the voice
  *  command falls back to a short spoken/displayed error). */
-const DivaChatAPI = {
+const RainChatAPI = {
   async send(message, { lang = "en", history = [] } = {}) {
     const res = await fetch("/api/chat", {
       method: "POST",
@@ -266,15 +266,15 @@ const DivaChatAPI = {
   },
 };
 
-function divaToast(message, icon) {
+function rainToast(message, icon) {
   icon = icon || "bi-check-circle";
   const el = document.createElement("div");
-  el.className = "toast-diva";
+  el.className = "toast-rain";
   el.innerHTML = `<i class="bi ${icon}"></i><span>${message}</span>`;
   document.body.appendChild(el);
-  if (window.DivaAnim) DivaAnim.animateToastIn(el);
+  if (window.RainAnim) RainAnim.animateToastIn(el);
   setTimeout(() => {
-    if (window.DivaAnim) DivaAnim.animateToastOut(el, () => el.remove());
+    if (window.RainAnim) RainAnim.animateToastOut(el, () => el.remove());
     else el.remove();
   }, 3200);
 }
@@ -284,7 +284,7 @@ function divaToast(message, icon) {
    be triggered from any app page. Simplifies the interface dramatically
    without navigating away or losing the underlying page state.
    ========================================================================= */
-const DivaEmergencyMode = {
+const RainEmergencyMode = {
   _built: false,
   _userLat: 14.2117, _userLng: 121.1653, // fallback: Calamba, Laguna — replaced by real GPS in open() when available
 
@@ -292,7 +292,7 @@ const DivaEmergencyMode = {
    *  the first listed center if none/no coords) — shared by _build() and
    *  the live update in open(). */
   _nearestShelter(lat, lng) {
-    const centers = (window.DIVA_DEMO && window.DIVA_DEMO.evacuationCenters) || [];
+    const centers = (window.RAIN_DEMO && window.RAIN_DEMO.evacuationCenters) || [];
     if (!centers.length) return null;
     return centers.reduce((best, c) => {
       const d = haversineKm(lat, lng, c.lat, c.lng);
@@ -302,7 +302,7 @@ const DivaEmergencyMode = {
 
   _build() {
     if (this._built) return;
-    const data = (window.DIVA_DEMO) || { alerts: [], evacuationCenters: [], emergencyContacts: [] };
+    const data = (window.RAIN_DEMO) || { alerts: [], evacuationCenters: [], emergencyContacts: [] };
     const topAlert = data.alerts && data.alerts.length
       ? [...data.alerts].sort((a, b) => (b.severity === "critical") - (a.severity === "critical"))[0]
       : null;
@@ -366,7 +366,7 @@ const DivaEmergencyMode = {
         { timeout: 8000 }
       );
     }
-    if (window.DivaAnim) {
+    if (window.RainAnim) {
       if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
       if (window.anime) {
         anime.animate(this._overlay, { opacity: [0, 1], duration: 220, easing: "easeOutQuad" });
@@ -387,11 +387,11 @@ const DivaEmergencyMode = {
 
 function renderAppShell(activePage, opts) {
   opts = opts || {};
-  const user = DivaAuth.requireLogin();
+  const user = RainAuth.requireLogin();
   if (!user) return null;
 
-  const isAdminRole = DivaAuth.isAdmin(user);
-  const navGroups = isAdminRole ? DIVA_NAV.admin : DIVA_NAV.resident;
+  const isAdminRole = RainAuth.isAdmin(user);
+  const navGroups = isAdminRole ? RAIN_NAV.admin : RAIN_NAV.resident;
   const initials = (user.name || "U").split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase();
 
   const navHtml = navGroups.map((g) => `
@@ -404,7 +404,7 @@ function renderAppShell(activePage, opts) {
     <a href="#app-content" class="skip-link">Skip to main content</a>
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
     <aside class="app-sidebar" id="appSidebar">
-      <div class="sidebar-brand"><span class="brand-mark">D</span> DIVA</div>
+      <div class="sidebar-brand"><span class="brand-mark">R</span>AIN</div>
       <nav class="sidebar-nav">${navHtml}</nav>
       <div class="sidebar-footer">
         <div class="sidebar-user mb-3">
@@ -414,7 +414,7 @@ function renderAppShell(activePage, opts) {
             <div class="role">${user.role}</div>
           </div>
         </div>
-        <button class="btn btn-diva btn-diva-outline btn-diva-sm w-100" id="logoutBtn" style="border-color:rgba(255,255,255,.2); color:#fff;">
+        <button class="btn btn-rain btn-rain-outline btn-rain-sm w-100" id="logoutBtn" style="border-color:rgba(255,255,255,.2); color:#fff;">
           <i class="bi bi-box-arrow-right"></i> Log out
         </button>
       </div>
@@ -444,13 +444,13 @@ function renderAppShell(activePage, opts) {
   // overlay instead of duplicating the animation logic.
   const sidebarEl = document.getElementById("appSidebar");
   const sidebarOverlayEl = document.getElementById("sidebarOverlay");
-  function openSidebar() { DivaAnim.animateSidebarOpen(sidebarEl, sidebarOverlayEl); }
-  function closeSidebar() { DivaAnim.animateSidebarClose(sidebarEl, sidebarOverlayEl); }
+  function openSidebar() { RainAnim.animateSidebarOpen(sidebarEl, sidebarOverlayEl); }
+  function closeSidebar() { RainAnim.animateSidebarClose(sidebarEl, sidebarOverlayEl); }
 
   // Mobile bottom navigation (resident vs. admin), mirrors the sidebar links
   const bottomNavHost = document.getElementById("bottomNav");
   if (bottomNavHost) {
-    const bnLinks = isAdminRole ? DIVA_BOTTOM_NAV.admin : DIVA_BOTTOM_NAV.resident;
+    const bnLinks = isAdminRole ? RAIN_BOTTOM_NAV.admin : RAIN_BOTTOM_NAV.resident;
     bottomNavHost.innerHTML = bnLinks.map((l) => {
       const isActive = !l.emergency && l.href !== "#more" && activePage === l.href.split("#")[0];
       const emergencyClass = l.emergency ? "bn-emergency" : "";
@@ -462,7 +462,7 @@ function renderAppShell(activePage, opts) {
     if (emergencyTab) {
       emergencyTab.addEventListener("click", (e) => {
         e.preventDefault();
-        DivaEmergencyMode.open();
+        RainEmergencyMode.open();
       });
     }
     // The "More" tab opens the same sidebar the hamburger button does,
@@ -481,9 +481,9 @@ function renderAppShell(activePage, opts) {
   // Theme toggle
   const themeBtn = document.getElementById("themeToggleBtn");
   if (themeBtn) {
-    themeBtn.classList.toggle("is-light", DivaTheme.get() === "light");
+    themeBtn.classList.toggle("is-light", RainTheme.get() === "light");
     themeBtn.addEventListener("click", () => {
-      const next = DivaTheme.toggle();
+      const next = RainTheme.toggle();
       themeBtn.classList.toggle("is-light", next === "light");
       if (window.anime && !(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)) {
         anime.animate(themeBtn, { scale: [0.85, 1], duration: 260, easing: "easeOutBack" });
@@ -493,9 +493,9 @@ function renderAppShell(activePage, opts) {
 
   // Emergency Mode: available from every app page via the topbar trigger
   const emergencyBtn = document.getElementById("emergencyTriggerBtn");
-  if (emergencyBtn) emergencyBtn.addEventListener("click", () => DivaEmergencyMode.open());
+  if (emergencyBtn) emergencyBtn.addEventListener("click", () => RainEmergencyMode.open());
 
-  document.getElementById("logoutBtn").addEventListener("click", () => DivaAuth.logout());
+  document.getElementById("logoutBtn").addEventListener("click", () => RainAuth.logout());
   const toggle = document.getElementById("sidebarToggle");
   if (toggle) {
     toggle.addEventListener("click", () => {
@@ -513,7 +513,7 @@ function renderAppShell(activePage, opts) {
   window.addEventListener("offline", updateOnlineStatus);
   updateOnlineStatus();
 
-  // "Hey IRIS" voice command mic (assets/js/voice-command.js). Mounted here
+  // "Hey RAIN" voice command mic (assets/js/voice-command.js). Mounted here
   // — rather than per-page — so every page that builds the app shell gets
   // the persistent mic button for free, and it only ever appears for a
   // logged-in user (we're already past the requireLogin() check above).
@@ -526,14 +526,14 @@ function renderAppShell(activePage, opts) {
 }
 
 function initializeAnimations() {
-  if (document.querySelector(".hero-title")) DivaAnim.animatePageEntrance();
-  DivaAnim.initScrollReveal(".reveal-on-scroll");
-  DivaAnim.initCounters("[data-count-to]");
-  document.querySelectorAll(".diva-card, .feature-card").forEach((el) => {
+  if (document.querySelector(".hero-title")) RainAnim.animatePageEntrance();
+  RainAnim.initScrollReveal(".reveal-on-scroll");
+  RainAnim.initCounters("[data-count-to]");
+  document.querySelectorAll(".rain-card, .feature-card").forEach((el) => {
     if (!el.classList.contains("reveal-on-scroll")) el.style.opacity = "1";
   });
   document.querySelectorAll("[data-press]").forEach((btn) => {
-    btn.addEventListener("click", () => DivaAnim.pressButton(btn));
+    btn.addEventListener("click", () => RainAnim.pressButton(btn));
   });
 }
 

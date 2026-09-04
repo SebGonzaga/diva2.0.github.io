@@ -14,12 +14,12 @@
 //   SMTP_HOST                  - e.g. "smtp.gmail.com"
 //   SMTP_PORT                  - e.g. 465 (SSL) or 587 (STARTTLS)
 //   SMTP_SECURE                - "true" for port 465, "false" for 587
-//   SMTP_USER                  - the mailbox address, e.g. divaalerts@gmail.com
+//   SMTP_USER                  - the mailbox address, e.g. rainalerts@gmail.com
 //   SMTP_PASS                  - a 16-character Gmail App Password (NOT your
 //                                normal account password -- generate one at
 //                                myaccount.google.com/apppasswords, requires
 //                                2-Step Verification to be turned on first)
-//   EMAIL_FROM                 - e.g. "DIVA Alerts <divaalerts@gmail.com>" --
+//   EMAIL_FROM                 - e.g. "RAIN Alerts <rainalerts@gmail.com>" --
 //                                must use the same address as SMTP_USER or
 //                                Gmail will reject/rewrite it
 //   SUPABASE_URL                - same project URL as assets/js/supabase-client.js
@@ -130,14 +130,14 @@ async function notifyResidentsOfAlert(alert) {
   const severityLabel = (alert.severity || '').toUpperCase();
   const html = `
     <p><strong>${severityLabel} — ${escapeHtml(alert.area || '')}</strong></p>
-    <h2 style="margin:.3em 0;">${escapeHtml(alert.title || 'DIVA Alert')}</h2>
+    <h2 style="margin:.3em 0;">${escapeHtml(alert.title || 'RAIN Alert')}</h2>
     <p>${escapeHtml(alert.message || '')}</p>
-    <p style="color:#666; font-size:.85em;">You're receiving this because you have a DIVA account. Open the app for full details.</p>`;
+    <p style="color:#666; font-size:.85em;">You're receiving this because you have a RAIN account. Open the app for full details.</p>`;
 
   await sendEmailBatch(
     emails.map((email) => ({
       to: email,
-      subject: `DIVA Alert: ${alert.title || 'New alert issued'}`,
+      subject: `RAIN Alert: ${alert.title || 'New alert issued'}`,
       html,
     }))
   );

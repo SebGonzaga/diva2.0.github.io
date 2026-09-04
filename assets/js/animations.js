@@ -1,5 +1,5 @@
 /* =========================================================================
-   DIVA — assets/js/animations.js
+   RAIN — assets/js/animations.js
    Centralized Anime.js 4.5.0 animation utility.
    Presentation only — never contains API, auth, or data logic.
    Respects prefers-reduced-motion throughout.
@@ -31,7 +31,7 @@
     return engine.animate(els, params);
   }
 
-  const DivaAnim = {
+  const RainAnim = {
     /** Landing hero: title -> subtitle -> CTAs, staggered */
     animatePageEntrance() {
       safeAnimate(".hero-title", { opacity: [0, 1], translateY: [16, 0], scale: [0.97, 1], duration: 700, easing: "easeOutQuad" });
@@ -111,14 +111,14 @@
       const els = document.querySelectorAll(selector || "[data-count-to]");
       if (!els.length) return;
       if (!("IntersectionObserver" in global)) {
-        els.forEach((el) => DivaAnim.animateCounter(el));
+        els.forEach((el) => RainAnim.animateCounter(el));
         return;
       }
       const io = new IntersectionObserver(
         (entries) => {
           entries.forEach((entry) => {
             if (entry.isIntersecting) {
-              DivaAnim.animateCounter(entry.target);
+              RainAnim.animateCounter(entry.target);
               io.unobserve(entry.target);
             }
           });
@@ -222,5 +222,5 @@
     },
   };
 
-  global.DivaAnim = DivaAnim;
+  global.RainAnim = RainAnim;
 })(window);

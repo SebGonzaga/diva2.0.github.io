@@ -31,7 +31,7 @@ export default async function handler(req, res) {
   }
 
   // Keep the assistant scoped to disaster-preparedness topics, matching
-  // DIVA's purpose (see demo-data.js aiReplies for the tone/format used
+  // RAIN's purpose (see demo-data.js aiReplies for the tone/format used
   // in the frontend's demo mode). This is a soft guardrail, not a hard
   // filter -- Gemini decides in-context whether a question is in scope, so
   // it can still be argued around by a sufficiently insistent or indirect
@@ -40,7 +40,7 @@ export default async function handler(req, res) {
   const languageInstruction = lang === 'fil'
     ? 'Respond in Filipino (Tagalog).'
     : 'Respond in English.';
-  const systemPrompt = `You are DIVA, a disaster-preparedness virtual assistant for
+  const systemPrompt = `You are RAIN, a disaster-preparedness virtual assistant for
 Filipino communities. Give clear, practical, safety-first guidance about
 earthquakes, typhoons, floods, volcanic activity, and emergency preparedness.
 

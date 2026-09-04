@@ -1,17 +1,17 @@
 /* =========================================================================
-   DIVA — assets/js/voice-command.js
-   "Hey IRIS" voice command feature.
+   RAIN — assets/js/voice-command.js
+   "Hey RAIN" voice command feature.
 
    Mounted into the app shell by renderAppShell() (see main.js) — every page
    that builds the shell gets a persistent mic button for free, and only for
    a logged-in user (renderAppShell already gates on that).
 
    Flow: tap mic -> Web Speech API SpeechRecognition captures one phrase
-   ("Hey IRIS, <command>") -> strip the wake word -> check the command
+   ("Hey RAIN, <command>") -> strip the wake word -> check the command
    against a small set of known keywords -> navigate to the matching page
    (speaking a short confirmation first via SpeechSynthesis), or, if nothing
    matches, send the command to the existing Gemini chat backend
-   (api/chat.js) via DivaChatAPI.send() (assets/js/main.js) — the same
+   (api/chat.js) via RainChatAPI.send() (assets/js/main.js) — the same
    helper virtual-assistance.html's chat UI uses, so the request/parsing
    logic isn't duplicated — and speak + display the reply.
 
@@ -20,7 +20,7 @@
    mic button simply never mounts.
    ========================================================================= */
 const VoiceCommand = {
-  MUTE_KEY: "diva_voice_muted",
+  MUTE_KEY: "rain_voice_muted",
 
   // Known intents, checked in order — first keyword match wins. Kept small
   // and literal on purpose: this is a fast local check, not a substitute
@@ -34,14 +34,14 @@ const VoiceCommand = {
     { keywords: ["dashboard"], label: "dashboard", href: "dashboard.html", voiceIntent: "dashboard" },
   ],
 
-  // Matches an optional lead-in ("hey"/"hi"/"ok"/"okay") plus "iris" and a
-  // few speech-to-text mishearings of it ("eris", "irish", "aris"), so
-  // "Hey IRIS, ..." and near-variants all strip cleanly. If the phrase
+  // Matches an optional lead-in ("hey"/"hi"/"ok"/"okay") plus "rain" and a
+  // few speech-to-text mishearings of it ("reign", "rein", "wren"), so
+  // "Hey RAIN, ..." and near-variants all strip cleanly. If the phrase
   // doesn't start with anything wake-word-shaped, the transcript is used
   // as-is rather than rejected outright — recognizers sometimes clip the
   // first word, and failing loudly there would be worse UX than just
   // treating the rest of the sentence as the command.
-  WAKE_WORD_RE: /^[\s,.!?]*(?:hey|hi|hay|ho|okay|ok)?[\s,]*(?:iris|eris|irish|aris|iriss)\b[\s,.!?-]*/i,
+  WAKE_WORD_RE: /^[\s,.!?]*(?:hey|hi|hay|ho|okay|ok)?[\s,]*(?:rain|reign|rein|wren)\b[\s,.!?-]*/i,
 
   _mounted: false,
   _state: "idle", // idle | listening | processing
@@ -90,9 +90,9 @@ const VoiceCommand = {
     el.id = "voiceWidget";
     el.innerHTML = `
       <div class="voice-response-bubble show" id="voiceUnsupportedNote">
-        Voice commands ("Hey IRIS") need Chrome or Edge — not supported in this browser.
+        Voice commands ("Hey RAIN") need Chrome or Edge — not supported in this browser.
       </div>
-      <button type="button" class="voice-mic-btn" disabled aria-label="Hey IRIS voice command — not supported in this browser" title="Not supported in this browser">
+      <button type="button" class="voice-mic-btn" disabled aria-label="Hey RAIN voice command — not supported in this browser" title="Not supported in this browser">
         <i class="bi bi-mic-mute-fill"></i>
       </button>
     `;
@@ -119,10 +119,10 @@ const VoiceCommand = {
     el.innerHTML = `
       <div class="voice-response-bubble" id="voiceResponseBubble" role="status" aria-live="polite"></div>
       <div class="voice-thinking" id="voiceThinking" aria-hidden="true"><span></span><span></span><span></span></div>
-      <button type="button" class="voice-mute-btn" id="voiceMuteBtn" aria-pressed="false" aria-label="Mute IRIS voice responses" title="Mute voice responses">
+      <button type="button" class="voice-mute-btn" id="voiceMuteBtn" aria-pressed="false" aria-label="Mute RAIN voice responses" title="Mute voice responses">
         <i class="bi bi-volume-up-fill"></i>
       </button>
-      <button type="button" class="voice-mic-btn" id="voiceMicBtn" aria-label="Activate Hey IRIS voice command" title="Hey IRIS — tap and say a command">
+      <button type="button" class="voice-mic-btn" id="voiceMicBtn" aria-label="Activate Hey RAIN voice command" title="Hey RAIN — tap and say a command">
         <i class="bi bi-mic-fill"></i>
       </button>
     `;
@@ -162,7 +162,7 @@ const VoiceCommand = {
     this._els.thinking.classList.toggle("show", state === "listening" || state === "processing");
     // Only disable the mic while a command is actively being processed —
     // it stays tappable during "listening" so tapping again is how the
-    // user tells IRIS they're finished talking (see _onMicTap()).
+    // user tells RAIN they're finished talking (see _onMicTap()).
     this._els.mic.disabled = state === "processing";
     this._syncMicIcon(state);
   },
@@ -175,8 +175,8 @@ const VoiceCommand = {
       mic.setAttribute("title", "Tap again when you\u2019re done talking");
     } else {
       mic.innerHTML = '<i class="bi bi-mic-fill"></i>';
-      mic.setAttribute("aria-label", "Activate Hey IRIS voice command");
-      mic.setAttribute("title", "Hey IRIS \u2014 tap and say a command");
+      mic.setAttribute("aria-label", "Activate Hey RAIN voice command");
+      mic.setAttribute("title", "Hey RAIN \u2014 tap and say a command");
     }
   },
 
@@ -195,7 +195,7 @@ const VoiceCommand = {
   },
 
   _onMicTap() {
-    // Tap-to-finish: while IRIS is listening, tapping the mic again is how
+    // Tap-to-finish: while RAIN is listening, tapping the mic again is how
     // the user says "that's everything" — .stop() finalizes whatever's
     // been captured so far instead of discarding it.
     if (this._state === "listening") {
@@ -212,7 +212,7 @@ const VoiceCommand = {
     // click handler, registers the gesture up front so later speak()
     // calls in this session go through normally.
     this._unlockSpeechSynthesis();
-    // A new command always wins over IRIS still talking from the last one.
+    // A new command always wins over RAIN still talking from the last one.
     if (this._ttsSupported() && (window.speechSynthesis.speaking || window.speechSynthesis.pending)) {
       window.speechSynthesis.cancel();
     }
@@ -228,7 +228,7 @@ const VoiceCommand = {
     } catch (e) { /* non-fatal — worst case the first real reply stays silent */ }
   },
 
-  // How long IRIS keeps listening on its own if the user never taps the
+  // How long RAIN keeps listening on its own if the user never taps the
   // mic again to say they're done — generous enough not to feel like a
   // cutoff, just a safety net against the mic staying open indefinitely.
   MAX_LISTEN_MS: 20000,
@@ -264,11 +264,11 @@ const VoiceCommand = {
       this._setState("idle");
       this._hideResponseBubble();
       if (e.error === "no-speech") {
-        divaToast('Didn\u2019t catch that \u2014 try "Hey IRIS" again.', "bi-mic-mute");
+        rainToast('Didn\u2019t catch that \u2014 try "Hey RAIN" again.', "bi-mic-mute");
       } else if (e.error === "not-allowed" || e.error === "service-not-allowed") {
-        divaToast("Microphone access is blocked for this site.", "bi-mic-mute");
+        rainToast("Microphone access is blocked for this site.", "bi-mic-mute");
       } else if (e.error !== "aborted") {
-        divaToast("Voice command couldn't start. Please try again.", "bi-exclamation-triangle");
+        rainToast("Voice command couldn't start. Please try again.", "bi-exclamation-triangle");
       }
     };
     rec.onend = () => {
@@ -284,7 +284,7 @@ const VoiceCommand = {
       } else {
         this._setState("idle");
         this._hideResponseBubble();
-        divaToast('Say "Hey IRIS" followed by a command.', "bi-mic");
+        rainToast('Say "Hey RAIN" followed by a command.', "bi-mic");
       }
     };
 
@@ -323,7 +323,7 @@ const VoiceCommand = {
 
     if (!command) {
       this._setState("idle");
-      divaToast('Say "Hey IRIS" followed by a command.', "bi-mic");
+      rainToast('Say "Hey RAIN" followed by a command.', "bi-mic");
       return;
     }
 
@@ -346,7 +346,7 @@ const VoiceCommand = {
     // No keyword match — fall back to the existing Gemini chat backend,
     // reusing the exact same call virtual-assistance.html makes.
     try {
-      const reply = await DivaChatAPI.send(command, { lang: "en", history: [] });
+      const reply = await RainChatAPI.send(command, { lang: "en", history: [] });
       this._setState("idle");
       const spoken = this._forSpeech(reply);
       this._showResponseBubble(this._forDisplay(reply), 12000);

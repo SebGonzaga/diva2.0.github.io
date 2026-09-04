@@ -1,5 +1,5 @@
 /* =========================================================================
-   DIVA — assets/js/icons.js
+   RAIN — assets/js/icons.js
    Custom animated icon system: multi-stroke line icons that draw in on
    scroll, morph on hover, and pulse on click. Presentation only — no
    external icon service, no network dependency, fully self-hosted.
@@ -401,5 +401,5 @@
     el.innerHTML = weatherIconHTML(biClass);
   }
 
-  global.DivaIcons = { init, ICONS, resolve, weatherIconHTML, renderWeatherIcon };
+  global.RainIcons = { init, ICONS, resolve, weatherIconHTML, renderWeatherIcon };
 })(window);

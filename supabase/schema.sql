@@ -1,5 +1,5 @@
 -- =========================================================================
--- DIVA — Supabase schema
+-- RAIN — Supabase schema
 -- Run this in Supabase Dashboard → SQL Editor → New query → Run
 -- =========================================================================
 

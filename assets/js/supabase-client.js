@@ -1,5 +1,5 @@
 /* =========================================================================
-   DIVA — Supabase client
+   RAIN — Supabase client
    Publishable key is safe to expose in frontend code — it identifies your
    project but grants no access beyond what your Row Level Security
    policies (see supabase/schema.sql) allow.

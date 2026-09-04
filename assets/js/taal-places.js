@@ -1,6 +1,6 @@
 /* =========================================================================
-   DIVA — assets/js/taal-places.js
-   Curated list of cities/municipalities in DIVA's Calabarzon coverage area
+   RAIN — assets/js/taal-places.js
+   Curated list of cities/municipalities in RAIN's Calabarzon coverage area
    (Taal Volcano's danger zone + immediate vicinity, plus the Laguna/Calamba
    area also referenced elsewhere in the app). Used to power the City
    dropdown on register.html / profile.html, and to turn a browser
@@ -31,7 +31,7 @@ window.TaalPlaces = (function () {
     { name: "Batangas City, Batangas", lat: 13.7565, lng: 121.0583, group: "Near Taal Volcano" },
     // --- Cavite side of the lake
     { name: "Tagaytay City, Cavite", lat: 14.0975, lng: 120.9639, group: "Near Taal Volcano" },
-    // --- Laguna / Calamba area (DIVA's other main coverage area)
+    // --- Laguna / Calamba area (RAIN's other main coverage area)
     { name: "Calamba City, Laguna", lat: 14.2117, lng: 121.1653, group: "Laguna / Calamba Area" },
     { name: "Los Baños, Laguna", lat: 14.1693, lng: 121.2417, group: "Laguna / Calamba Area" },
     { name: "Alaminos, Laguna", lat: 14.0639, lng: 121.2453, group: "Laguna / Calamba Area" },
