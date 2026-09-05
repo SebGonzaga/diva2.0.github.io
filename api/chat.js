@@ -19,7 +19,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { message, history, lang } = req.body || {};
+  const { message, history, lang, voice } = req.body || {};
 
   if (!message || typeof message !== 'string') {
     return res.status(400).json({ error: 'Missing "message" string in request body' });
@@ -37,6 +37,22 @@ export default async function handler(req, res) {
   // it can still be argued around by a sufficiently insistent or indirect
   // prompt. It is not a substitute for actual input validation/moderation
   // if that matters for this deployment.
+  // This request came from the "Hey RAIN" voice command, not the full chat
+  // page: the reply gets read aloud by SpeechSynthesis and shown in a small
+  // fixed-position popup bubble with no scroll/height cap (see
+  // .voice-response-bubble in style.css), so a normal multi-paragraph reply
+  // visually overflows and overlaps the rest of the page. Keeping voice
+  // replies short at the source avoids that instead of trying to cram a
+  // long answer into a tiny bubble.
+  const voiceModeInstruction = `
+VOICE MODE: This reply will be read aloud and shown in a small popup, not the
+full chat page. Answer in 1-3 short sentences (roughly 40 words max) of
+plain conversational text -- no bullet lists, no headers, no markdown
+formatting. Still be accurate and safety-first; just be brief. If the full
+answer genuinely needs more than that, give the single most important/urgent
+point and mention they can ask again on the Assistant chat page for the
+full details.`;
+
   const languageInstruction = lang === 'fil'
     ? 'Respond in Filipino (Tagalog).'
     : 'Respond in English.';
@@ -78,7 +94,8 @@ phrasing naturally each time rather than repeating a template. Do this even
 if the person insists, rephrases, or claims a special reason.
 Never provide general knowledge, coding help, personal advice, entertainment,
 or opinions on unrelated topics.
-${languageInstruction}`;
+${languageInstruction}
+${voice ? voiceModeInstruction : ''}`;
 
   // Gemini's chat format differs from OpenAI's: no "system" role inside the
   // message list (the system prompt goes in its own top-level
@@ -107,7 +124,10 @@ ${languageInstruction}`;
         body: JSON.stringify({
           system_instruction: { parts: [{ text: systemPrompt }] },
           contents,
-          generationConfig: { temperature: 0.6, maxOutputTokens: 500 },
+          // Voice replies get a much smaller token budget as a hard backstop
+          // for the "VOICE MODE" prompt instruction above -- belt-and-braces
+          // in case the model runs long anyway.
+          generationConfig: { temperature: 0.6, maxOutputTokens: voice ? 120 : 500 },
         }),
       }
     );

@@ -249,13 +249,17 @@ const RainFieldValidation = {
  *  fallback (virtual-assistance.html shows a canned demo reply, the voice
  *  command falls back to a short spoken/displayed error). */
 const RainChatAPI = {
-  async send(message, { lang = "en", history = [] } = {}) {
+  // `voice: true` tells the backend this reply is going into the small
+  // floating voice-response bubble (and being read aloud) rather than the
+  // full chat page, so it should keep the answer short — see api/chat.js.
+  async send(message, { lang = "en", history = [], voice = false } = {}) {
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         message,
         lang,
+        voice,
         history: history.slice(-10).map((m) => ({ role: m.role, content: m.message })),
       }),
     });

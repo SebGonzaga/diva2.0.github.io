@@ -346,7 +346,11 @@ const VoiceCommand = {
     // No keyword match — fall back to the existing Gemini chat backend,
     // reusing the exact same call virtual-assistance.html makes.
     try {
-      const reply = await RainChatAPI.send(command, { lang: "en", history: [] });
+      // voice: true — keeps the reply short server-side so it fits the
+      // small popup bubble/spoken response without overflowing (see
+      // api/chat.js). The full chat page (virtual-assistance.html) doesn't
+      // set this, so its answers are unaffected.
+      const reply = await RainChatAPI.send(command, { lang: "en", history: [], voice: true });
       this._setState("idle");
       const spoken = this._forSpeech(reply);
       this._showResponseBubble(this._forDisplay(reply), 12000);
