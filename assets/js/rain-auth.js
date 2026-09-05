@@ -85,7 +85,7 @@ const RainAuth = {
    *  matching profiles row. Returns the created session's user, or
    *  { error: "message" } on failure (e.g. email already registered,
    *  weak password, or a server-side trigger/database error). */
-  async register({ name, email, password, city }) {
+  async register({ name, email, phone, password, city }) {
     const { data, error } = await sb.auth.signUp({
       email,
       password,
@@ -99,16 +99,26 @@ const RainAuth = {
       return { error: (error && error.message) || "Registration failed. Please try again." };
     }
 
+    // Barangay and phone aren't part of auth signup metadata by default;
+    // store them on the profile now that the trigger has created the row.
+    // data.user.id exists as soon as signUp succeeds -- even if email
+    // confirmation is still pending -- so this runs regardless of session
+    // state (previously this ran after the pendingConfirmation check below,
+    // which meant the city/phone were silently dropped whenever email
+    // confirmation was required).
+    const profileUpdates = {};
+    if (city) profileUpdates.barangay = city;
+    if (phone) profileUpdates.phone = phone;
+    if (Object.keys(profileUpdates).length) {
+      const { error: profileError } = await sb.from("profiles").update(profileUpdates).eq("id", data.user.id);
+      if (profileError) console.error("Save profile fields error:", profileError);
+    }
+
     // If email confirmation is enabled in Supabase Auth settings, there's
     // no active session yet — the user must confirm via email before
     // signing in. Callers should check for this case (see register.html).
     if (!data.session) return { pendingConfirmation: true };
 
-    // Barangay isn't part of auth signup metadata by default; store it
-    // on the profile now that the trigger has created the row.
-    if (city) {
-      await sb.from("profiles").update({ barangay: city }).eq("id", data.user.id);
-    }
     return this.init();
   },
 

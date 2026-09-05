@@ -51,6 +51,11 @@
           <input type="email" class="form-control form-control-rain" id="regEmail" required autocomplete="email">
         </div>
         <div class="mb-3">
+          <label class="form-label-rain" for="regPhone">Mobile number</label>
+          <input type="tel" class="form-control form-control-rain" id="regPhone" required placeholder="09XXXXXXXXX" autocomplete="tel">
+          <div class="text-muted-rain mt-1" style="font-size:.8rem;">Philippine mobile number. Used to send you SMS disaster alerts.</div>
+        </div>
+        <div class="mb-3">
           <label class="form-label-rain" for="city">City / Municipality</label>
           <select class="form-control form-control-rain form-select" id="city" required>
             <option value="" selected disabled>Select your city or municipality</option>
@@ -90,12 +95,24 @@
 <script type="module">
   const usernameEl = document.getElementById("username");
   const emailEl = document.getElementById("regEmail");
+  const phoneEl = document.getElementById("regPhone");
   const cityEl = document.getElementById("city");
   const cityOtherEl = document.getElementById("cityOther");
   const locationStatusEl = document.getElementById("locationStatus");
   const passEl = document.getElementById("regPassword");
   const confirmEl = document.getElementById("confirmPassword");
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  // Accepts 09XXXXXXXXX, 639XXXXXXXXX, or +639XXXXXXXXX and normalizes all
+  // of them to E.164 (+639XXXXXXXXX) -- the format the SMS gateway expects.
+  // Returns null if the input isn't a recognizable PH mobile number.
+  function normalizePhPhone(raw) {
+    const digits = String(raw || "").replace(/\D/g, "");
+    if (digits.length === 11 && digits.startsWith("09")) return "+63" + digits.slice(1);
+    if (digits.length === 12 && digits.startsWith("639")) return "+" + digits;
+    if (digits.length === 10 && digits.startsWith("9")) return "+63" + digits;
+    return null;
+  }
 
   // Populate the City dropdown with places near Taal Volcano (plus the
   // Laguna/Calamba area) grouped by region, with a trailing "Other" option.
@@ -115,6 +132,7 @@
 
   RainFieldValidation.wireField(usernameEl, (v) => v.trim().length >= 3, "Username must be at least 3 characters.");
   RainFieldValidation.wireField(emailEl, (v) => emailPattern.test(v.trim()), "Enter a valid email address.");
+  RainFieldValidation.wireField(phoneEl, (v) => normalizePhPhone(v) !== null, "Enter a valid PH mobile number, e.g. 09171234567.");
   const cityValidation = RainFieldValidation.wireField(cityEl, () => getCityValue().length > 0, "Please select your city.");
   RainFieldValidation.wireField(cityOtherEl, (v) => cityEl.value !== TaalPlaces.OTHER_VALUE || v.trim().length > 0, "Please type your city or municipality.");
   RainFieldValidation.wireField(passEl, (v) => v.length >= 8, "Password must be at least 8 characters.");
@@ -159,6 +177,7 @@
     e.preventDefault();
     const username = document.getElementById("username").value.trim();
     const email = document.getElementById("regEmail").value.trim().toLowerCase();
+    const phone = normalizePhPhone(phoneEl.value);
     const city = getCityValue();
     const pass = document.getElementById("regPassword").value;
     const confirm = document.getElementById("confirmPassword").value;
@@ -176,6 +195,7 @@
 
     if (username.length < 3) { usernameEl.focus(); return fail("Username must be at least 3 characters."); }
     if (!emailPattern.test(email)) { emailEl.focus(); return fail("Please enter a valid email address."); }
+    if (!phone) { phoneEl.focus(); return fail("Please enter a valid PH mobile number, e.g. 09171234567."); }
     if (!city) { (cityEl.value === TaalPlaces.OTHER_VALUE ? cityOtherEl : cityEl).focus(); return fail("Please select your city, or type it if it's not listed."); }
     if (pass.length < 8) { passEl.focus(); return fail("Password must be at least 8 characters."); }
     if (pass !== confirm) { confirmEl.focus(); return fail("Passwords do not match."); }
@@ -184,7 +204,7 @@
     // supabase/schema.sql) auto-creates the matching profiles row with
     // role = 'resident'. Admin accounts are promoted manually in Supabase.
     submitBtn.disabled = true;
-    const created = await RainAuth.register({ name: username, email, password: pass, city });
+    const created = await RainAuth.register({ name: username, email, phone, password: pass, city });
     submitBtn.disabled = false;
 
     if (!created || created.error) {

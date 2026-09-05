@@ -29,6 +29,11 @@
       <form class="rain-card reveal-on-scroll" id="profileForm">
         <div class="mb-3"><span class="text-muted-rain" style="font-size:.82rem;">Email</span><div style="font-weight:600;" id="profileEmail"></div></div>
         <div class="mb-3">
+          <label class="form-label-rain" for="profilePhone">Mobile number</label>
+          <input type="tel" class="form-control form-control-rain" id="profilePhone" placeholder="09XXXXXXXXX" autocomplete="tel">
+          <div class="text-muted-rain mt-1" style="font-size:.8rem;">Philippine mobile number. Used to send you SMS disaster alerts.</div>
+        </div>
+        <div class="mb-3">
           <label class="form-label-rain" for="profileCity">City / Municipality</label>
           <select class="form-control form-control-rain form-select" id="profileCity">
             <option value="" disabled>Select your city or municipality</option>
@@ -63,8 +68,22 @@
   const user = renderAppShell("profile.html", { title: "Profile" });
   if (user) {
     document.getElementById("app-content").appendChild(document.getElementById("profile-content").content.cloneNode(true));
-    const { data: stored, error: fetchError } = await sb.from("profiles").select("barangay").eq("id", user.id).single();
+    const { data: stored, error: fetchError } = await sb.from("profiles").select("barangay, phone").eq("id", user.id).single();
     if (fetchError) console.error("Fetch profile error:", fetchError);
+
+    // Accepts 09XXXXXXXXX, 639XXXXXXXXX, or +639XXXXXXXXX and normalizes all
+    // of them to E.164 (+639XXXXXXXXX) -- the format the SMS gateway expects.
+    // Returns null if the input isn't a recognizable PH mobile number.
+    function normalizePhPhone(raw) {
+      const digits = String(raw || "").replace(/\D/g, "");
+      if (digits.length === 11 && digits.startsWith("09")) return "+63" + digits.slice(1);
+      if (digits.length === 12 && digits.startsWith("639")) return "+" + digits;
+      if (digits.length === 10 && digits.startsWith("9")) return "+63" + digits;
+      return null;
+    }
+
+    const phoneEl = document.getElementById("profilePhone");
+    phoneEl.value = (stored && stored.phone) || "";
     document.getElementById("profileAvatar").textContent = user.name.split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase();
     document.getElementById("profileName").textContent = user.name;
     document.getElementById("profileRole").textContent = user.role;
@@ -138,8 +157,16 @@
     document.getElementById("profileForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       const city = getCityValue();
-      const { error } = await sb.from("profiles").update({ barangay: city }).eq("id", user.id);
+      const rawPhone = phoneEl.value.trim();
+      const phone = rawPhone ? normalizePhPhone(rawPhone) : null;
+      if (rawPhone && !phone) {
+        phoneEl.focus();
+        rainToast("Enter a valid PH mobile number, e.g. 09171234567", "bi-exclamation-triangle");
+        return;
+      }
+      const { error } = await sb.from("profiles").update({ barangay: city, phone }).eq("id", user.id);
       if (error) { console.error("Update profile error:", error); rainToast("Could not save changes", "bi-exclamation-triangle"); return; }
+      phoneEl.value = phone || "";
       const saved = document.getElementById("profileSaved");
       saved.classList.remove("d-none");
       RainAnim.animateAlertBanner(saved);
