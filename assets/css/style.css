@@ -407,17 +407,6 @@ a{color:inherit; text-decoration:none;}
 .rl-icon-hero{ width:100%; height:100%; }
 .rl-icon-loader{ width:min(46vw,240px); height:min(46vw,240px); }
 
-/* Tone-colored hazard badges (hero radar reuses status colors) */
-.rl-tone-warning .rl-contact-badge{ stroke:var(--status-warning); }
-.rl-tone-warning .rl-contact-glyph{ fill:var(--dark-tone-warning); }
-.rl-tone-warning .rl-contact-glyph-stroke{ stroke:var(--dark-tone-warning); }
-.rl-tone-caution .rl-contact-badge{ stroke:var(--status-caution); }
-.rl-tone-caution .rl-contact-glyph{ fill:var(--status-caution); }
-.rl-tone-caution .rl-contact-glyph-stroke{ stroke:var(--status-caution); }
-.rl-tone-safe .rl-contact-badge{ stroke:var(--status-safe); }
-.rl-tone-safe .rl-contact-glyph{ fill:var(--dark-tone-safe); }
-.rl-tone-safe .rl-contact-glyph-stroke{ stroke:var(--dark-tone-safe); }
-
 @media (prefers-reduced-motion: reduce){
   .rl-icon-wrap *{ animation:none !important; opacity:1 !important; transform:none !important; filter:none !important; }
 }

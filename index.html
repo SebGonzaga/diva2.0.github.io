@@ -184,7 +184,6 @@
                 </linearGradient>
               </defs>
               <g transform="translate(15,10)">
-                <circle class="rl-ring rl-ring4" cx="110" cy="95" r="100"/>
                 <circle class="rl-ring rl-ring1" cx="110" cy="95" r="80"/>
                 <circle class="rl-ring rl-ring2" cx="110" cy="95" r="60"/>
                 <circle class="rl-ring rl-ring3" cx="110" cy="95" r="40"/>
@@ -193,8 +192,8 @@
                   <path d="M110,95 L110,15 A80,80 0 0,1 178,133 Z" fill="url(#rlSweepGradHero)"/>
                 </g>
 
-                <!-- MAYON — volcano contact -->
-                <g class="rl-contact rl-tone-warning" transform="translate(134,38)">
+                <!-- volcano contact -->
+                <g class="rl-contact rl-volcano" transform="translate(167,45)">
                   <g class="rl-badge-enter rl-volcano-enter">
                     <circle class="rl-ping" r="10"/>
                     <g class="rl-contact-glow">
@@ -205,19 +204,8 @@
                   </g>
                 </g>
 
-                <!-- TAAL — seismic contact -->
-                <g class="rl-contact rl-tone-caution" transform="translate(76,135)">
-                  <g class="rl-badge-enter rl-earthquake-enter">
-                    <circle class="rl-ping" r="10"/>
-                    <g class="rl-contact-glow">
-                      <circle class="rl-contact-badge" r="10"/>
-                      <path d="M-5,0 L-2.3,-3.3 L0,3.3 L2.3,-3.3 L5,0" fill="none" class="rl-contact-glyph-stroke" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-                    </g>
-                  </g>
-                </g>
-
-                <!-- KANLAON — ashfall contact -->
-                <g class="rl-contact rl-tone-safe" transform="translate(153,162)">
+                <!-- cloud contact -->
+                <g class="rl-contact rl-cloud" transform="translate(58,132)">
                   <g class="rl-badge-enter rl-cloud-enter">
                     <circle class="rl-ping" r="10"/>
                     <g class="rl-contact-glow">
@@ -226,6 +214,17 @@
                       <circle class="rl-contact-glyph" cx="-2.6" cy="-0.6" r="2.7"/>
                       <circle class="rl-contact-glyph" cx="1.2" cy="-1.8" r="3.2"/>
                       <circle class="rl-contact-glyph" cx="4.2" cy="-0.2" r="2.2"/>
+                    </g>
+                  </g>
+                </g>
+
+                <!-- earthquake contact -->
+                <g class="rl-contact rl-earthquake" transform="translate(75,75)">
+                  <g class="rl-badge-enter rl-earthquake-enter">
+                    <circle class="rl-ping" r="10"/>
+                    <g class="rl-contact-glow">
+                      <circle class="rl-contact-badge" r="10"/>
+                      <path d="M-5,0 L-2.3,-3.3 L0,3.3 L2.3,-3.3 L5,0" fill="none" class="rl-contact-glyph-stroke" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
                     </g>
                   </g>
                 </g>
@@ -243,9 +242,6 @@
               </g>
             </svg>
           </span>
-          <div class="radar-label" style="top:16%; left:62%;">MAYON · AL3</div>
-          <div class="radar-label" style="top:70%; left:38%;">TAAL · AL1</div>
-          <div class="radar-label" style="top:82%; left:70%;">KANLAON</div>
         </div>
       </div>
     </div>
