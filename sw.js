@@ -26,8 +26,8 @@
 // mismatched (stale HTML + stale JS) cached copies on a returning user's
 // device — without bumping these, cache-first below would keep serving
 // the same files forever, no matter what's redeployed.
-const CACHE_VERSION = "rain-shell-v2";
-const RUNTIME_CACHE = "rain-runtime-v2";
+const CACHE_VERSION = "rain-shell-v3";
+const RUNTIME_CACHE = "rain-runtime-v3";
 
 // Every page in the app, so a resident who only ever opened the dashboard
 // can still navigate to Emergency/Alerts/Weather/etc. once offline, not
