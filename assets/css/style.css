@@ -316,6 +316,7 @@ a{color:inherit; text-decoration:none;}
   stroke-width: 1.5;
 }
 .rl-contact-glyph{ fill:#c9f5f5; }
+.rl-contact-glyph-stroke{ stroke:#c9f5f5; }
 
 .rl-badge-enter{
   opacity:0;
@@ -399,8 +400,66 @@ a{color:inherit; text-decoration:none;}
   50%{ opacity:1; }
 }
 
+.rl-ring4{ stroke-opacity:.08; animation-delay:.55s; }
+
+/* Size variants — same SVG/viewBox, just a bigger box */
+.rl-icon-nav{ width:42px; height:42px; flex:none; }
+.rl-icon-hero{ width:100%; height:100%; }
+.rl-icon-loader{ width:min(46vw,240px); height:min(46vw,240px); }
+
+/* Tone-colored hazard badges (hero radar reuses status colors) */
+.rl-tone-warning .rl-contact-badge{ stroke:var(--status-warning); }
+.rl-tone-warning .rl-contact-glyph{ fill:var(--dark-tone-warning); }
+.rl-tone-warning .rl-contact-glyph-stroke{ stroke:var(--dark-tone-warning); }
+.rl-tone-caution .rl-contact-badge{ stroke:var(--status-caution); }
+.rl-tone-caution .rl-contact-glyph{ fill:var(--status-caution); }
+.rl-tone-caution .rl-contact-glyph-stroke{ stroke:var(--status-caution); }
+.rl-tone-safe .rl-contact-badge{ stroke:var(--status-safe); }
+.rl-tone-safe .rl-contact-glyph{ fill:var(--dark-tone-safe); }
+.rl-tone-safe .rl-contact-glyph-stroke{ stroke:var(--dark-tone-safe); }
+
 @media (prefers-reduced-motion: reduce){
   .rl-icon-wrap *{ animation:none !important; opacity:1 !important; transform:none !important; filter:none !important; }
+}
+
+/* =========================================================================
+   Full-page loader — plays once on load, then "opens" outward from the
+   raindrop to reveal the page underneath. Pure-CSS (no JS dependency),
+   so it degrades safely if scripts are blocked.
+   ========================================================================= */
+.rl-loader{
+  position:fixed; inset:0; z-index:9999;
+  display:flex; align-items:center; justify-content:center;
+  flex-direction:column; gap:14px;
+  background:
+    radial-gradient(ellipse at 50% 45%, rgba(51,201,209,.10), transparent 60%),
+    var(--navy-950);
+  animation: rlLoaderOut .9s cubic-bezier(.65,0,.2,1) forwards;
+  animation-delay:2.35s;
+}
+.rl-loader-word{
+  font-family:var(--font-display);
+  font-weight:700;
+  letter-spacing:3px;
+  font-size:1.4rem;
+  color:#fff;
+  opacity:0;
+  transform:translateY(8px);
+  animation: rlLoaderWordIn .5s ease-out 1.65s forwards;
+}
+@keyframes rlLoaderWordIn{ to{ opacity:1; transform:translateY(0); } }
+@keyframes rlLoaderOut{
+  0%{   clip-path:circle(150% at 50% 50%); opacity:1; }
+  82%{  opacity:1; }
+  100%{ clip-path:circle(0% at 50% 50%); opacity:0; visibility:hidden; }
+}
+body.rl-loading{ overflow:hidden; }
+.rl-loader[hidden]{ display:none; }
+
+@media (prefers-reduced-motion: reduce){
+  .rl-loader{ animation:rlLoaderOutReduced .5s ease forwards; animation-delay:.15s; }
+  @keyframes rlLoaderOutReduced{ from{ opacity:1; } to{ opacity:0; visibility:hidden; } }
+  .rl-loader-word{ opacity:1; transform:none; animation:none; }
 }
 .rain-navbar .nav-link{
   color:rgba(255,255,255,.75);
