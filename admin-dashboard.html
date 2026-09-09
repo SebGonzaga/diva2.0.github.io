@@ -93,11 +93,28 @@
 <script type="module">
   await RainAuth.init();
   const user = renderAppShell("admin-dashboard.html", { title: "Admin Dashboard" });
-  if (user && !RainAuth.isAdmin(user)) { window.location.href = "dashboard.html"; }
-  if (user && RainAuth.isAdmin(user)) {
+
+  // TEMPORARY DIAGNOSTIC — remove once the blank-page issue is confirmed
+  // fixed. Prints exactly what this page thinks it knows about the
+  // logged-in user, so a blank screen shows a reason instead of nothing.
+  console.log("[admin-dashboard diagnostic] user:", user);
+  const diag = document.getElementById("app-content");
+
+  if (!user) {
+    diag.innerHTML = `<div class="rain-card" style="padding:1.5rem;"><strong>No user session found.</strong> RainAuth.requireLogin() returned null — you should have been redirected to login.html. If you're seeing this instead of that redirect, check the browser console for a Supabase auth error.</div>`;
+  } else if (!RainAuth.isAdmin(user)) {
+    diag.innerHTML = `<div class="rain-card" style="padding:1.5rem;">
+      <strong>Not recognized as an admin.</strong> Logged in as <code>${user.email}</code> with role <code>"${user.role}"</code>.
+      RainAuth.isAdmin() requires the role to be exactly <code>"Administrator"</code>, which comes from the <code>profiles.role</code> column in Supabase being <code>"admin"</code> for this account.
+      <br><br>Redirecting to dashboard.html in 3 seconds — check the <code>profiles</code> table for this user's <code>id</code> (<code>${user.id}</code>) if this keeps happening.
+    </div>`;
+    setTimeout(() => { window.location.href = "dashboard.html"; }, 3000);
+  } else {
     document.getElementById("app-content").appendChild(document.getElementById("admin-content").content.cloneNode(true));
     initializeAnimations();
     document.getElementById("adminUpdated").textContent = "Updated " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+    try {
 
     // Real counts from Supabase instead of hardcoded numbers — this is the
     // same data admin-users.html, admin-alerts.html, and admin-incidents.html
@@ -185,6 +202,13 @@
       data: { labels: chatBuckets.map((b) => b.label), datasets: [{ label: "Conversations", data: chatBuckets.map((b) => b.count), backgroundColor:"#2c5581", borderRadius:6 }] },
       options: { plugins: { legend: { display:false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } },
     });
+    } catch (err) {
+      // TEMPORARY DIAGNOSTIC — surfaces the exact error instead of a
+      // silently blank dashboard.
+      console.error("[admin-dashboard diagnostic] fetch/render error:", err);
+      document.getElementById("app-content").insertAdjacentHTML("afterbegin",
+        `<div class="rain-card" style="padding:1.5rem; border-color:#e74c3c;"><strong>Something failed while loading dashboard data:</strong><br><code>${(err && err.message) || err}</code></div>`);
+    }
   }
 </script>
 </body>
