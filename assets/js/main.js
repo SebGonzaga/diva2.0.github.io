@@ -539,6 +539,19 @@ function initializeAnimations() {
   document.querySelectorAll("[data-press]").forEach((btn) => {
     btn.addEventListener("click", () => RainAnim.pressButton(btn));
   });
+
+  // Safety net: these elements all start their entrance/reveal animation
+  // at opacity:0 and rely on anime.js's requestAnimationFrame-driven tween
+  // to bring them up to opacity:1. That's been observed to stall on some
+  // Android WebView/Chrome builds (the rAF tween never completes), which
+  // leaves real content permanently invisible instead of just missing a
+  // decorative effect. Whatever the cause, force every such element to
+  // full opacity after a short grace period regardless of animation
+  // state, so a stalled tween can never hide content the user needs.
+  setTimeout(() => {
+    document.querySelectorAll(".reveal-on-scroll, .hero-title, .hero-subtitle, .hero-desc, .hero-cta, .hero-stat")
+      .forEach((el) => { el.style.opacity = "1"; });
+  }, 1200);
 }
 
 /* =========================================================================

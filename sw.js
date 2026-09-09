@@ -4,7 +4,9 @@
    offline. This is deliberately NOT a "cache everything forever" worker:
 
    - App-shell files (HTML/CSS/JS/icons/manifest) are precached on install
-     and served cache-first, so the app still opens with no connection.
+     and served network-first with a cache fallback, so an online device
+     always gets the current build and an offline device still opens using
+     whatever was last cached.
    - Navigating to any known page falls back to the cached copy of THAT
      page if the network is unavailable (network-first, cache fallback),
      and falls back to the cached dashboard if the exact page was never
@@ -18,8 +20,14 @@
      of silently replaying a stale network response.
    ========================================================================= */
 
-const CACHE_VERSION = "rain-shell-v1";
-const RUNTIME_CACHE = "rain-runtime-v1";
+// Bump BOTH version strings on every deploy that changes any HTML/CSS/JS.
+// The activate handler below deletes any cache whose name doesn't match
+// these exactly, so changing them is what actually busts old, possibly
+// mismatched (stale HTML + stale JS) cached copies on a returning user's
+// device — without bumping these, cache-first below would keep serving
+// the same files forever, no matter what's redeployed.
+const CACHE_VERSION = "rain-shell-v2";
+const RUNTIME_CACHE = "rain-runtime-v2";
 
 // Every page in the app, so a resident who only ever opened the dashboard
 // can still navigate to Emergency/Alerts/Weather/etc. once offline, not
@@ -129,21 +137,25 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Same-origin static assets (CSS/JS/icons): cache-first, refresh in the
-  // background so the next load picks up any change without blocking this
-  // one on a network round-trip.
+  // Same-origin static assets (CSS/JS/icons): network-first, cache
+  // fallback. This used to be cache-first (serve the cached copy
+  // instantly, refresh in the background for "next time"), but that meant
+  // a device that had ever cached an older build would keep serving that
+  // exact same JS/CSS forever — the version bump above only clears the
+  // *old* cache name, it doesn't help if CACHE_VERSION itself never
+  // changes on a given deploy. Network-first costs one round-trip per
+  // asset when online, but guarantees a live page always gets the code
+  // that matches it, and offline devices still fall back to whatever was
+  // last cached.
   if (url.origin === self.location.origin) {
     event.respondWith(
-      caches.match(req).then((cached) => {
-        const networkFetch = fetch(req)
-          .then((res) => {
-            const copy = res.clone();
-            caches.open(CACHE_VERSION).then((cache) => cache.put(req, copy));
-            return res;
-          })
-          .catch(() => cached);
-        return cached || networkFetch;
-      })
+      fetch(req)
+        .then((res) => {
+          const copy = res.clone();
+          caches.open(CACHE_VERSION).then((cache) => cache.put(req, copy));
+          return res;
+        })
+        .catch(() => caches.match(req))
     );
     return;
   }
