@@ -270,6 +270,138 @@ a{color:inherit; text-decoration:none;}
   font-weight:700;
   font-size:.85rem;
 }
+
+/* =========================================================================
+   Animated logo mark (radar-sweep raindrop) — scoped with an "rl-" prefix
+   so it never collides with existing brand-mark / .ring / .contact rules.
+   ========================================================================= */
+.rl-icon-wrap{
+  position:relative;
+  width:42px;
+  height:42px;
+  flex:none;
+  overflow:visible;
+}
+.rl-icon-wrap svg{ position:absolute; inset:0; overflow:visible; }
+
+.rl-ring{
+  fill:none;
+  stroke:var(--accent-cyan);
+  opacity:0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: rlRingIn .5s cubic-bezier(.2,.8,.3,1.2) forwards;
+}
+.rl-ring1{ stroke-opacity:.14; animation-delay:.7s; }
+.rl-ring2{ stroke-opacity:.24; animation-delay:.85s; }
+.rl-ring3{ stroke-opacity:.38; animation-delay:1.0s; }
+@keyframes rlRingIn{
+  from{ opacity:0; transform:scale(.3); }
+  to{ opacity:1; transform:scale(1); }
+}
+
+.rl-sweep-group{
+  transform-origin: 110px 95px;
+  opacity:0;
+  animation:
+    rlSpin 4s linear infinite 1.3s,
+    rlSweepFade .4s ease-out 1.3s forwards;
+}
+@keyframes rlSpin{ to{ transform: rotate(360deg); } }
+@keyframes rlSweepFade{ to{ opacity:1; } }
+
+.rl-contact-badge{
+  fill: var(--navy-950);
+  stroke: var(--accent-cyan);
+  stroke-width: 1.5;
+}
+.rl-contact-glyph{ fill:#c9f5f5; }
+
+.rl-badge-enter{
+  opacity:0;
+  transform: scale(0);
+  animation: rlFadeScaleIn .45s cubic-bezier(.2,.8,.3,1.2) forwards;
+}
+@keyframes rlFadeScaleIn{
+  from{ opacity:0; transform:scale(0); }
+  to{ opacity:1; transform:scale(1); }
+}
+.rl-volcano-enter    { animation-delay: 1.1s; }
+.rl-cloud-enter      { animation-delay: 1.3s; }
+.rl-earthquake-enter { animation-delay: 1.5s; }
+
+.rl-ping{
+  fill:none;
+  stroke:#c9f5f5;
+  stroke-width: 1.5;
+  opacity: 0;
+  transform-origin: center;
+  animation-name: rlPingpulse;
+  animation-duration: 4s;
+  animation-timing-function: ease-out;
+  animation-iteration-count: infinite;
+}
+@keyframes rlPingpulse{
+  0%{ r:10; opacity:0; }
+  4%{ r:10; opacity:.9; }
+  22%{ r:20; opacity:0; }
+  100%{ r:20; opacity:0; }
+}
+
+.rl-contact-glow{
+  animation-name: rlContactflash;
+  animation-duration: 4s;
+  animation-timing-function: ease-out;
+  animation-iteration-count: infinite;
+}
+@keyframes rlContactflash{
+  0%,100%{ filter:none; }
+  4%{ filter: drop-shadow(0 0 6px rgba(201,245,245,.9)); }
+  18%{ filter:none; }
+}
+
+.rl-volcano .rl-ping, .rl-volcano .rl-contact-glow    { animation-delay: 1.55s; }
+.rl-cloud .rl-ping, .rl-cloud .rl-contact-glow        { animation-delay: 1.75s; }
+.rl-earthquake .rl-ping, .rl-earthquake .rl-contact-glow{ animation-delay: 1.95s; }
+
+.rl-drop-intro{
+  transform-origin: 110px 95px;
+  animation: rlDropSettle 1.05s cubic-bezier(.25,.65,.3,1.15) forwards;
+}
+@keyframes rlDropSettle{
+  0%{   transform: scale(2.6); }
+  55%{  transform: scale(.88); }
+  78%{  transform: scale(1.06); }
+  100%{ transform: scale(1); }
+}
+
+.rl-pin-group{
+  animation: rlBob 3s ease-in-out infinite 1.05s;
+  transform-origin: 110px 95px;
+}
+@keyframes rlBob{
+  0%,100%{ transform: translateY(0); }
+  50%{ transform: translateY(-3px); }
+}
+
+.rl-pin-glow{
+  animation: rlPulse 2.4s ease-in-out infinite;
+  transform-origin: 110px 95px;
+}
+@keyframes rlPulse{
+  0%,100%{ filter: drop-shadow(0 0 3px rgba(51,201,209,.55)); }
+  50%{ filter: drop-shadow(0 0 12px rgba(51,201,209,.95)); }
+}
+
+.rl-pin-core{ animation: rlCoreflicker 2.4s ease-in-out infinite; }
+@keyframes rlCoreflicker{
+  0%,100%{ opacity:.8; }
+  50%{ opacity:1; }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .rl-icon-wrap *{ animation:none !important; opacity:1 !important; transform:none !important; filter:none !important; }
+}
 .rain-navbar .nav-link{
   color:rgba(255,255,255,.75);
   font-weight:500;
