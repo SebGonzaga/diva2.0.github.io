@@ -276,10 +276,8 @@ a{color:inherit; text-decoration:none;}
    so it never collides with existing brand-mark / .ring / .contact rules.
    ========================================================================= */
 .rl-icon-wrap{
+  display:inline-block;
   position:relative;
-  width:42px;
-  height:42px;
-  flex:none;
   overflow:visible;
 }
 .rl-icon-wrap svg{ position:absolute; inset:0; overflow:visible; }
