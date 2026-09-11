@@ -38,19 +38,49 @@ const RainAuth = {
 
   /** Call once per page load, BEFORE any code reads RainAuth.getUser().
    *  Refreshes the local cache from the real Supabase session so a user
-   *  who logged in on one tab/page is recognized on every other page. */
+   *  who logged in on one tab/page is recognized on every other page.
+   *
+   *  IMPORTANT: a network/connectivity failure here (slow cold start,
+   *  blocked domain in a wrapped WebView app, momentary offline, etc.)
+   *  must NOT be treated the same as "not logged in" — that used to
+   *  wipe the cached user and blank the whole page. Only a definitive
+   *  "no session" / auth rejection clears the cache; anything that
+   *  looks like a transient network failure falls back to the last
+   *  known-good cached user so the page still renders. */
   async init() {
-    const { data: { session } } = await sb.auth.getSession();
-    if (!session) { this._clearCache(); return null; }
+    const cachedUser = this.getUser();
 
-    const { data: profile, error } = await sb
-      .from("profiles")
-      .select("full_name, role, barangay")
-      .eq("id", session.user.id)
-      .single();
+    let session;
+    try {
+      const { data, error } = await sb.auth.getSession();
+      if (error) throw error;
+      session = data.session;
+    } catch (err) {
+      console.error("RainAuth.init: getSession failed (treating as network issue, keeping cache):", err);
+      return cachedUser; // don't nuke the page over a network blip
+    }
+
+    if (!session) { this._clearCache(); return null; } // genuine logout / no session
+
+    let profile, error;
+    try {
+      ({ data: profile, error } = await sb
+        .from("profiles")
+        .select("full_name, role, barangay")
+        .eq("id", session.user.id)
+        .single());
+    } catch (err) {
+      console.error("RainAuth.init: profile fetch threw (treating as network issue, keeping cache):", err);
+      return cachedUser;
+    }
 
     if (error || !profile) {
+      // Distinguish a real backend rejection (has a Postgrest error code,
+      // e.g. RLS denial) from a generic network failure (no code, usually
+      // "Failed to fetch" / TypeError). Only clear cache on the former.
+      const looksLikeNetworkFailure = error && !error.code;
       console.error("Supabase profile fetch error:", error);
+      if (looksLikeNetworkFailure && cachedUser) return cachedUser;
       this._clearCache();
       return null;
     }
