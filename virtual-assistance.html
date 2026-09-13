@@ -50,7 +50,6 @@
 <script src="assets/js/rain-auth.js"></script>
 <script src="assets/js/offline-store.js"></script>
 <script src="assets/js/main.js"></script>
-<script src="assets/js/voice-command.js"></script>
 <script type="module">
   await RainAuth.init();
   const user = renderAppShell("virtual-assistance.html", { title: "Virtual Assistance" });
@@ -231,9 +230,7 @@
     let usedLiveApi = false;
     try {
       // RainChatAPI.send() (assets/js/main.js) is the shared client for
-      // /api/chat — also used by the "Hey RAIN" voice command fallback
-      // (assets/js/voice-command.js), so the request/parsing logic only
-      // lives in one place.
+      // /api/chat.
       reply = await RainChatAPI.send(text, { lang: currentLang, history });
       // reply stays as raw markdown text (saved to history/localStorage and
       // sent back to Gemini as context on the next turn); displayReply is

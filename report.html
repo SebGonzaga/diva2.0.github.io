@@ -76,7 +76,6 @@
 <script src="assets/js/rain-auth.js"></script>
 <script src="assets/js/offline-store.js"></script>
 <script src="assets/js/main.js"></script>
-<script src="assets/js/voice-command.js"></script>
 <script type="module">
   await RainAuth.init();
   const user = renderAppShell("report.html", { title: "Report Incident" });
@@ -108,16 +107,6 @@
       (v) => v.trim().length >= 10,
       "Please describe what you observed (at least 10 characters)."
     );
-
-    // "Hey RAIN, I want to report an incident" lands here via
-    // assets/js/voice-command.js — consumeIntent() reads (and clears) the
-    // sessionStorage hint it left, so a page refresh doesn't re-trigger this.
-    if (typeof VoiceCommand !== "undefined") {
-      const voiceIntent = VoiceCommand.consumeIntent();
-      if (voiceIntent && voiceIntent.voiceIntent === "report_incident") {
-        document.getElementById("incidentType").focus();
-      }
-    }
 
     document.getElementById("reportForm").addEventListener("submit", async (e) => {
       e.preventDefault();

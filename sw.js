@@ -64,7 +64,6 @@ const STATIC_ASSETS = [
   "./assets/js/offline-store.js",
   "./assets/js/supabase-client.js",
   "./assets/js/taal-places.js",
-  "./assets/js/voice-command.js",
   "./assets/icons/icon-192.png",
   "./assets/icons/icon-512.png",
   "./assets/icons/icon-maskable-512.png",

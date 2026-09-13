@@ -240,26 +240,19 @@ const RainFieldValidation = {
   },
 };
 
-/** Shared client for the Gemini-backed chat endpoint (api/chat.js) — used
- *  by virtual-assistance.html's chat UI AND the "Hey RAIN" voice command
- *  fallback (assets/js/voice-command.js), so the request shape/parsing only
- *  lives in one place instead of being copy-pasted between the two. Returns
- *  the raw markdown reply string on success; throws on any failure (bad
- *  status, network error, empty reply) so each caller can apply its own
- *  fallback (virtual-assistance.html shows a canned demo reply, the voice
- *  command falls back to a short spoken/displayed error). */
+/** Shared client for the Gemini-backed chat endpoint (api/chat.js) — used by
+ *  virtual-assistance.html's chat UI. Returns the raw markdown reply string
+ *  on success; throws on any failure (bad status, network error, empty
+ *  reply) so the caller can apply its own fallback (virtual-assistance.html
+ *  shows a canned demo reply). */
 const RainChatAPI = {
-  // `voice: true` tells the backend this reply is going into the small
-  // floating voice-response bubble (and being read aloud) rather than the
-  // full chat page, so it should keep the answer short — see api/chat.js.
-  async send(message, { lang = "en", history = [], voice = false } = {}) {
+  async send(message, { lang = "en", history = [] } = {}) {
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         message,
         lang,
-        voice,
         history: history.slice(-10).map((m) => ({ role: m.role, content: m.message })),
       }),
     });
@@ -517,14 +510,9 @@ function renderAppShell(activePage, opts) {
   window.addEventListener("offline", updateOnlineStatus);
   updateOnlineStatus();
 
-  // "Hey RAIN" voice command mic (assets/js/voice-command.js). Mounted here
-  // — rather than per-page — so every page that builds the app shell gets
-  // the persistent mic button for free, and it only ever appears for a
-  // logged-in user (we're already past the requireLogin() check above).
-  // Guarded because voice-command.js may not be loaded on every page yet.
-  if (typeof VoiceCommand !== "undefined" && typeof VoiceCommand.mount === "function") {
-    VoiceCommand.mount(user);
-  }
+  // Voice command feature removed (Web Speech API's speechSynthesis isn't
+  // supported in the Median-wrapped Android WebView app; see git history
+  // for assets/js/voice-command.js if this needs to be revisited later).
 
   return user;
 }
