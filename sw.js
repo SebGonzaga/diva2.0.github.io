@@ -20,14 +20,14 @@
      of silently replaying a stale network response.
    ========================================================================= */
 
-// Bump BOTH version strings on every deploy that changes any HTML/CSS/JS.
-// The activate handler below deletes any cache whose name doesn't match
-// these exactly, so changing them is what actually busts old, possibly
-// mismatched (stale HTML + stale JS) cached copies on a returning user's
-// device — without bumping these, cache-first below would keep serving
-// the same files forever, no matter what's redeployed.
-const CACHE_VERSION = "rain-shell-v2";
-const RUNTIME_CACHE = "rain-runtime-v2";
+// These get auto-filled at deploy time by scripts/build-sw.js (run via
+// `npm run build` in Vercel) with the current git commit hash, so a new
+// cache name — and therefore a full cache bust — happens on EVERY deploy
+// automatically. No one has to remember to hand-edit a version string.
+// If you're running this file locally without the build step, these
+// placeholders just mean "always treat this as a fresh version."
+const CACHE_VERSION = "rain-shell-__SW_BUILD_ID__";
+const RUNTIME_CACHE = "rain-runtime-__SW_BUILD_ID__";
 
 // Every page in the app, so a resident who only ever opened the dashboard
 // can still navigate to Emergency/Alerts/Weather/etc. once offline, not

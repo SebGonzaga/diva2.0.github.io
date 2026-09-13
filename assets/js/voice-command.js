@@ -74,7 +74,7 @@ const VoiceCommand = {
   mount() {
     if (this._mounted) return;
     this._mounted = true;
-    if (!this._speechSupported()) {
+    if (!this._supported()) {
       this._buildUnsupportedWidget();
       return;
     }
@@ -108,6 +108,7 @@ const VoiceCommand = {
   // triggers that load early, so the first spoken response can already
   // pick a matching voice instead of falling back to the engine default.
   _primeVoices() {
+    if (!this._ttsSupported()) return; // belt-and-suspenders: mount() already checks this
     if (window.speechSynthesis.getVoices().length) return;
     window.speechSynthesis.addEventListener("voiceschanged", () => {}, { once: true });
   },
