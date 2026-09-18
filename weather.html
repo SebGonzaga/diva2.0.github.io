@@ -153,8 +153,8 @@
   function renderMap(lat, lng, label) {
     if (!map) {
       map = L.map("weather-map").setView([lat, lng], 10);
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
-      marker = L.marker([lat, lng]).addTo(map);
+      L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>', subdomains: "abcd", maxZoom: 20 }).addTo(map);
+      marker = L.marker([lat, lng], { icon: rainPinIcon("user", "bi-geo-alt-fill") }).addTo(map);
     } else {
       map.setView([lat, lng], 10);
       marker.setLatLng([lat, lng]);

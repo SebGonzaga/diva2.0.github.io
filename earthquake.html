@@ -187,7 +187,7 @@
   function renderMap(userLat, userLng, quakes, nearest) {
     if (!quakeMap) {
       quakeMap = L.map("quake-map").setView([userLat, userLng], 6);
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: '&copy; OpenStreetMap contributors' }).addTo(quakeMap);
+      L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>', subdomains: "abcd", maxZoom: 20 }).addTo(quakeMap);
       L.marker([userLat, userLng], { icon: rainPinIcon("user", "bi-person-fill") }).addTo(quakeMap).bindPopup("Your location");
     }
     quakeMarkers.forEach((m) => quakeMap.removeLayer(m));

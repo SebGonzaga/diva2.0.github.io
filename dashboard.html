@@ -25,7 +25,7 @@
   <div class="row g-4 mb-4">
     <div class="col-lg-5">
       <div class="rain-card rain-card-dark reveal-on-scroll h-100">
-        <div class="card-eyebrow"><span>Community Risk</span><span class="live-badge"><span class="dot pulse-dot"></span>LIVE</span></div>
+        <div class="card-eyebrow"><span>Community Risk</span><span class="live-badge"><span class="dot"></span>LIVE</span></div>
         <div class="risk-meter">
           <div class="risk-ring-wrap">
             <svg viewBox="0 0 160 160">
@@ -45,7 +45,7 @@
 
     <div class="col-lg-7">
       <div class="rain-card rain-card-dark reveal-on-scroll h-100" style="padding-bottom:1.1rem;">
-        <div class="card-eyebrow" id="situationMapEyebrow"><span>Live Situation Map</span><span class="live-badge"><span class="dot pulse-dot"></span>LIVE</span></div>
+        <div class="card-eyebrow" id="situationMapEyebrow"><span>Live Situation Map</span><span class="live-badge"><span class="dot"></span>LIVE</span></div>
         <div class="map-filter-row" id="mapFilters">
           <button class="map-filter-btn active" data-filter="all">All</button>
           <button class="map-filter-btn" data-filter="alerts">Alerts</button>
@@ -97,7 +97,7 @@
     </div>
     <div class="col-6 col-lg-3">
       <div class="rain-card reveal-on-scroll">
-        <div class="card-eyebrow"><span>Volcano</span><span class="icon-chip tone-warning"><i class="bi bi-triangle dicon" data-dicon="triangle"></i></span></div>
+        <div class="card-eyebrow"><span>Volcano</span><span class="icon-chip tone-warning"><i class="bi bi-fire dicon" data-dicon="fire"></i></span></div>
         <h3 class="card-num">AL 3</h3>
         <span class="status-badge status-warning"><span class="dot pulse-dot"></span>Mayon — Warning</span>
         <div class="data-source-line"><i class="bi bi-clock-history dicon" data-dicon="clock-history"></i> Updated 06:00</div>
@@ -123,14 +123,14 @@
     <div class="col-lg-7">
       <div class="rain-card reveal-on-scroll mb-4">
         <div class="d-flex justify-content-between align-items-center mb-3">
-          <h2 style="font-size:1.1rem; font-weight:700; color:var(--navy-950); margin:0;">Latest alerts <span class="cached-data-tag d-none" id="dashAlertsCacheTag"><i class="bi bi-cloud-slash"></i> Saved data</span></h2>
+          <h2 class="card-heading m-0">Latest alerts <span class="cached-data-tag d-none" id="dashAlertsCacheTag"><i class="bi bi-cloud-slash"></i> Saved data</span></h2>
           <a href="alerts.html" class="text-decoration-none" style="font-size:.85rem; color:var(--accent-cyan); font-weight:600;">View all <i class="bi bi-arrow-right dicon" data-dicon="arrow-right"></i></a>
         </div>
         <div class="d-flex flex-column gap-3" id="dashAlerts"></div>
       </div>
 
       <div class="rain-card reveal-on-scroll">
-        <h2 style="font-size:1.1rem; font-weight:700; color:var(--navy-950); margin-bottom:1rem;">Emergency access</h2>
+        <h2 class="card-heading">Emergency access</h2>
         <div class="row g-3">
           <div class="col-4"><a href="emergency.html" class="btn-rain btn-rain-ghost w-100 flex-column py-3" style="height:100%;" data-press><i class="bi bi-telephone fs-4 mb-1 dicon" data-dicon="telephone"></i><span style="font-size:.8rem;">Contacts</span></a></div>
           <div class="col-4"><a href="emergency.html#evac" class="btn-rain btn-rain-ghost w-100 flex-column py-3" style="height:100%;" data-press><i class="bi bi-signpost-split fs-4 mb-1 dicon" data-dicon="signpost-split"></i><span style="font-size:.8rem;">Evacuation</span></a></div>
@@ -153,7 +153,7 @@
       </div>
 
       <div class="rain-card reveal-on-scroll mt-4">
-        <h2 style="font-size:1.1rem; font-weight:700; color:var(--navy-950); margin-bottom:1rem;">Volcano watch</h2>
+        <h2 class="card-heading">Volcano watch</h2>
         <div class="d-flex flex-column gap-3" id="dashVolcanoes"></div>
         <a href="volcano.html" class="btn-rain btn-rain-ghost w-100 justify-content-center mt-3" data-press>View volcano monitoring</a>
       </div>
@@ -433,7 +433,7 @@
       if (locSourceEl) locSourceEl.textContent = isRealLocation ? "GPS" : "Approximate (no GPS)";
 
       const map = L.map("situationMap", { zoomControl: true }).setView([userLat, userLng], 13);
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
+      L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>', subdomains: "abcd", maxZoom: 20 }).addTo(map);
 
       const pinIcon = rainPinIcon; // shared helper — see assets/js/main.js
 
