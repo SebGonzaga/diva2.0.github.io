@@ -1774,6 +1774,206 @@ body.rl-loading{ overflow:hidden; }
 }
 .dicon-pulse .dicon-svg-inner{ animation:dicon-pulse .45s cubic-bezier(.34,1.56,.64,1); }
 
+/* =========================================================================
+   Themed click effects (assets/js/icons.js -> playFx)
+   Each family of icon gets its own tiny "moment" instead of the plain
+   pulse above: embers erupt from the volcano/fire glyph, a bell rings,
+   a raincloud dumps extra drops, a shield shines, etc. Particles are
+   short-lived <span> elements injected next to the icon's own svg; the
+   icon itself stays [data-dicon]/.dicon (position:relative) so absolute
+   particles anchor to it correctly.
+   ========================================================================= */
+.dicon-particle{ position:absolute; inset:0; margin:auto; pointer-events:none; }
+
+/* --- fire / volcano: eruption --------------------------------------- */
+@keyframes dicon-erupt{
+  0%{ transform:scale(1) translateY(0); }
+  30%{ transform:scale(1.16) translateY(-2px); }
+  55%{ transform:scale(.94) translateY(1px); }
+  100%{ transform:scale(1) translateY(0); }
+}
+.dicon-fx-erupt .dicon-svg-inner{ animation:dicon-erupt .55s cubic-bezier(.34,1.56,.64,1); }
+.dicon-fx-erupt .dicon-base{ color:var(--status-warning); transition:color .12s ease; }
+@keyframes dicon-ember-rise{
+  0%{ width:3px; height:3px; opacity:0; transform:translate(0,4px) rotate(var(--ang)) translateY(0) rotate(calc(var(--ang) * -1)); background:#ffd27a; }
+  15%{ opacity:1; }
+  100%{ width:2px; height:2px; opacity:0; background:var(--status-warning); transform:translate(0,4px) rotate(var(--ang)) translateY(calc(var(--dist) * -1)) rotate(calc(var(--ang) * -1)); }
+}
+.dicon-ember{
+  border-radius:50%; background:#ffd27a; box-shadow:0 0 4px 1px rgba(232,112,58,.7);
+  animation:dicon-ember-rise var(--dur,.7s) ease-out var(--fx-delay,0s) forwards;
+}
+@keyframes dicon-smoke-rise{
+  0%{ width:4px; height:4px; opacity:0; transform:translate(var(--x,0),6px) scale(.6); }
+  25%{ opacity:.35; }
+  100%{ width:9px; height:9px; opacity:0; transform:translate(var(--x,0),-16px) scale(1.4); }
+}
+.dicon-smoke{
+  border-radius:50%; background:var(--ink-400,#8291a6);
+  animation:dicon-smoke-rise .9s ease-out var(--fx-delay,0s) forwards;
+}
+
+/* --- water: ripple ---------------------------------------------------- */
+@keyframes dicon-ripple{
+  0%{ width:6px; height:6px; opacity:.65; border-width:1.5px; }
+  100%{ width:38px; height:38px; opacity:0; border-width:.5px; }
+}
+.dicon-ripple-ring{
+  border-radius:50%; border:1.5px solid var(--accent-cyan);
+  animation:dicon-ripple .7s ease-out var(--fx-delay,0s) forwards;
+}
+
+/* --- rain: downpour ---------------------------------------------------- */
+@keyframes dicon-shudder{ 0%,100%{ transform:translateX(0); } 25%{ transform:translateX(-1.5px); } 75%{ transform:translateX(1.5px); } }
+.dicon-fx-shudder .dicon-svg-inner{ animation:dicon-shudder .3s ease-in-out; }
+@keyframes dicon-drop-fall{
+  0%{ height:0; opacity:0; transform:translate(var(--x,0),-8px); }
+  20%{ opacity:1; }
+  100%{ height:9px; opacity:0; transform:translate(var(--x,0),14px); }
+}
+.dicon-drop-extra{
+  width:1.6px; border-radius:2px; background:var(--accent-cyan); top:2px;
+  animation:dicon-drop-fall .55s ease-in var(--fx-delay,0s) forwards;
+}
+
+/* --- lightning: flash --------------------------------------------------- */
+@keyframes dicon-flash{ 0%,100%{ filter:none; } 30%{ filter:drop-shadow(0 0 6px var(--status-caution)) brightness(1.6); } }
+.dicon-fx-flash .dicon-svg-inner{ animation:dicon-flash .35s ease-out; }
+
+/* --- snow: flurry --------------------------------------------------- */
+@keyframes dicon-flake-fall{
+  0%{ opacity:0; transform:translate(var(--x,0),-10px) rotate(0deg); }
+  20%{ opacity:1; }
+  100%{ opacity:0; transform:translate(var(--x,0),14px) rotate(140deg); }
+}
+.dicon-flake-extra{
+  width:2.4px; height:2.4px; border-radius:50%; background:currentColor; top:2px;
+  animation:dicon-flake-fall var(--dur,.9s) linear var(--fx-delay,0s) forwards;
+}
+
+/* --- wind: gust --------------------------------------------------- */
+@keyframes dicon-gust-shift{ 0%,100%{ transform:translateX(0); } 40%{ transform:translateX(3px); } 70%{ transform:translateX(-1px); } }
+.dicon-fx-gust .dicon-svg-inner{ animation:dicon-gust-shift .45s ease-in-out; }
+@keyframes dicon-streak-move{
+  0%{ width:0; opacity:0; transform:translateX(-6px); }
+  30%{ opacity:.8; }
+  100%{ width:14px; opacity:0; transform:translateX(16px); }
+}
+.dicon-streak{
+  height:1.6px; border-radius:2px; background:currentColor; top:20%;
+  animation:dicon-streak-move .5s ease-out var(--fx-delay,0s) forwards;
+}
+.dicon-streak:nth-of-type(2){ top:50%; } .dicon-streak:nth-of-type(3){ top:75%; }
+
+/* --- sun: flare --------------------------------------------------- */
+@keyframes dicon-flare{ 0%,100%{ transform:scale(1) rotate(0); } 50%{ transform:scale(1.18) rotate(25deg); filter:drop-shadow(0 0 5px rgba(224,169,42,.8)); } }
+.dicon-fx-flare .dicon-svg-inner{ animation:dicon-flare .6s ease-in-out; }
+
+/* --- alerts: shake + flash --------------------------------------------------- */
+@keyframes dicon-alert-shake{
+  0%,100%{ transform:translateX(0) rotate(0); }
+  20%{ transform:translateX(-2.5px) rotate(-4deg); }
+  40%{ transform:translateX(2.5px) rotate(4deg); }
+  60%{ transform:translateX(-1.5px) rotate(-2deg); }
+  80%{ transform:translateX(1.5px) rotate(2deg); }
+}
+.dicon-fx-alert .dicon-svg-inner{ animation:dicon-alert-shake .5s ease-in-out; }
+.dicon-fx-alert .dicon-base{ color:var(--status-critical); transition:color .12s ease; }
+
+/* --- bell: ring --------------------------------------------------- */
+@keyframes dicon-ring{
+  0%,100%{ transform:rotate(0); } 15%{ transform:rotate(16deg); } 30%{ transform:rotate(-14deg); }
+  45%{ transform:rotate(10deg); } 60%{ transform:rotate(-7deg); } 75%{ transform:rotate(3deg); }
+}
+.dicon-fx-ring .dicon-svg-inner{ animation:dicon-ring .55s ease-in-out; transform-origin:50% 15%; }
+@keyframes dicon-sound-arc{
+  0%{ width:8px; height:8px; opacity:.7; }
+  100%{ width:26px; height:26px; opacity:0; }
+}
+.dicon-sound-arc{
+  border-radius:50%; border:1.4px solid currentColor; border-bottom-color:transparent; border-left-color:transparent;
+  animation:dicon-sound-arc .5s ease-out var(--fx-delay,0s) forwards;
+}
+
+/* --- telephone: vibrate --------------------------------------------------- */
+@keyframes dicon-vibrate{ 0%,100%{ transform:translateX(0); } 20%,60%{ transform:translateX(-2px) rotate(-3deg); } 40%,80%{ transform:translateX(2px) rotate(3deg); } }
+.dicon-fx-vibrate .dicon-svg-inner{ animation:dicon-vibrate .4s ease-in-out; }
+
+/* --- shield: shine --------------------------------------------------- */
+@keyframes dicon-shine{ 0%,100%{ transform:scale(1); } 45%{ transform:scale(1.14); filter:drop-shadow(0 0 5px var(--accent-cyan)); } }
+.dicon-fx-shine .dicon-svg-inner{ animation:dicon-shine .5s ease-in-out; }
+
+/* --- check-circle: confirm --------------------------------------------------- */
+@keyframes dicon-confirm{ 0%{ transform:scale(1); } 40%{ transform:scale(1.3); } 60%{ transform:scale(.92); } 100%{ transform:scale(1); } }
+.dicon-fx-confirm .dicon-svg-inner{ animation:dicon-confirm .5s cubic-bezier(.34,1.56,.64,1); }
+.dicon-fx-confirm .dicon-base{ color:var(--status-safe); transition:color .12s ease; }
+
+/* --- heart-pulse / activity: double thump --------------------------------------------------- */
+@keyframes dicon-beat{ 0%,100%{ transform:scale(1); } 20%{ transform:scale(1.22); } 35%{ transform:scale(1); } 50%{ transform:scale(1.16); } 65%{ transform:scale(1); } }
+.dicon-fx-beat .dicon-svg-inner{ animation:dicon-beat .6s ease-in-out; }
+
+/* --- hurricane: spin --------------------------------------------------- */
+@keyframes dicon-spin{ 0%{ transform:rotate(0); } 100%{ transform:rotate(360deg); } }
+.dicon-fx-spin .dicon-svg-inner{ animation:dicon-spin .55s cubic-bezier(.5,0,.5,1); }
+
+/* --- geo-alt: drop pin --------------------------------------------------- */
+@keyframes dicon-drop-bounce{ 0%{ transform:translateY(-6px) scale(.9); } 55%{ transform:translateY(2px) scale(1.08); } 100%{ transform:translateY(0) scale(1); } }
+.dicon-fx-drop .dicon-svg-inner{ animation:dicon-drop-bounce .45s cubic-bezier(.34,1.56,.64,1); transform-origin:50% 100%; }
+@keyframes dicon-ping-ground{ 0%{ width:6px; height:2.5px; opacity:.7; } 100%{ width:22px; height:2.5px; opacity:0; } }
+.dicon-ping-ground{ bottom:1px; top:auto; border-radius:50%; background:currentColor; animation:dicon-ping-ground .45s ease-out .15s forwards; }
+
+/* --- broadcast: signal rings --------------------------------------------------- */
+@keyframes dicon-signal-ring{ 0%{ width:8px; height:8px; opacity:.6; border-width:2px; } 100%{ width:34px; height:34px; opacity:0; border-width:.5px; } }
+.dicon-signal-ring{ border-radius:50%; border:2px solid var(--accent-cyan); animation:dicon-signal-ring .6s ease-out var(--fx-delay,0s) forwards; }
+
+/* --- robot: blink --------------------------------------------------- */
+@keyframes dicon-blink{ 0%,100%{ transform:scaleY(1); } 50%{ transform:scaleY(1); filter:drop-shadow(0 0 4px var(--accent-cyan)); } }
+.dicon-fx-blink .dicon-accent{ animation:dicon-blink .4s ease-in-out; }
+
+/* --- send: launch --------------------------------------------------- */
+@keyframes dicon-launch{ 0%{ transform:translate(0,0) rotate(0); opacity:1; } 55%{ transform:translate(6px,-6px) rotate(8deg); opacity:.4; } 100%{ transform:translate(0,0) rotate(0); opacity:1; } }
+.dicon-fx-launch .dicon-svg-inner{ animation:dicon-launch .5s ease-in-out; }
+
+/* --- search: zoom --------------------------------------------------- */
+@keyframes dicon-zoom{ 0%{ transform:scale(1); } 45%{ transform:scale(1.28) rotate(-8deg); } 100%{ transform:scale(1); } }
+.dicon-fx-zoom .dicon-svg-inner{ animation:dicon-zoom .45s cubic-bezier(.34,1.56,.64,1); }
+
+/* --- arrows: dash --------------------------------------------------- */
+@keyframes dicon-dash{ 0%{ transform:translateX(0); } 40%{ transform:translateX(5px); opacity:.6; } 100%{ transform:translateX(0); } }
+.dicon-fx-dash .dicon-svg-inner{ animation:dicon-dash .4s ease-in-out; }
+
+/* --- calendar: flip --------------------------------------------------- */
+@keyframes dicon-flip{ 0%{ transform:rotateX(0); } 50%{ transform:rotateX(90deg); } 100%{ transform:rotateX(0); } }
+.dicon-fx-flip .dicon-svg-inner{ animation:dicon-flip .5s ease-in-out; transform-origin:50% 40%; }
+
+/* --- clock-history: tick --------------------------------------------------- */
+@keyframes dicon-tick{ 0%{ transform:rotate(0); } 60%{ transform:rotate(50deg); } 100%{ transform:rotate(0); } }
+.dicon-fx-tick .dicon-accent{ animation:dicon-tick .5s ease-in-out; transform-origin:50% 55%; }
+
+/* --- bar-chart / graph-up: grow --------------------------------------------------- */
+@keyframes dicon-grow{ 0%{ transform:scaleY(.7); } 60%{ transform:scaleY(1.12); } 100%{ transform:scaleY(1); } }
+.dicon-fx-grow .dicon-svg-inner{ animation:dicon-grow .45s cubic-bezier(.34,1.56,.64,1); transform-origin:50% 100%; }
+
+/* --- house: bounce --------------------------------------------------- */
+@keyframes dicon-bounce{ 0%{ transform:translateY(0); } 35%{ transform:translateY(-5px); } 60%{ transform:translateY(0); } 80%{ transform:translateY(-1.5px); } 100%{ transform:translateY(0); } }
+.dicon-fx-bounce .dicon-svg-inner{ animation:dicon-bounce .5s ease-out; }
+
+/* --- people: wave --------------------------------------------------- */
+@keyframes dicon-wave{ 0%,100%{ transform:rotate(0); } 25%{ transform:rotate(-6deg); } 50%{ transform:rotate(5deg); } 75%{ transform:rotate(-3deg); } }
+.dicon-fx-wave .dicon-svg-inner{ animation:dicon-wave .55s ease-in-out; }
+
+/* --- moon-stars: twinkle --------------------------------------------------- */
+@keyframes dicon-twinkle{ 0%,100%{ opacity:1; } 50%{ opacity:.35; transform:scale(1.4); } }
+.dicon-fx-twinkle .dicon-accent{ animation:dicon-twinkle .5s ease-in-out; transform-origin:center; }
+
+/* --- trash: squish --------------------------------------------------- */
+@keyframes dicon-squish{ 0%{ transform:scale(1,1); } 40%{ transform:scale(1.12,.82); } 70%{ transform:scale(.94,1.06); } 100%{ transform:scale(1,1); } }
+.dicon-fx-squish .dicon-svg-inner{ animation:dicon-squish .45s ease-in-out; transform-origin:50% 100%; }
+
+/* --- key: unlock --------------------------------------------------- */
+@keyframes dicon-unlock{ 0%{ transform:rotate(0); } 50%{ transform:rotate(-25deg); } 100%{ transform:rotate(0); } }
+.dicon-fx-unlock .dicon-svg-inner{ animation:dicon-unlock .5s ease-in-out; transform-origin:35% 50%; }
+
 /* Long-tail Bootstrap Icons that keep their font glyph (no custom SVG
    authored) still get a lighter version of the same treatment, so the
    whole site reads as one consistent icon language. */
@@ -1794,4 +1994,5 @@ body.rl-loading{ overflow:hidden; }
   .dicon-accent{ opacity:1; transform:scale(1); }
   .bi-anim{ opacity:1; transform:none; }
   .dicon:hover .dicon-svg-inner, .dicon:hover .dicon-accent, .bi-anim:hover{ transform:none; }
+  .dicon-particle{ display:none !important; }
 }

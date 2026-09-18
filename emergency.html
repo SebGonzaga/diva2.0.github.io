@@ -76,9 +76,9 @@
       col.className = "col-6 col-md-3";
       col.innerHTML = `
         <div class="text-center p-3" style="border:1px solid var(--surface-line); border-radius:14px;">
-          <i class="bi ${iconMap[c.tag] || "bi-telephone"} fs-3 mb-2" style="color:var(--status-critical);"></i>
+          <i class="bi ${iconMap[c.tag] || "bi-telephone"} fs-3 mb-2 dicon-in-view bi-anim" style="color:var(--status-critical);"></i>
           <div style="font-size:.82rem; color:var(--ink-600); margin-bottom:.6rem;">${c.name}</div>
-          <a href="tel:${c.number.replace(/[^\d+]/g, "")}" class="btn-emergency" data-press><i class="bi bi-telephone-fill"></i> CALL ${c.number}</a>
+          <a href="tel:${c.number.replace(/[^\d+]/g, "")}" class="btn-emergency" data-press><i class="bi bi-telephone-fill dicon-in-view bi-anim"></i> CALL ${c.number}</a>
         </div>`;
       contactGrid.appendChild(col);
     });

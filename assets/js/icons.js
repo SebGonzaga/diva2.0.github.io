@@ -246,6 +246,225 @@
     // eslint-disable-next-line no-unused-expressions
     void el.offsetWidth; // restart animation
     el.classList.add("dicon-pulse");
+    const type = ICON_FX[iconKeyOf(el)];
+    if (type) playFx(el, type);
+  }
+
+  /* =======================================================================
+     Themed click effects — every icon family gets its own tiny "moment"
+     on click/tap instead of the generic scale-pulse: the volcano/fire icon
+     erupts with rising embers, a bell rings with sound arcs, a raincloud
+     dumps extra drops, and so on. Falls back to the plain pulse above for
+     any icon with no themed entry (and is skipped entirely under
+     prefers-reduced-motion, same as the pulse itself).
+     ========================================================================= */
+
+  // Icon key -> effect name. Add an entry here to give any icon its own click moment.
+  const ICON_FX = {
+    fire: "erupt",
+    water: "ripple",
+    "cloud-rain": "downpour",
+    "cloud-lightning": "flash",
+    snow: "flurry",
+    wind: "gust",
+    sun: "flare",
+    "exclamation-triangle": "alert",
+    "exclamation-octagon": "alert",
+    triangle: "alert",
+    bell: "ring",
+    "bell-slash": "ring",
+    telephone: "vibrate",
+    "shield-check": "shine",
+    "shield-lock": "shine",
+    "check-circle": "confirm",
+    "heart-pulse": "beat",
+    activity: "beat",
+    hurricane: "spin",
+    "geo-alt": "drop",
+    broadcast: "signal",
+    robot: "blink",
+    send: "launch",
+    search: "zoom",
+    "arrow-right": "dash",
+    "arrow-right-circle": "dash",
+    "box-arrow-in-right": "dash",
+    "box-arrow-up-right": "dash",
+    "chevron-down": "dash",
+    calendar3: "flip",
+    "clock-history": "tick",
+    "bar-chart": "grow",
+    "graph-up": "grow",
+    house: "bounce",
+    "house-heart-fill": "bounce",
+    people: "wave",
+    "person-fill": "wave",
+    "person-plus": "wave",
+    "moon-stars": "twinkle",
+    trash3: "squish",
+    key: "unlock",
+  };
+
+  // All the transient "fx-*" classes playFx() ever adds, so they can be
+  // cleared in one shot once the animation has had time to finish.
+  const FX_CLASSES = [
+    "dicon-fx-erupt", "dicon-fx-shudder", "dicon-fx-flash", "dicon-fx-gust",
+    "dicon-fx-flare", "dicon-fx-alert", "dicon-fx-ring", "dicon-fx-vibrate",
+    "dicon-fx-shine", "dicon-fx-confirm", "dicon-fx-beat", "dicon-fx-spin",
+    "dicon-fx-drop", "dicon-fx-blink", "dicon-fx-launch", "dicon-fx-zoom",
+    "dicon-fx-dash", "dicon-fx-flip", "dicon-fx-tick", "dicon-fx-grow",
+    "dicon-fx-bounce", "dicon-fx-wave", "dicon-fx-twinkle", "dicon-fx-squish",
+    "dicon-fx-unlock",
+  ];
+
+  // Resolves the icon "key" (e.g. "fire") behind either a custom <svg data-dicon>
+  // icon or a long-tail Bootstrap Icon font glyph (class="bi-fire bi-anim").
+  function iconKeyOf(el) {
+    if (el.hasAttribute("data-dicon")) return resolve(el.getAttribute("data-dicon"));
+    for (const c of el.classList) {
+      if (c.indexOf("bi-") === 0) {
+        const key = resolve(c.slice(3));
+        if (key) return key;
+      }
+    }
+    return null;
+  }
+
+  // Spawns `count` short-lived particle elements inside `el`, each tagged
+  // with `cls` and positioned/timed by `setVars(particle, index)`. Particles
+  // clean themselves up after their animation ends (with a timeout backstop
+  // in case a browser skips the animationend event, e.g. tab backgrounded).
+  function spawnParticles(el, cls, count, setVars) {
+    for (let i = 0; i < count; i++) {
+      const p = document.createElement("span");
+      p.className = "dicon-particle " + cls;
+      p.setAttribute("aria-hidden", "true");
+      if (setVars) setVars(p, i);
+      el.appendChild(p);
+      p.addEventListener("animationend", () => p.remove(), { once: true });
+      setTimeout(() => p.remove(), 1600);
+    }
+  }
+
+  function playFx(el, type) {
+    switch (type) {
+      case "erupt":
+        el.classList.add("dicon-fx-erupt");
+        spawnParticles(el, "dicon-ember", 7, (p, i) => {
+          const angle = -90 + (Math.random() * 70 - 35);
+          p.style.setProperty("--ang", angle + "deg");
+          p.style.setProperty("--dist", 14 + Math.random() * 11 + "px");
+          p.style.setProperty("--dur", 0.55 + Math.random() * 0.3 + "s");
+          p.style.setProperty("--fx-delay", i * 0.02 + "s");
+        });
+        spawnParticles(el, "dicon-smoke", 3, (p, i) => {
+          p.style.setProperty("--x", Math.random() * 16 - 8 + "px");
+          p.style.setProperty("--fx-delay", 0.05 + i * 0.06 + "s");
+        });
+        break;
+      case "ripple":
+        spawnParticles(el, "dicon-ripple-ring", 3, (p, i) =>
+          p.style.setProperty("--fx-delay", i * 0.14 + "s")
+        );
+        break;
+      case "downpour":
+        el.classList.add("dicon-fx-shudder");
+        spawnParticles(el, "dicon-drop-extra", 5, (p, i) => {
+          p.style.setProperty("--x", Math.random() * 30 - 15 + "px");
+          p.style.setProperty("--fx-delay", i * 0.05 + "s");
+        });
+        break;
+      case "flash":
+        el.classList.add("dicon-fx-flash");
+        break;
+      case "flurry":
+        spawnParticles(el, "dicon-flake-extra", 6, (p, i) => {
+          p.style.setProperty("--x", Math.random() * 36 - 18 + "px");
+          p.style.setProperty("--fx-delay", i * 0.04 + "s");
+          p.style.setProperty("--dur", 0.8 + Math.random() * 0.4 + "s");
+        });
+        break;
+      case "gust":
+        el.classList.add("dicon-fx-gust");
+        spawnParticles(el, "dicon-streak", 3, (p, i) =>
+          p.style.setProperty("--fx-delay", i * 0.06 + "s")
+        );
+        break;
+      case "flare":
+        el.classList.add("dicon-fx-flare");
+        break;
+      case "alert":
+        el.classList.add("dicon-fx-alert");
+        break;
+      case "ring":
+        el.classList.add("dicon-fx-ring");
+        spawnParticles(el, "dicon-sound-arc", 2, (p, i) =>
+          p.style.setProperty("--fx-delay", i * 0.1 + "s")
+        );
+        break;
+      case "vibrate":
+        el.classList.add("dicon-fx-vibrate");
+        break;
+      case "shine":
+        el.classList.add("dicon-fx-shine");
+        break;
+      case "confirm":
+        el.classList.add("dicon-fx-confirm");
+        break;
+      case "beat":
+        el.classList.add("dicon-fx-beat");
+        break;
+      case "spin":
+        el.classList.add("dicon-fx-spin");
+        break;
+      case "drop":
+        el.classList.add("dicon-fx-drop");
+        spawnParticles(el, "dicon-ping-ground", 1);
+        break;
+      case "signal":
+        spawnParticles(el, "dicon-signal-ring", 3, (p, i) =>
+          p.style.setProperty("--fx-delay", i * 0.15 + "s")
+        );
+        break;
+      case "blink":
+        el.classList.add("dicon-fx-blink");
+        break;
+      case "launch":
+        el.classList.add("dicon-fx-launch");
+        break;
+      case "zoom":
+        el.classList.add("dicon-fx-zoom");
+        break;
+      case "dash":
+        el.classList.add("dicon-fx-dash");
+        break;
+      case "flip":
+        el.classList.add("dicon-fx-flip");
+        break;
+      case "tick":
+        el.classList.add("dicon-fx-tick");
+        break;
+      case "grow":
+        el.classList.add("dicon-fx-grow");
+        break;
+      case "bounce":
+        el.classList.add("dicon-fx-bounce");
+        break;
+      case "wave":
+        el.classList.add("dicon-fx-wave");
+        break;
+      case "twinkle":
+        el.classList.add("dicon-fx-twinkle");
+        break;
+      case "squish":
+        el.classList.add("dicon-fx-squish");
+        break;
+      case "unlock":
+        el.classList.add("dicon-fx-unlock");
+        break;
+      default:
+        return;
+    }
+    setTimeout(() => el.classList.remove.apply(el.classList, FX_CLASSES), 900);
   }
 
   function init() {

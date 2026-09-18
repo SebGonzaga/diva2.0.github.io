@@ -11,7 +11,7 @@ const RAIN_NAV = {
     { section: "Monitor", links: [
       { href: "dashboard.html", icon: "bi-grid-1x2", label: "Dashboard" },
       { href: "weather.html", icon: "bi-cloud-sun", label: "Weather" },
-      { href: "volcano.html", icon: "bi-triangle", label: "Volcano Monitoring" },
+      { href: "volcano.html", icon: "bi-fire", label: "Volcano Monitoring" },
       { href: "earthquake.html", icon: "bi-activity", label: "Earthquake" },
     ]},
     { section: "Assistance", links: [
@@ -28,7 +28,7 @@ const RAIN_NAV = {
     { section: "Monitor", links: [
       { href: "admin-dashboard.html", icon: "bi-grid-1x2", label: "Dashboard" },
       { href: "weather.html", icon: "bi-cloud-sun", label: "Weather" },
-      { href: "volcano.html", icon: "bi-triangle", label: "Volcano Monitoring" },
+      { href: "volcano.html", icon: "bi-fire", label: "Volcano Monitoring" },
       { href: "earthquake.html", icon: "bi-activity", label: "Earthquake" },
     ]},
     { section: "Operations", links: [
@@ -393,7 +393,7 @@ function renderAppShell(activePage, opts) {
 
   const navHtml = navGroups.map((g) => `
     <div class="nav-section-label">${g.section}</div>
-    ${g.links.map((l) => `<a class="sidebar-link ${activePage === l.href ? "active" : ""}" href="${l.href}"><i class="bi ${l.icon}"></i> ${l.label}</a>`).join("")}
+    ${g.links.map((l) => `<a class="sidebar-link ${activePage === l.href ? "active" : ""}" href="${l.href}"><i class="bi ${l.icon} dicon-in-view bi-anim"></i> ${l.label}</a>`).join("")}
   `).join("");
 
   const shell = document.getElementById("app-shell-root");
@@ -412,7 +412,7 @@ function renderAppShell(activePage, opts) {
           </div>
         </div>
         <button class="btn btn-rain btn-rain-outline btn-rain-sm w-100" id="logoutBtn" style="border-color:rgba(255,255,255,.2); color:#fff;">
-          <i class="bi bi-box-arrow-right"></i> Log out
+          <i class="bi bi-box-arrow-right dicon-in-view bi-anim"></i> Log out
         </button>
       </div>
     </aside>
@@ -420,15 +420,15 @@ function renderAppShell(activePage, opts) {
       <div class="offline-banner" id="offlineBanner"><i class="bi bi-wifi-off"></i> You are currently offline. Showing the latest available information.</div>
       <header class="app-topbar">
         <div class="d-flex align-items-center gap-3">
-          <button class="sidebar-toggle-btn" id="sidebarToggle" aria-label="Toggle navigation"><i class="bi bi-list"></i></button>
+          <button class="sidebar-toggle-btn" id="sidebarToggle" aria-label="Toggle navigation"><i class="bi bi-list dicon-in-view bi-anim"></i></button>
           <div class="topbar-title">${opts.title || ""}</div>
         </div>
         <div class="d-flex align-items-center gap-2">
           <span class="eyebrow d-none d-md-inline-flex">Live monitoring</span>
           <button type="button" class="theme-toggle-btn" id="themeToggleBtn" aria-label="Switch between light and dark mode">
-            <i class="bi bi-sun-fill icon-sun"></i><i class="bi bi-moon-stars-fill icon-moon"></i>
+            <i class="bi bi-sun-fill icon-sun dicon-in-view bi-anim"></i><i class="bi bi-moon-stars-fill icon-moon dicon-in-view bi-anim"></i>
           </button>
-          <button type="button" class="emergency-trigger" id="emergencyTriggerBtn"><i class="bi bi-exclamation-triangle-fill"></i> Emergency Mode</button>
+          <button type="button" class="emergency-trigger" id="emergencyTriggerBtn"><i class="bi bi-exclamation-triangle-fill dicon-in-view bi-anim"></i> Emergency Mode</button>
         </div>
       </header>
       <main class="app-content" id="app-content"></main>
@@ -451,7 +451,7 @@ function renderAppShell(activePage, opts) {
     bottomNavHost.innerHTML = bnLinks.map((l) => {
       const isActive = !l.emergency && l.href !== "#more" && activePage === l.href.split("#")[0];
       const emergencyClass = l.emergency ? "bn-emergency" : "";
-      return `<a class="bn-link ${emergencyClass} ${isActive ? "active" : ""}" href="${l.href}" ${isActive ? 'aria-current="page"' : ""} ${l.emergency ? 'data-emergency-trigger="true"' : ""} ${l.href === "#more" ? 'data-more-trigger="true"' : ""}><i class="bi ${l.icon}"></i><span>${l.label}</span></a>`;
+      return `<a class="bn-link ${emergencyClass} ${isActive ? "active" : ""}" href="${l.href}" ${isActive ? 'aria-current="page"' : ""} ${l.emergency ? 'data-emergency-trigger="true"' : ""} ${l.href === "#more" ? 'data-more-trigger="true"' : ""}><i class="bi ${l.icon} dicon-in-view bi-anim"></i><span>${l.label}</span></a>`;
     }).join("");
     // The "SOS" tab opens Emergency Mode in place rather than navigating,
     // same as the topbar's Emergency Mode button.
