@@ -141,6 +141,25 @@
     "50d": "bi-cloud-haze", "50n": "bi-cloud-haze",
   };
 
+  // OpenWeatherMap's `icon` code alone does NOT distinguish rain intensity —
+  // light rain (id 500), moderate rain (501), and heavy/extreme rain
+  // (502-504), as well as shower rain (520-531), all share icon "10d"/"10n".
+  // That's why a "Moderate Rain" or "Heavy Rain" description was rendering
+  // the same light drizzle-weight icon. Use the numeric condition `id`
+  // (present on every OWM weather object) to pick an icon whose visual
+  // weight actually matches the reported intensity; fall back to the
+  // plain icon-code mapping for anything else (clear, clouds, snow, etc).
+  function iconForCondition(weather) {
+    if (!weather) return "bi-cloud";
+    const id = weather.id;
+    if (id === 500) return "bi-cloud-drizzle";           // light rain
+    if (id === 501) return "bi-cloud-rain";               // moderate rain
+    if (id >= 502 && id <= 504) return "bi-cloud-rain-heavy"; // heavy/violent/extreme rain
+    if (id === 511) return "bi-cloud-rain-heavy";          // freezing rain
+    if (id >= 520 && id <= 531) return "bi-cloud-rain-heavy"; // shower rain
+    return ICON_MAP[weather.icon] || "bi-cloud";
+  }
+
   const FORECAST_DEMO = [
     { day: "Today", icon: "bi-cloud-sun", hi: 32, lo: 25 },
     { day: "Sun", icon: "bi-cloud-rain", hi: 29, lo: 24 },
@@ -259,15 +278,15 @@
     const byDay = {};
     list.forEach((item) => {
       const date = item.dt_txt.split(" ")[0];
-      if (!byDay[date]) byDay[date] = { temps: [], icon: item.weather[0].icon };
+      if (!byDay[date]) byDay[date] = { temps: [], weather: item.weather[0] };
       byDay[date].temps.push(item.main.temp);
-      if (item.dt_txt.includes("12:00:00")) byDay[date].icon = item.weather[0].icon;
+      if (item.dt_txt.includes("12:00:00")) byDay[date].weather = item.weather[0];
     });
     return Object.keys(byDay).slice(0, 6).map((date) => {
       const d = new Date(date + "T00:00:00");
       return {
         day: d.toLocaleDateString(undefined, { weekday: "short" }),
-        icon: ICON_MAP[byDay[date].icon] || "bi-cloud",
+        icon: iconForCondition(byDay[date].weather),
         hi: Math.round(Math.max(...byDay[date].temps)),
         lo: Math.round(Math.min(...byDay[date].temps)),
       };
@@ -285,7 +304,7 @@
       document.getElementById("wTemp").textContent = `${Math.round(current.main.temp)}°C`;
       document.getElementById("wCondition").textContent = current.weather[0].description.replace(/\b\w/g, (c) => c.toUpperCase());
       document.getElementById("wIcon").className = "fs-3";
-      RainIcons.renderWeatherIcon(document.getElementById("wIcon"), ICON_MAP[current.weather[0].icon] || "bi-cloud");
+      RainIcons.renderWeatherIcon(document.getElementById("wIcon"), iconForCondition(current.weather[0]));
       document.getElementById("wFeels").textContent = `${Math.round(current.main.feels_like)}°C`;
       document.getElementById("wHumidity").textContent = `${current.main.humidity}%`;
       document.getElementById("wWind").textContent = `${Math.round(current.wind.speed * 3.6)} km/h`;
@@ -311,7 +330,7 @@
         city: document.getElementById("wCity").textContent,
         tempC: Math.round(current.main.temp),
         condition: current.weather[0].description.replace(/\b\w/g, (c) => c.toUpperCase()),
-        icon: ICON_MAP[current.weather[0].icon] || "bi-cloud",
+        icon: iconForCondition(current.weather[0]),
         lat: current.coord.lat, lng: current.coord.lon,
       });
     } catch (err) {
