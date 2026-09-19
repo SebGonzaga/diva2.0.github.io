@@ -135,6 +135,30 @@ body{
   -webkit-font-smoothing:antialiased;
 }
 
+/* ---- Themed scrollbar ----
+   Without this, the browser falls back to its native scrollbar — on
+   Windows/Chrome that's an opaque white track with grey arrow buttons,
+   which sits jarringly on top of the app's dark navy chrome. Restyle it
+   to match the app palette in both themes; Firefox uses the
+   scrollbar-width/-color properties, WebKit/Chromium/Edge use the
+   ::-webkit-scrollbar-* pseudo-elements. */
+html{
+  scrollbar-width:thin;
+  scrollbar-color:var(--accent-cyan-dim) var(--navy-950);
+}
+::-webkit-scrollbar{width:10px; height:10px;}
+::-webkit-scrollbar-track{background:var(--navy-950);}
+::-webkit-scrollbar-thumb{background:var(--accent-cyan-dim); border-radius:999px; border:2px solid var(--navy-950);}
+::-webkit-scrollbar-thumb:hover{background:var(--accent-cyan);}
+::-webkit-scrollbar-corner{background:var(--navy-950);}
+
+[data-theme="light"]{
+  scrollbar-color:var(--surface-line) var(--surface);
+}
+[data-theme="light"] ::-webkit-scrollbar-track{background:var(--surface);}
+[data-theme="light"] ::-webkit-scrollbar-thumb{background:var(--surface-line); border-color:var(--surface);}
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover{background:var(--ink-400);}
+
 h1,h2,h3,h4,.font-display{
   font-family:var(--font-display);
   letter-spacing:-0.01em;
