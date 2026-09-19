@@ -185,7 +185,8 @@
       : `<i class="bi bi-exclamation-triangle dicon" data-dicon="exclamation-triangle"></i> USGS VolcView was unreachable — showing ${savedLoc ? `coordinates saved ${RainOffline.timeAgo(savedLoc.savedAt)}` : "fallback coordinates"} instead.`;
 
     const map = L.map("volcano-map").setView([loc.lat, loc.lng], 12);
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>', subdomains: "abcd", maxZoom: 20 }).addTo(map);
+    L.tileLayer("https://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://www.esri.com">Esri</a>', maxZoom: 16 }).addTo(map);
+      L.tileLayer("https://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}", { maxZoom: 16 }).addTo(map);
     L.marker([loc.lat, loc.lng], { icon: rainPinIcon("alert", "bi-fire") }).addTo(map).bindPopup("<strong>Taal Volcano</strong><br>Volcano Island, Lake Taal").openPopup();
     setTimeout(() => map.invalidateSize(), 200);
 
