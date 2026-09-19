@@ -763,6 +763,18 @@ body.rl-loading{ overflow:hidden; }
   transition:background .15s ease, color .15s ease, transform .15s ease;
 }
 .sidebar-link i{width:18px; text-align:center; font-size:.95rem; transition:transform .2s ease;}
+/* Bootstrap Icons only ships "fire" as a single solid glyph — there's no
+   outline/regular-weight version like the other nav icons have (cloud-sun,
+   activity, chat-dots, telephone, bell, flag), so it reads as a bold black
+   blob next to their thin linework. Render just the outline of the glyph
+   (fill hidden, stroke on) so it matches their visual weight while still
+   being instantly recognizable as a flame. Tracks the link's own color
+   automatically across default/hover/active since only the fill — not
+   `color` itself — is suppressed. */
+.sidebar-link .bi-fire{
+  -webkit-text-fill-color:transparent;
+  -webkit-text-stroke:1.3px currentColor;
+}
 .sidebar-link:hover{background:rgba(255,255,255,.06); color:#fff;}
 .sidebar-link:hover i{transform:translateX(2px);}
 .sidebar-link.active{
