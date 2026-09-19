@@ -169,18 +169,16 @@
     { day: "Thu", icon: "bi-cloud-sun", hi: 31, lo: 24 },
   ];
 
+  // CARTO Basemaps API key — required since CARTO deprecated anonymous
+  // keyless raster tile access (without it, tiles render stamped "API KEY
+  // REQUIRED"). Like a Mapbox access token, this key is meant to be used
+  // client-side and isn't a secret that needs server-side hiding.
+  const CARTO_API_KEY = "cb1_3qde_1_313d908e961a073e7e5de450";
+
   function renderMap(lat, lng, label) {
     if (!map) {
       map = L.map("weather-map").setView([lat, lng], 10);
-      // Esri's Dark Gray Canvas — free, keyless raster tiles. (Switched from
-      // CARTO's basemaps.cartocdn.com dark_all, which now stamps every tile
-      // with an "API KEY REQUIRED" watermark for unauthenticated requests —
-      // CARTO deprecated free keyless raster tile access.) Esri splits the
-      // style into a base layer (fills/water/terrain) and a reference layer
-      // (roads/labels on top), stacked to reproduce the same look.
-      const esriAttribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://www.esri.com">Esri</a>';
-      L.tileLayer("https://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", { attribution: esriAttribution, maxZoom: 16 }).addTo(map);
-      L.tileLayer("https://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}", { maxZoom: 16 }).addTo(map);
+      L.tileLayer(`https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png?key=${CARTO_API_KEY}`, { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>', maxZoom: 20 }).addTo(map);
       marker = L.marker([lat, lng], { icon: rainPinIcon("user", "bi-geo-alt-fill") }).addTo(map);
     } else {
       map.setView([lat, lng], 10);

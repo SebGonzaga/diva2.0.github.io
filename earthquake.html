@@ -143,6 +143,11 @@
 <script src="assets/js/main.js"></script>
 <script type="module">
   await RainAuth.init();
+  // CARTO Basemaps API key — required since CARTO deprecated anonymous
+  // keyless raster tile access (tiles otherwise render stamped "API KEY
+  // REQUIRED"). Like a Mapbox access token, this is meant to ship in
+  // client-side code and isn't a secret that needs server-side hiding.
+  const CARTO_API_KEY = "cb1_3qde_1_313d908e961a073e7e5de450";
   const user = renderAppShell("earthquake.html", { title: "Earthquake" });
   let quakeMap = null;
   let quakeMarkers = [];
@@ -187,8 +192,7 @@
   function renderMap(userLat, userLng, quakes, nearest) {
     if (!quakeMap) {
       quakeMap = L.map("quake-map").setView([userLat, userLng], 6);
-      L.tileLayer("https://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://www.esri.com">Esri</a>', maxZoom: 16 }).addTo(quakeMap);
-      L.tileLayer("https://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}", { maxZoom: 16 }).addTo(quakeMap);
+      L.tileLayer(`https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png?key=${CARTO_API_KEY}`, { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>', maxZoom: 20 }).addTo(quakeMap);
       L.marker([userLat, userLng], { icon: rainPinIcon("user", "bi-person-fill") }).addTo(quakeMap).bindPopup("Your location");
     }
     quakeMarkers.forEach((m) => quakeMap.removeLayer(m));

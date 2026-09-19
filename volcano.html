@@ -124,6 +124,11 @@
 <script src="assets/js/main.js"></script>
 <script type="module">
   await RainAuth.init();
+  // CARTO Basemaps API key — required since CARTO deprecated anonymous
+  // keyless raster tile access (tiles otherwise render stamped "API KEY
+  // REQUIRED"). Like a Mapbox access token, this is meant to ship in
+  // client-side code and isn't a secret that needs server-side hiding.
+  const CARTO_API_KEY = "cb1_3qde_1_313d908e961a073e7e5de450";
   const user = renderAppShell("volcano.html", { title: "Taal Volcano" });
 
   // Taal's official Smithsonian GVP volcano number, used against the USGS
@@ -185,8 +190,7 @@
       : `<i class="bi bi-exclamation-triangle dicon" data-dicon="exclamation-triangle"></i> USGS VolcView was unreachable — showing ${savedLoc ? `coordinates saved ${RainOffline.timeAgo(savedLoc.savedAt)}` : "fallback coordinates"} instead.`;
 
     const map = L.map("volcano-map").setView([loc.lat, loc.lng], 12);
-    L.tileLayer("https://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://www.esri.com">Esri</a>', maxZoom: 16 }).addTo(map);
-      L.tileLayer("https://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}", { maxZoom: 16 }).addTo(map);
+    L.tileLayer(`https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png?key=${CARTO_API_KEY}`, { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>', maxZoom: 20 }).addTo(map);
     L.marker([loc.lat, loc.lng], { icon: rainPinIcon("alert", "bi-fire") }).addTo(map).bindPopup("<strong>Taal Volcano</strong><br>Volcano Island, Lake Taal").openPopup();
     setTimeout(() => map.invalidateSize(), 200);
 

@@ -174,6 +174,11 @@
 <script src="assets/js/main.js"></script>
 <script type="module">
   await RainAuth.init();
+  // CARTO Basemaps API key — required since CARTO deprecated anonymous
+  // keyless raster tile access (tiles otherwise render stamped "API KEY
+  // REQUIRED"). Like a Mapbox access token, this is meant to ship in
+  // client-side code and isn't a secret that needs server-side hiding.
+  const CARTO_API_KEY = "cb1_3qde_1_313d908e961a073e7e5de450";
   const user = renderAppShell("dashboard.html", { title: "Dashboard" });
   if (user) {
     document.getElementById("app-content").appendChild(document.getElementById("dashboard-content").content.cloneNode(true));
@@ -433,8 +438,7 @@
       if (locSourceEl) locSourceEl.textContent = isRealLocation ? "GPS" : "Approximate (no GPS)";
 
       const map = L.map("situationMap", { zoomControl: true }).setView([userLat, userLng], 13);
-      L.tileLayer("https://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://www.esri.com">Esri</a>', maxZoom: 16 }).addTo(map);
-      L.tileLayer("https://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}", { maxZoom: 16 }).addTo(map);
+      L.tileLayer(`https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png?key=${CARTO_API_KEY}`, { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>', maxZoom: 20 }).addTo(map);
 
       const pinIcon = rainPinIcon; // shared helper — see assets/js/main.js
 
