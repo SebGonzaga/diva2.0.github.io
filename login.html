@@ -13,7 +13,7 @@
 </head>
 <body>
 <a href="#main" class="skip-link">Skip to content</a>
-<div class="auth-shell">
+<div class="auth-shell" id="authShell" style="visibility:hidden;">
   <div class="auth-side d-none d-lg-flex">
     <a href="index.html" class="navbar-brand text-white text-decoration-none d-flex align-items-center gap-2" style="font-family:var(--font-display); font-weight:700; font-size:1.3rem;">
       <span class="brand-mark" style="width:30px;height:30px;border-radius:8px;background:linear-gradient(145deg, var(--accent-cyan), #1f8489); display:flex; align-items:center; justify-content:center; color:var(--navy-950); font-size:.85rem;">R</span>AIN
@@ -67,6 +67,18 @@
 <script src="assets/js/offline-store.js"></script>
 <script src="assets/js/main.js"></script>
 <script type="module">
+  // If a session already exists (e.g. user closed the tab without logging
+  // out, or opened the app fresh with a persisted Supabase session), skip
+  // the login form entirely and go straight to their dashboard.
+  (async () => {
+    const existingUser = await RainAuth.init();
+    if (existingUser) {
+      window.location.replace(RainAuth.isAdmin(existingUser) ? "admin-dashboard.html" : "dashboard.html");
+      return; // stop here — page is about to navigate away
+    }
+    document.getElementById("authShell").style.visibility = "visible";
+  })();
+
   RainFieldValidation.wireField(
     document.getElementById("email"),
     (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()),

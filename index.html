@@ -417,12 +417,25 @@
 <script src="assets/js/animations.js"></script>
 <script src="assets/js/icons.js"></script>
 <script src="assets/js/offline-store.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/rain-auth.js"></script>
 <script src="assets/js/main.js"></script>
 <script>
   document.addEventListener("DOMContentLoaded", () => {
     RainAnim.animatePageEntrance();
     RainAnim.initScrollReveal(".reveal-on-scroll");
   });
+</script>
+<script type="module">
+  // If the visitor already has an active session, skip the marketing
+  // landing page and take them straight to their dashboard.
+  (async () => {
+    const existingUser = await RainAuth.init();
+    if (existingUser) {
+      window.location.replace(RainAuth.isAdmin(existingUser) ? "admin-dashboard.html" : "dashboard.html");
+    }
+  })();
 </script>
 </body>
 </html>
