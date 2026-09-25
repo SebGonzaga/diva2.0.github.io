@@ -429,12 +429,21 @@
 </script>
 <script type="module">
   // If the visitor already has an active session, skip the marketing
-  // landing page and take them straight to their dashboard.
+  // landing page and take them straight to their dashboard — but let the
+  // splash (.rl-loader) play its intro (icon settle + "RAIN" wordmark)
+  // for a beat first, instead of yanking them away before it's visible.
+  const SPLASH_MIN_MS = 1600; // ~icon settle (1.05s) + word fade-in (finishes 2.15s)
+  const pageLoadStart = performance.now();
+
   (async () => {
     const existingUser = await RainAuth.init();
-    if (existingUser) {
+    if (!existingUser) return;
+
+    const elapsed = performance.now() - pageLoadStart;
+    const remaining = Math.max(0, SPLASH_MIN_MS - elapsed);
+    setTimeout(() => {
       window.location.replace(RainAuth.isAdmin(existingUser) ? "admin-dashboard.html" : "dashboard.html");
-    }
+    }, remaining);
   })();
 </script>
 </body>
