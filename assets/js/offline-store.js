@@ -30,11 +30,30 @@ const RainOffline = (() => {
    *  silently presented as current. Safe to call every time a fetch
    *  succeeds — last write wins. */
   function save(key, data) {
+    const payload = JSON.stringify({ data, savedAt: Date.now() });
     try {
-      localStorage.setItem(PREFIX + key, JSON.stringify({ data, savedAt: Date.now() }));
-      return true;
+      localStorage.setItem(PREFIX + key, payload);
     } catch (e) {
       return false; // storage full/unavailable — non-fatal, just means no offline fallback for this key
+    }
+    mirrorToNativeStorage(PREFIX + key, payload);
+    return true;
+  }
+
+  /** Also write the snapshot to Median's Native Datastore (App Storage),
+   *  when running inside the Median-built app. Unlike localStorage, this
+   *  storage isn't tied to this page's origin, so the standalone custom
+   *  offline.html page (a separate local file bundled into the app) can
+   *  read it back and show real recent alerts instead of static text.
+   *  No-op everywhere else (regular browser, Median plugin not enabled). */
+  function mirrorToNativeStorage(key, payload) {
+    try {
+      if (typeof median !== "undefined" && median.storage && median.storage.app &&
+          typeof median.storage.app.set === "function") {
+        median.storage.app.set({ key, value: payload });
+      }
+    } catch (e) {
+      // Native Datastore plugin not enabled, or bridge unavailable — fine, localStorage still has it.
     }
   }
 
