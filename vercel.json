@@ -1,4 +1,10 @@
 {
+  "functions": {
+    "api/chat.js": {
+      "maxDuration": 30,
+      "includeFiles": "assets/js/demo-data.js"
+    }
+  },
   "headers": [
     {
       "source": "/sw.js",

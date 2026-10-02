@@ -240,26 +240,63 @@ const RainFieldValidation = {
   },
 };
 
-/** Shared client for the Gemini-backed chat endpoint (api/chat.js) — used by
- *  virtual-assistance.html's chat UI. Returns the raw markdown reply string
- *  on success; throws on any failure (bad status, network error, empty
- *  reply) so the caller can apply its own fallback (virtual-assistance.html
- *  shows a canned demo reply). */
+/** Shared client for the Gemini-backed chat endpoint (api/chat.js).
+ *
+ *  sendFull() -> { reply, sources, asOf }
+ *     reply   raw markdown string
+ *     sources which live-data tools the assistant used this turn:
+ *             [{ tool, label, source, ok }] (empty when it answered from
+ *             general knowledge)
+ *  send()     -> reply string only (kept for voice-command.js).
+ *
+ *  Both throw on any failure (bad status, network error, empty reply) so the
+ *  caller can apply its own fallback (virtual-assistance.html shows a canned
+ *  demo reply / quick-link card).
+ *
+ *  Sends the signed-in user's Supabase access token so the server can read
+ *  alerts/incidents *as that user* (Row Level Security applies), plus their
+ *  saved area as the default location for weather/shelter lookups. */
 const RainChatAPI = {
-  async send(message, { lang = "en", history = [] } = {}) {
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message,
-        lang,
-        history: history.slice(-10).map((m) => ({ role: m.role, content: m.message })),
-      }),
-    });
+  async sendFull(message, { lang = "en", history = [] } = {}) {
+    const headers = { "Content-Type": "application/json" };
+    try {
+      if (typeof sb !== "undefined") {
+        const { data } = await sb.auth.getSession();
+        const token = data && data.session && data.session.access_token;
+        if (token) headers.Authorization = "Bearer " + token;
+      }
+    } catch (e) { /* no session -- tools that need sign-in will say so */ }
+    let city = "";
+    try { city = (RainAuth.getUser() || {}).city || ""; } catch (e) { /* not signed in */ }
+
+    // Abort after 28s (server budget is 22s) so a hung backend falls back to
+    // the demo reply instead of leaving the typing indicator spinning forever.
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 28000);
+    let res;
+    try {
+      res = await fetch("/api/chat", {
+        method: "POST",
+        headers,
+        signal: ctrl.signal,
+        body: JSON.stringify({
+          message,
+          lang,
+          history: history.slice(-10).map((m) => ({ role: m.role, content: m.message })),
+          context: { city },
+        }),
+      });
+    } finally {
+      clearTimeout(timer);
+    }
     if (!res.ok) throw new Error("chat request failed: " + res.status);
     const data = await res.json();
     if (!data.reply) throw new Error("empty reply from /api/chat");
-    return data.reply;
+    return { reply: data.reply, sources: Array.isArray(data.sources) ? data.sources : [], asOf: data.asOf };
+  },
+
+  async send(message, opts) {
+    return (await this.sendFull(message, opts)).reply;
   },
 };
 

@@ -146,29 +146,66 @@
       engine.animate(el, { translateX: ["0%", "110%"], opacity: [1, 0], duration: 260, easing: "easeInQuad", onComplete: done });
     },
 
-    /** Chat message enter */
+    /** Chat message enter — rises + scales out of the sender's corner */
     animateChatMessage(el, role) {
-      const from = role === "user" ? 24 : -24;
-      safeAnimate(el, { opacity: [0, 1], translateX: [from, 0], duration: 320, easing: "easeOutQuad" });
+      el.style.transformOrigin = role === "user" ? "100% 100%" : "0% 100%";
+      safeAnimate(el, {
+        opacity: [0, 1],
+        translateY: [14, 0],
+        scale: [0.94, 1],
+        duration: 420,
+        ease: "outBack(1.4)",
+      });
+      // Never let a stalled tween leave a real message invisible.
+      setTimeout(() => { el.style.opacity = "1"; el.style.transform = ""; }, 900);
     },
 
-    /** Typing indicator dots — subtle sequential opacity/scale loop */
-    startTypingDots(container) {
-      if (!container) return null;
-      const dots = container.querySelectorAll("span");
-      if (!engine || reduceMotion) return null;
-      return engine.animate(dots, {
-        opacity: [0.25, 1, 0.25],
-        scale: [0.85, 1, 0.85],
-        duration: 1000,
-        delay: engine.stagger(160),
-        loop: true,
-        easing: "easeInOutSine",
+    /** Assistant reply reveal — paragraphs / list items / card parts fade up
+     *  in sequence so a long answer feels like it is being "written" rather
+     *  than dropped in all at once. */
+    revealReply(bubble) {
+      if (!bubble) return;
+      const parts = Array.from(bubble.querySelectorAll(".bubble-md > p, .bubble-md li, .rain-reply > *"));
+      if (!parts.length || !engine || reduceMotion) return;
+      parts.forEach((p) => { p.style.opacity = "0"; });
+      const step = parts.length > 12 ? 35 : parts.length > 6 ? 60 : 90;
+      engine.animate(parts, {
+        opacity: [0, 1],
+        translateY: [8, 0],
+        duration: 420,
+        delay: engine.stagger(step, { start: 120 }),
+        ease: "outCubic",
       });
+      setTimeout(() => parts.forEach((p) => { p.style.opacity = "1"; p.style.transform = ""; }),
+        120 + parts.length * step + 700);
     },
-    stopTypingDots(handle) {
-      if (handle && handle.pause) handle.pause();
+
+    /** Chat empty-state: orb pops in, then title, subtitle and topic cards cascade */
+    animateChatEmpty(root) {
+      if (!root || !engine || reduceMotion) return;
+      const orb = root.querySelector(".va-orb");
+      const texts = root.querySelectorAll(".va-hero-title, .va-hero-sub");
+      const topics = root.querySelectorAll(".va-topic-btn");
+      if (orb) engine.animate(orb, { opacity: [0, 1], scale: [0.6, 1], duration: 650, ease: "outBack(1.8)" });
+      if (texts.length) engine.animate(texts, { opacity: [0, 1], translateY: [10, 0], duration: 500, delay: engine.stagger(110, { start: 220 }), ease: "outCubic" });
+      if (topics.length) engine.animate(topics, { opacity: [0, 1], translateY: [16, 0], scale: [0.92, 1], duration: 480, delay: engine.stagger(80, { start: 460 }), ease: "outBack(1.3)" });
+      setTimeout(() => root.querySelectorAll(".va-orb, .va-hero-title, .va-hero-sub, .va-topic-btn")
+        .forEach((n) => { n.style.opacity = "1"; n.style.transform = ""; }), 1800);
     },
+
+    /** Follow-up suggestion chips pop in one after another */
+    animateChips(root) {
+      if (!root || !engine || reduceMotion) return;
+      const chips = root.querySelectorAll(".va-chip");
+      engine.animate(chips, { opacity: [0, 1], translateY: [10, 0], scale: [0.9, 1], duration: 380, delay: engine.stagger(70, { start: 250 }), ease: "outBack(1.4)" });
+      setTimeout(() => chips.forEach((c) => { c.style.opacity = "1"; c.style.transform = ""; }), 1200);
+    },
+
+    /** Typing indicator — now driven by CSS keyframes (see .typing-dots in
+     *  style.css) so it keeps animating even if the JS engine stalls.
+     *  Kept as a no-op for API compatibility. */
+    startTypingDots() { return null; },
+    stopTypingDots() {},
 
     /** Sidebar mobile slide */
     animateSidebarOpen(el, overlay) {
