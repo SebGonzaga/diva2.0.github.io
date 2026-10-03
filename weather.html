@@ -77,7 +77,7 @@
     <div class="row g-4 mb-4">
       <div class="col-lg-5">
         <div class="rain-card reveal-on-scroll h-100">
-          <div class="card-eyebrow"><span id="wCity">Calamba, PH</span><span class="demo-data-tag">DEMO DATA</span></div>
+          <div class="card-eyebrow"><span id="wCity">Tanauan City, PH</span><span class="demo-data-tag">DEMO DATA</span></div>
           <h3 class="card-num" id="wTemp" style="font-size:3rem;">31°C</h3>
           <div class="d-flex align-items-center gap-2 mb-3">
             <i class="bi bi-cloud-sun fs-3" style="color:var(--accent-cyan);" id="wIcon"></i>
@@ -255,7 +255,7 @@
       strip.appendChild(el);
     });
     renderChart(FORECAST_DEMO.map((f) => f.day), FORECAST_DEMO.map((f) => f.hi));
-    renderMap(14.2117, 121.1653, cityName);
+    renderMap(14.0863, 121.1497, cityName);
     setSourceTag(false);
     showWeatherBody();
     RainAnim.initScrollReveal(".reveal-on-scroll");
@@ -358,7 +358,7 @@
       if (cached && cached.isLive && !RainOffline.isOnline()) {
         renderCachedWeather(cached);
       } else {
-        renderDemoWeather(cityLabel || "Calamba, PH");
+        renderDemoWeather(cityLabel || "Tanauan City, PH");
       }
     }
   }
@@ -417,8 +417,8 @@
 
     document.getElementById("retryWeather").addEventListener("click", () => {
       const search = document.getElementById("citySearch").value.trim();
-      if (search) loadWeather(search, 14.2117, 121.1653);
-      else loadWeather("Calamba, PH", 14.2117, 121.1653);
+      if (search) loadWeather(search, 14.0863, 121.1497);
+      else loadWeather("Tanauan City, PH", 14.0863, 121.1497);
     });
 
     document.getElementById("useLocationBtn").addEventListener("click", () => {
@@ -452,10 +452,10 @@
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => loadWeather(null, pos.coords.latitude, pos.coords.longitude),
-        () => loadWeather("Calamba, PH", 14.2117, 121.1653)
+        () => loadWeather("Tanauan City, PH", 14.0863, 121.1497)
       );
     } else {
-      loadWeather("Calamba, PH", 14.2117, 121.1653);
+      loadWeather("Tanauan City, PH", 14.0863, 121.1497);
     }
   }
 

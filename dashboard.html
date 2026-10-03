@@ -92,7 +92,7 @@
         <div class="card-eyebrow"><span>Weather</span><span class="icon-chip tone-cyan" id="statWeatherIcon"><i class="bi bi-cloud-sun dicon" data-dicon="cloud-sun"></i></span></div>
         <h3 class="card-num" id="statWeatherTemp">—</h3>
         <span class="status-badge status-caution" id="statWeatherBadge"><span class="dot"></span>—</span>
-        <div class="data-source-line"><i class="bi bi-geo-alt dicon" data-dicon="geo-alt"></i> <span id="statWeatherLoc">Calamba, Laguna</span></div>
+        <div class="data-source-line"><i class="bi bi-geo-alt dicon" data-dicon="geo-alt"></i> <span id="statWeatherLoc">Tanauan City, Batangas</span></div>
       </div>
     </div>
     <div class="col-6 col-lg-3">
@@ -213,7 +213,7 @@
 
         tempEl.textContent = `${tempC}°C`;
         iconEl.innerHTML = RainIcons.weatherIconHTML(ICON_MAP[iconCode] || "bi-cloud-sun");
-        locEl.textContent = current.name || "Calamba, Laguna";
+        locEl.textContent = current.name || "Tanauan City, Batangas";
 
         const tone = tempC >= 34 ? "status-critical" : tempC >= 30 ? "status-caution" : "status-safe";
         const label = tempC >= 34 ? "High heat" : tempC >= 30 ? "Caution" : "Normal";
@@ -224,7 +224,7 @@
         console.error("Dashboard weather fetch failed, falling back to demo reading:", err);
         tempEl.textContent = "31°C";
         iconEl.innerHTML = RainIcons.weatherIconHTML("bi-cloud-sun");
-        locEl.textContent = "Calamba, Laguna";
+        locEl.textContent = "Tanauan City, Batangas";
         badgeEl.className = "status-badge status-caution";
         badgeEl.innerHTML = `<span class="dot"></span>Normal`;
         const tag = document.createElement("span");
@@ -238,7 +238,7 @@
     // Fallback used only if the browser has no geolocation support, the user
     // denies the permission prompt, or the request times out — never silently
     // presented as the user's real location (see renderLocationDependent).
-    const FALLBACK_LAT = 14.2117, FALLBACK_LNG = 121.1653; // Calamba, Laguna
+    const FALLBACK_LAT = 14.0863, FALLBACK_LNG = 121.1497; // Tanauan City, Batangas
     const NEARBY_RADIUS_KM = 60;
     const { data: liveAlertsRaw, error: alertsFetchError } = await sb.from("alerts").select("*").order("created_at", { ascending: false });
     let liveAlerts;
@@ -275,9 +275,9 @@
       const incidentsValue = Math.min(100, nearbyIncidents.length * 20);
       categories.push({ label: "Incidents", value: incidentsValue, icon: "bi-flag", hasData: true });
 
-      // Volcano — the NEAREST volcano's PHIVOLCS alert level (0-5), not the
+      // Volcano — the NEAREST volcano's reference alert level (0-5), not the
       // worst level anywhere in the country. A Mayon eruption ~470km away
-      // shouldn't spike a Calamba resident's risk score; Taal, ~30km away,
+      // shouldn't spike a Tanauan resident's risk score; Taal, ~15km away,
       // should carry far more weight here.
       const volcanoes = RAIN_DEMO.volcanoes || [];
       let volcanoValue = 0, nearestVolcano = null, nearestDistKm = Infinity;
@@ -443,7 +443,7 @@
       const pinIcon = rainPinIcon; // shared helper — see assets/js/main.js
 
       const groups = {
-        user: L.layerGroup([L.marker([userLat, userLng], { icon: pinIcon("user", "bi-person-fill") }).bindPopup(isRealLocation ? "Your location" : "Approximate location (GPS unavailable — showing Calamba, Laguna)")]),
+        user: L.layerGroup([L.marker([userLat, userLng], { icon: pinIcon("user", "bi-person-fill") }).bindPopup(isRealLocation ? "Your location" : "Approximate location (GPS unavailable — showing Tanauan City, Batangas)")]),
         alerts: L.layerGroup(),
         incidents: L.layerGroup(),
         shelters: L.layerGroup(),
@@ -452,7 +452,7 @@
       // Alerts: this is a LOCAL situational map, so only pin alerts that are
       // actually near the user's location — using each alert's real coordinates,
       // not a fabricated offset. A Bicol Region typhoon advisory has no business
-      // appearing to be next door to a resident in Calamba, Laguna.
+      // appearing to be next door to a resident in Tanauan City, Batangas.
       nearbyAlerts.forEach((a) => {
         L.marker([a.lat, a.lng], { icon: pinIcon("alert", "bi-exclamation-triangle-fill", a.severity === "critical") })
           .bindPopup(`<strong>${a.title}</strong><br>${a.area}`)
@@ -572,7 +572,7 @@
     }
 
     // Resolve the user's real location before drawing anything that depends
-    // on it. Falls back to the Calamba, Laguna demo point — clearly labeled
+    // on it. Falls back to the Tanauan City, Batangas demo point — clearly labeled
     // as approximate, never presented as if it were the user's real GPS —
     // if geolocation isn't supported, is denied, or times out. Also fetches
     // live earthquake data (no key needed — see fetchPhilippineEarthquakes

@@ -268,7 +268,7 @@
         <div class="feature-card reveal-on-scroll">
           <div class="icon-badge tone-orange"><i class="bi bi-triangle dicon" data-dicon="triangle"></i></div>
           <h3>Volcano Monitoring</h3>
-          <p>Alert levels for Mayon, Taal, Pinatubo, Kanlaon, Bulusan, and Hibok-Hibok, mapped and tracked with PHIVOLCS-style status descriptions and update timestamps.</p>
+          <p>Taal Volcano conditions and a reference alert level, with a link to the official PHIVOLCS advisory for the current level.</p>
         </div>
       </div>
       <div class="col-md-6 col-lg-4">
@@ -310,7 +310,7 @@
       <div class="col-lg-6">
         <div class="eyebrow mb-2 text-cyan-deep">Real-time transparency</div>
         <h2 class="mb-3 fs-heading-md">Every reading shows its source and timestamp</h2>
-        <p class="text-muted-rain mb-4">RAIN never presents information as live if it isn't. Weather data is sourced from OpenWeatherMap, volcanic data follows PHIVOLCS bulletins, and any development or demo data is clearly labeled — so residents and responders alike know exactly what they're looking at.</p>
+        <p class="text-muted-rain mb-4">RAIN never presents information as live if it isn't. Weather data is sourced from OpenWeatherMap, the volcanic alert level is reference information (not a live feed), evacuation centers and emergency contacts come from the Tanauan City CDRRMO, and any development or demo data is clearly labeled — so residents and responders alike know exactly what they're looking at.</p>
         <ul class="list-unstyled d-flex flex-column gap-3">
           <li class="d-flex gap-2"><i class="bi bi-check-circle-fill text-safe dicon" data-dicon="check-circle-fill"></i> Source and "Last Updated" shown on every live component</li>
           <li class="d-flex gap-2"><i class="bi bi-check-circle-fill text-safe dicon" data-dicon="check-circle-fill"></i> Clear DEMO DATA tags for development-stage content</li>
@@ -320,12 +320,12 @@
       <div class="col-lg-6">
         <div class="rain-card reveal-on-scroll">
           <div class="card-eyebrow">
-            <span>Mayon Volcano — Status</span>
-            <span class="status-badge status-warning"><span class="dot pulse-dot"></span>Alert Level 3</span>
+            <span>Taal Volcano — Alert Level Reference</span>
+            <span class="status-badge status-caution"><span class="dot pulse-dot"></span>Level 1 (reference)</span>
           </div>
-          <h3 class="card-num">High-Level Unrest</h3>
-          <p class="text-muted-rain mb-0 fs-90">Increased seismicity and lava effusion at the summit crater. Entry into the 6-km Permanent Danger Zone remains prohibited.</p>
-          <div class="data-source-line"><i class="bi bi-clock-history dicon" data-dicon="clock-history"></i> Last Updated: 2026-08-20 06:00 PST · Source: PHIVOLCS</div>
+          <h3 class="card-num">Low-Level Unrest</h3>
+          <p class="text-muted-rain mb-0 fs-90">The entire Taal Volcano Island is a Permanent Danger Zone. This level is shown for context only; always check the official advisory for the current alert level.</p>
+          <div class="data-source-line"><i class="bi bi-clock-history dicon" data-dicon="clock-history"></i> Reference only, not a live feed · Check the current advisory at phivolcs.dost.gov.ph</div>
         </div>
       </div>
     </div>
@@ -390,9 +390,8 @@
         <h5 class="fs-95">Data sources</h5>
         <ul class="list-unstyled d-flex flex-column gap-2">
           <li>OpenWeatherMap</li>
-          <li>PHIVOLCS</li>
-          <li>PAGASA</li>
-          <li>NDRRMC</li>
+          <li>USGS Earthquake Catalog</li>
+          <li>Tanauan City CDRRMO</li>
         </ul>
       </div>
       <div class="col-md-3">

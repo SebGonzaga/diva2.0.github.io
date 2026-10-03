@@ -1,8 +1,8 @@
 /* =========================================================================
    RAIN — assets/js/demo-data.js
    Frontend-only DEMO DATA. This file stands in for the PHP /api endpoints
-   until the backend (Phase 3+ of the build plan) is connected. Every value
-   here is clearly labeled DEMO DATA in the UI — nothing here should ever be
+   until the backend (Phase 3+ of the build plan) is connected. Reference values
+   here are labeled in the UI — nothing here should ever be
    presented to the user as a live PHIVOLCS/PAGASA/OpenWeather reading.
    ========================================================================= */
 
@@ -44,11 +44,9 @@ const RAIN_DEMO = {
   // weather reading) instead of being a fabricated static number — see
   // computeCommunityRisk() in dashboard.html.
 
-  // Reported incidents shown on the Live Situation Map. DEMO DATA.
-  incidents: [
-    { title: "Ashfall reported", lat: 14.2205, lng: 121.1580, area: "Brgy. Real, Calamba", updated: "18 min ago" },
-    { title: "Road flooding", lat: 14.2050, lng: 121.1720, area: "Brgy. Halang, Calamba", updated: "42 min ago" },
-  ],
+  // Reported incidents shown on the Live Situation Map. Left empty on purpose:
+  // real incidents come from resident reports stored in Supabase.
+  incidents: [],
 
   volcanoes: [
     { name: "Mayon Volcano", location: "Albay, Bicol Region", level: 3, status: "High-Level Unrest", eruptions: 51, updated: "2026-08-20 06:00 PST", lat: 13.2572, lng: 123.6856, desc: "Increased seismicity and lava effusion at the summit crater." },
@@ -63,13 +61,15 @@ const RAIN_DEMO = {
   // text) instead of being plotted at a fabricated offset from the user's
   // location. The dashboard's local map only pins alerts that are actually
   // near the user — see distance filtering in dashboard.html.
-  alerts: [
-    { title: "Severe Wind and Rainfall Advisory", type: "Typhoon", severity: "warning", area: "Bicol Region, Eastern Visayas", lat: 13.4210, lng: 123.4130, message: "A tropical cyclone is expected to bring heavy to intense rainfall. Residents in low-lying and landslide-prone areas should prepare to evacuate.", start: "2026-08-21 06:00", expires: "2026-08-23 06:00" },
-    { title: "Mayon Volcano Alert Level 3", type: "Volcanic", severity: "critical", area: "6-7km radius, Albay", lat: 13.2572, lng: 123.6856, message: "PHIVOLCS maintains Alert Level 3 over Mayon Volcano. Entry into the 6-km Permanent Danger Zone is strictly prohibited.", start: "2026-08-18 08:00", expires: "2026-08-25 08:00" },
-    { title: "Marikina River Water Level Advisory", type: "Flood", severity: "advisory", area: "Marikina River Basin", lat: 14.6507, lng: 121.1029, message: "Water levels are within monitoring range. Residents near the riverbank are advised to stay alert for updates.", start: "2026-08-20 14:00", expires: "2026-08-22 14:00" },
-    { title: "Laguna Lake Water Level Advisory", type: "Flood", severity: "advisory", area: "Calamba, Los Baños, Laguna", lat: 14.2350, lng: 121.1900, message: "Laguna Lake water level is elevated following sustained rainfall. Residents in low-lying lakeside barangays should monitor for updates and prepare to move belongings to higher ground.", start: "2026-08-21 09:00", expires: "2026-08-23 09:00" },
-  ],
+  // Left empty on purpose: live alerts are issued by administrators and read
+  // from the Supabase `alerts` table, not from sample records.
+  alerts: [],
 
+  // EMERGENCY CONTACTS -- source: Tanauan City CDRRMO.
+  // TODO: replace/extend with the contact list provided by the CDRRMO.
+  // Each entry: { name, number, tag }  (tag: Police | Fire | Medical | NDRRMC | CDRRMO)
+  // The four national hotlines below are placeholders until the CDRRMO list is
+  // entered -- verify every number before deployment.
   emergencyContacts: [
     { name: "Philippine National Police", number: "117", tag: "Police" },
     { name: "Bureau of Fire Protection", number: "160", tag: "Fire" },
@@ -77,37 +77,18 @@ const RAIN_DEMO = {
     { name: "NDRRMC Operations Center", number: "(02) 8911-1406", tag: "NDRRMC" },
   ],
 
-  // Each center now carries a `category` (drives the map pin color/icon —
-  // "shelter" | "government" | "mall") and a human-readable `type` label
-  // shown as a badge in the list. Coordinates are town-center approximations
-  // (same convention as assets/js/taal-places.js) — good for nearest-match
-  // and general map placement, not precise addressing.
-  evacuationCenters: [
-    // --- Calamba, Laguna ---
-    { name: "Barangay San Isidro Covered Court", type: "Covered Court", category: "shelter", address: "San Isidro, Calamba, Laguna", lat: 14.2120, lng: 121.1650, contact: "(049) 545-1122", facilities: "Water, medical station, generator" },
-    { name: "Calamba City Sports Complex", type: "Sports Complex", category: "shelter", address: "Real St, Calamba, Laguna", lat: 14.2141, lng: 121.1653, contact: "(049) 545-3390", facilities: "Water, generator, sleeping area" },
-    { name: "Canlubang Elementary School", type: "School", category: "shelter", address: "Canlubang, Calamba, Laguna", lat: 14.1908, lng: 121.1275, contact: "(049) 549-0021", facilities: "Water, first aid" },
-    { name: "Calamba City Hall", type: "City Hall", category: "government", address: "Brgy. Real, Calamba, Laguna", lat: 14.2145, lng: 121.1649, contact: "(049) 545-1500", facilities: "Command center, registration, medical aid" },
-    { name: "Barangay Real Hall", type: "Barangay Hall", category: "government", address: "Real, Calamba, Laguna", lat: 14.2205, lng: 121.1595, contact: "(049) 545-2202", facilities: "Registration, relief goods distribution" },
-    { name: "Barangay Halang Multi-Purpose Hall", type: "Barangay Hall", category: "government", address: "Halang, Calamba, Laguna", lat: 14.2032, lng: 121.1710, contact: "(049) 545-2201", facilities: "Registration, temporary shelter" },
-    { name: "SM City Calamba", type: "Mall (SM)", category: "mall", address: "National Hwy, Brgy. Real, Calamba, Laguna", lat: 14.2175, lng: 121.1660, contact: "(049) 545-9000", facilities: "Designated evacuation area, generator, security" },
-
-    // --- Near Taal Volcano (Batangas / Cavite) ---
-    { name: "Talisay Municipal Hall", type: "Municipal Hall", category: "government", address: "Talisay, Batangas", lat: 14.0994, lng: 121.0125, contact: "(043) 773-0121", facilities: "Command center, registration" },
-    { name: "Laurel Municipal Hall", type: "Municipal Hall", category: "government", address: "Laurel, Batangas", lat: 14.0000, lng: 120.9167, contact: "(043) 778-0021", facilities: "Command center, relief goods" },
-    { name: "Agoncillo Municipal Hall", type: "Municipal Hall", category: "government", address: "Agoncillo, Batangas", lat: 13.9667, lng: 120.9167, contact: "(043) 773-1021", facilities: "Command center, registration" },
-    { name: "San Nicolas Municipal Hall", type: "Municipal Hall", category: "government", address: "San Nicolas, Batangas", lat: 13.9167, lng: 121.0167, contact: "(043) 706-1021", facilities: "Command center, medical aid" },
-    { name: "Balete Municipal Hall", type: "Municipal Hall", category: "government", address: "Balete, Batangas", lat: 14.0167, lng: 121.0000, contact: "(043) 705-1021", facilities: "Registration, relief goods" },
-    { name: "Sto. Tomas City Hall", type: "City Hall", category: "government", address: "Sto. Tomas, Batangas", lat: 14.1078, lng: 121.1414, contact: "(043) 700-1021", facilities: "Command center, medical station" },
-    { name: "Tanauan City Hall", type: "City Hall", category: "government", address: "Tanauan City, Batangas", lat: 14.0863, lng: 121.1497, contact: "(043) 778-1021", facilities: "Command center, registration" },
-    { name: "SM Center Tanauan", type: "Mall (SM)", category: "mall", address: "J.P. Laurel Hwy, Tanauan City, Batangas", lat: 14.0910, lng: 121.1520, contact: "(043) 778-9000", facilities: "Designated evacuation area, generator" },
-    { name: "Lipa City Hall", type: "City Hall", category: "government", address: "Lipa City, Batangas", lat: 13.9411, lng: 121.1622, contact: "(043) 756-1021", facilities: "Command center, medical station" },
-    { name: "SM City Lipa", type: "Mall (SM)", category: "mall", address: "Marawoy, Lipa City, Batangas", lat: 13.9550, lng: 121.1600, contact: "(043) 756-9000", facilities: "Designated evacuation area, generator, security" },
-    { name: "Batangas City Hall", type: "City Hall", category: "government", address: "Batangas City, Batangas", lat: 13.7565, lng: 121.0583, contact: "(043) 723-1021", facilities: "Command center, medical station" },
-    { name: "SM City Batangas", type: "Mall (SM)", category: "mall", address: "Pallocan West, Batangas City, Batangas", lat: 13.7700, lng: 121.0570, contact: "(043) 723-9000", facilities: "Designated evacuation area, generator" },
-    { name: "Tagaytay City Hall", type: "City Hall", category: "government", address: "Tagaytay City, Cavite", lat: 14.0975, lng: 120.9639, contact: "(046) 483-1021", facilities: "Command center, registration" },
-    { name: "SM City Tagaytay", type: "Mall (SM)", category: "mall", address: "Aguinaldo Hwy, Tagaytay City, Cavite", lat: 14.1030, lng: 120.9450, contact: "(046) 483-9000", facilities: "Designated evacuation area, generator, security" },
-  ],
+  // EVACUATION CENTERS -- source: Tanauan City CDRRMO.
+  // TODO: enter the evacuation centers provided by the CDRRMO. Sample records
+  // from other cities were removed so the app only shows CDRRMO data.
+  // Each entry:
+  //   { name, type, category, address, lat, lng, contact, facilities }
+  //   category: "shelter" | "government" | "mall"   (drives the map pin)
+  //   lat/lng : the center's actual coordinates
+  // Example (do not use as real data):
+  //   { name: "Barangay X Covered Court", type: "Covered Court", category: "shelter",
+  //     address: "Brgy. X, Tanauan City, Batangas", lat: 0, lng: 0,
+  //     contact: "(043) 000-0000", facilities: "Water, first aid" },
+  evacuationCenters: [],
 
   quickPrompts: [
     "What to do during an earthquake?",

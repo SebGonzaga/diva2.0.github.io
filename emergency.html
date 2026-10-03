@@ -31,7 +31,7 @@
   </div>
 
   <div class="rain-card reveal-on-scroll" id="evac">
-    <div class="card-eyebrow"><span>Evacuation Centers</span><span class="demo-data-tag">DEMO DATA — sample LGU-style records</span></div>
+    <div class="card-eyebrow"><span>Evacuation Centers</span><span class="demo-data-tag" style="background:var(--accent-cyan); color:#fff;">Source: Tanauan City CDRRMO</span></div>
     <div class="d-flex align-items-center gap-2 mb-3" id="evacLocNote" style="font-size:.78rem; color:var(--ink-400);"></div>
     <div class="map-filter-row mb-3" id="evacFilters">
       <button class="map-filter-btn light active" data-filter="all">All</button>
@@ -90,9 +90,9 @@
 
     // Fallback used only if the browser has no geolocation support, the user
     // denies the permission prompt, or the request times out — same pattern
-    // and demo point (Calamba, Laguna) as dashboard.html. Never presented as
+    // and demo point (Tanauan City, Batangas) as dashboard.html. Never presented as
     // if it were the user's real GPS reading.
-    const FALLBACK_LAT = 14.2117, FALLBACK_LNG = 121.1653;
+    const FALLBACK_LAT = 14.0863, FALLBACK_LNG = 121.1497;
     let evacMap = null;
 
     // Category → { marker icon class/glyph, list badge label } so shelters,
@@ -109,7 +109,7 @@
       const offlineSuffix = RainOffline.isOnline() ? "" : ` <span class="cached-data-tag"><i class="bi bi-cloud-slash"></i> Offline</span>`;
       locNote.innerHTML = (isRealLocation
         ? `<i class="bi bi-geo-alt-fill" style="color:var(--accent-cyan);"></i> Distances are from your current location.`
-        : `<i class="bi bi-geo-alt"></i> GPS unavailable — showing distances from Calamba, Laguna. <button type="button" class="btn-rain btn-rain-ghost btn-rain-sm" id="retryLocationBtn" style="padding:.1rem .6rem; margin-left:.3rem;">Enable location</button>`) + offlineSuffix;
+        : `<i class="bi bi-geo-alt"></i> GPS unavailable — showing distances from Tanauan City, Batangas. <button type="button" class="btn-rain btn-rain-ghost btn-rain-sm" id="retryLocationBtn" style="padding:.1rem .6rem; margin-left:.3rem;">Enable location</button>`) + offlineSuffix;
       if (!isRealLocation) {
         document.getElementById("retryLocationBtn").addEventListener("click", requestLocation);
       }
@@ -120,7 +120,7 @@
       L.tileLayer(`https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=${CARTO_API_KEY}`, { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>', maxZoom: 20 }).addTo(map);
       L.marker([userLat, userLng], { icon: rainPinIcon("user", "bi-person-fill"), title: "You are here" })
         .addTo(map)
-        .bindPopup(isRealLocation ? "Your location" : "Approximate location (GPS unavailable — showing Calamba, Laguna)");
+        .bindPopup(isRealLocation ? "Your location" : "Approximate location (GPS unavailable — showing Tanauan City, Batangas)");
 
       const evacList = document.getElementById("evacList");
       evacList.innerHTML = "";
@@ -161,6 +161,10 @@
           listItemsByCategory[cat].push(el);
         });
 
+      if (!sortedCenters.length) {
+        evacList.innerHTML = '<p class="text-muted-rain mb-0">The evacuation center list from the Tanauan City CDRRMO is not available yet. Please contact the CDRRMO or your barangay hall for the nearest evacuation center.</p>';
+      }
+
       Object.values(categoryLayers).forEach((layer) => layer.addTo(map));
 
       document.querySelectorAll("#evacFilters .map-filter-btn").forEach((btn) => {
@@ -183,7 +187,7 @@
 
     // Resolve the user's real location before drawing the map/list, so the
     // "km away" figures reflect where they actually are, not a fixed demo
-    // point. Falls back to Calamba, Laguna if geolocation is unsupported,
+    // point. Falls back to Tanauan City, Batangas if geolocation is unsupported,
     // denied, or times out (see FALLBACK_LAT/LNG above).
     function requestLocation() {
       const locNote = document.getElementById("evacLocNote");

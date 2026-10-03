@@ -34,7 +34,7 @@ const SUPABASE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_jgf
 // Mirrors volcano.html (TAAL_VNUM / TAAL_FALLBACK) and main.js (PH_QUAKE_BBOX).
 const TAAL = { vnum: '273070', lat: 14.0021, lng: 120.9932, elevM: 311 };
 const PH_BBOX = { minlatitude: 4, maxlatitude: 21, minlongitude: 116, maxlongitude: 127 };
-const DEFAULT_LOC = { lat: 14.2117, lng: 121.1653, label: 'Calamba, Laguna' };
+const DEFAULT_LOC = { lat: 14.0863, lng: 121.1497, label: 'Tanauan City, Batangas' };
 const AVIATION_COLOR = { GREEN: 'Green (normal)', YELLOW: 'Yellow (advisory)', ORANGE: 'Orange (watch)', RED: 'Red (warning)' };
 
 const MIN = 60 * 1000;
@@ -60,7 +60,7 @@ async function geocode(place, signal) {
 }
 
 /** Where should "here" be? An explicit place beats the user's location, which
- *  beats their saved area, which beats Calamba (the app's default centre). */
+ *  beats their saved area, which beats Tanauan City (the app's default centre). */
 async function resolveLocation(ctx, place) {
   if (place) {
     const g = await geocode(place, ctx.signal);
@@ -429,7 +429,7 @@ export const TOOLS = {
         ...(loc.assumedDefault && { assumedDefault: true }),
         centers: list,
         note: 'Distances are straight-line from approximate coordinates. Ask local officials which centers are open before travelling.',
-        source: 'RAIN evacuation center list',
+        source: 'Tanauan City CDRRMO evacuation center list',
       };
     },
   },
@@ -447,7 +447,7 @@ export const TOOLS = {
       return {
         ok: true,
         contacts: demo.emergencyContacts.map((c) => ({ name: clean(c.name, 80), number: clean(c.number, 30) })),
-        source: 'RAIN emergency contacts',
+        source: 'RAIN emergency contacts (Tanauan City CDRRMO)',
       };
     },
   },

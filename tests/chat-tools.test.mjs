@@ -98,7 +98,7 @@ test('get_current_weather: units, derived fields, assumed default location', asy
   assert.equal(result.rainLastHourMm, 1.2);
   assert.equal(result.observedAgo, '10 minutes ago');
   assert.equal(result.assumedDefault, true);
-  assert.equal(result.location, 'Calamba, Laguna');
+  assert.equal(result.location, 'Tanauan City, Batangas');
 });
 
 test('get_current_weather: explicit place is geocoded (with ,PH bias) and API key never reaches the result', async () => {
@@ -217,16 +217,10 @@ test('get_recent_incidents: only VERIFIED incidents are requested; reporter iden
   assert.equal(r.result.incidents[0].reportedAgo, '2 hours ago');
 });
 
-test('find_evacuation_centers uses the real demo-data.js, sorted by distance, honoring limit/category', async () => {
-  const r1 = await executeTool('find_evacuation_centers', { limit: 99 }, ctx({ lat: 14.2141, lng: 121.1653, city: 'Calamba' }));
-  assert.equal(r1.ok, true);
-  assert.equal(r1.result.centers.length, 5); // clamped
-  const d = r1.result.centers.map((c) => c.distanceKm);
-  assert.deepEqual(d, [...d].sort((a, b) => a - b));
-  assert.ok(d[0] < 2);
-
-  const r2 = await executeTool('find_evacuation_centers', { category: 'mall', limit: 2 }, ctx());
-  assert.ok(r2.result.centers.every((c) => /Mall/.test(c.type)));
+test('find_evacuation_centers: with no CDRRMO records loaded, reports the list as unavailable instead of inventing centers', async () => {
+  const r1 = await executeTool('find_evacuation_centers', { limit: 99 }, ctx({ lat: 14.0863, lng: 121.1497, city: 'Tanauan' }));
+  assert.equal(r1.result.ok, false);
+  assert.match(r1.result.error, /not available/);
 });
 
 test('get_emergency_contacts returns the app\'s list', async () => {
@@ -408,7 +402,7 @@ test('handler: out-of-Philippines coordinates are ignored', async () => {
     : modelText('ok')));
   await call({ message: 'weather?', context: { lat: 51.5, lng: -0.12 } });
   const owm = calls.find((c) => c.url.includes('/data/2.5/weather'));
-  assert.match(owm.url, /lat=14\.2117/); // fell back to the default, not London
+  assert.match(owm.url, /lat=14\.0863/); // fell back to the default, not London
 });
 
 test('handler: if Gemini rejects the tool request (400) it retries once WITHOUT tools', async () => {

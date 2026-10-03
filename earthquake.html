@@ -151,10 +151,10 @@
   const user = renderAppShell("earthquake.html", { title: "Earthquake" });
   let quakeMap = null;
   let quakeMarkers = [];
-  // Fallback location if geolocation is denied/unavailable — Calamba,
-  // Laguna, same fallback used everywhere else in this app. Clearly noted
+  // Fallback location if geolocation is denied/unavailable — Tanauan City,
+  // Batangas, same fallback used everywhere else in this app. Clearly noted
   // in the UI, never presented as if it were the resident's real GPS.
-  const FALLBACK_LAT = 14.2117, FALLBACK_LNG = 121.1653;
+  const FALLBACK_LAT = 14.0863, FALLBACK_LNG = 121.1497;
 
   function magTone(mag) {
     if (mag == null) return "status-safe";
@@ -289,7 +289,7 @@
 
       document.getElementById("qLocSourceNote").textContent = isRealLocation
         ? "Distances use your device's GPS location."
-        : "Distances use an approximate location (GPS unavailable) — showing Calamba, Laguna.";
+        : "Distances use an approximate location (GPS unavailable) — showing Tanauan City, Batangas.";
 
       showBody();
       RainAnim.initScrollReveal(".reveal-on-scroll");

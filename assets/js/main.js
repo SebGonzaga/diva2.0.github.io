@@ -320,7 +320,7 @@ function rainToast(message, icon) {
    ========================================================================= */
 const RainEmergencyMode = {
   _built: false,
-  _userLat: 14.2117, _userLng: 121.1653, // fallback: Calamba, Laguna — replaced by real GPS in open() when available
+  _userLat: 14.0863, _userLng: 121.1497, // fallback: Tanauan City, Batangas — replaced by real GPS in open() when available
 
   /** Picks the closest evacuation center to a given point (falls back to
    *  the first listed center if none/no coords) — shared by _build() and
@@ -387,7 +387,7 @@ const RainEmergencyMode = {
     this._overlay.classList.add("show");
 
     // Refine "nearest shelter" with the user's real location — the overlay
-    // opens instantly using the Calamba fallback above, then quietly
+    // opens instantly using the Tanauan fallback above, then quietly
     // upgrades once (or if) GPS resolves so it doesn't block the UI.
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
