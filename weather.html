@@ -100,6 +100,13 @@
       </div>
     </div>
 
+    <div class="rain-card reveal-on-scroll mb-4" id="hourlyCard">
+      <div class="card-eyebrow"><span>Next 24 Hours</span><i class="bi bi-clock dicon" style="color:var(--accent-cyan);" data-dicon="clock"></i></div>
+      <div id="rainHeadsUp" class="d-none mb-3" role="status" style="padding:.7rem .9rem; border-radius:var(--radius-md); background:var(--surface-alt); border:1px solid var(--surface-line); font-size:.88rem; font-weight:600;"></div>
+      <div class="forecast-strip" id="hourlyStrip"></div>
+      <div class="data-source-line"><i class="bi bi-info-circle dicon" data-dicon="info-circle"></i> Forecast in 3-hour steps. Chance of rain is an estimate; always follow official advisories.</div>
+    </div>
+
     <div class="rain-card reveal-on-scroll mb-4">
       <div class="card-eyebrow"><span>6-Day Forecast</span></div>
       <div class="forecast-strip" id="forecastStrip"></div>
@@ -119,6 +126,7 @@
 <script src="assets/js/animations.js"></script>
 <script src="assets/js/icons.js"></script>
 <script src="assets/js/demo-data.js"></script>
+<script src="assets/js/weather-timely.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/js/supabase-client.js"></script>
 <script src="assets/js/rain-auth.js"></script>
@@ -212,6 +220,50 @@
     });
   }
 
+  // ---- Timely weather: hourly strip, rain heads-up, auto-refresh ----
+  let liveUpdatedMs = null;      // set only while showing a live reading
+  let lastLoc = null;            // { label, lat, lng } of the last live load
+
+  function renderHourly(list) {
+    const slots = RainTimely.hourlySlots(list);
+    const strip = document.getElementById("hourlyStrip");
+    strip.innerHTML = "";
+    slots.forEach((s) => {
+      const el = document.createElement("div");
+      el.className = "forecast-card";
+      const label = new Date(s.dt * 1000).toLocaleTimeString([], { hour: "numeric" });
+      el.innerHTML = `<div class="day">${label}</div><div class="icon">${RainIcons.weatherIconHTML(iconForCondition(s.weather))}</div><div class="hi">${s.tempC}°</div><div class="lo">${s.pop}% rain</div>`;
+      strip.appendChild(el);
+    });
+    const box = document.getElementById("rainHeadsUp");
+    const alert = RainTimely.rainHeadsUp(slots);
+    if (alert) {
+      const when = alert.hours <= 1 ? "within the next hour or so" : `in about ${alert.hours} hours`;
+      box.textContent = `${alert.heavy ? "Heavy rain or storms possible" : "Rain likely"} ${when} (${alert.pop}% chance). Plan ahead and check official advisories.`;
+      box.classList.remove("d-none");
+    } else {
+      box.classList.add("d-none");
+    }
+    document.getElementById("hourlyCard").classList.toggle("d-none", slots.length === 0);
+  }
+
+  function hideHourly() {
+    liveUpdatedMs = null;
+    document.getElementById("hourlyCard").classList.add("d-none");
+  }
+
+  function tickTimestamp() {
+    if (liveUpdatedMs == null) return;
+    const time = new Date(liveUpdatedMs).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    document.getElementById("wTimestamp").textContent = `Updated ${RainTimely.agoText(liveUpdatedMs)} (${time})`;
+  }
+
+  async function autoRefresh() {
+    if (!lastLoc || document.hidden || !navigator.onLine) return;
+    try { await loadLiveWeather(lastLoc.label, lastLoc.lat, lastLoc.lng, true); }
+    catch (err) { console.warn("Auto-refresh skipped:", err); }
+  }
+
   function showWeatherBody() {
     document.getElementById("weatherSkeleton").classList.add("d-none");
     document.getElementById("weatherError").classList.add("d-none");
@@ -245,6 +297,7 @@
     document.getElementById("wWind").textContent = "12 km/h";
     document.getElementById("wVisibility").textContent = "10 km";
     document.getElementById("wTimestamp").textContent = "Demo snapshot — add an API key for live data";
+    hideHourly();
 
     const strip = document.getElementById("forecastStrip");
     strip.innerHTML = "";
@@ -299,10 +352,12 @@
     });
   }
 
-  async function loadLiveWeather(cityLabel, lat, lng) {
-    document.getElementById("weatherBody").classList.add("d-none");
-    document.getElementById("weatherError").classList.add("d-none");
-    document.getElementById("weatherSkeleton").classList.remove("d-none");
+  async function loadLiveWeather(cityLabel, lat, lng, silent) {
+    if (!silent) {
+      document.getElementById("weatherBody").classList.add("d-none");
+      document.getElementById("weatherError").classList.add("d-none");
+      document.getElementById("weatherSkeleton").classList.remove("d-none");
+    }
     try {
       const [current, forecast] = await Promise.all([fetchCurrentByCoords(lat, lng), fetchForecastByCoords(lat, lng)]);
 
@@ -315,7 +370,10 @@
       document.getElementById("wHumidity").textContent = `${current.main.humidity}%`;
       document.getElementById("wWind").textContent = `${Math.round(current.wind.speed * 3.6)} km/h`;
       document.getElementById("wVisibility").textContent = current.visibility != null ? `${(current.visibility / 1000).toFixed(1)} km` : "—";
-      document.getElementById("wTimestamp").textContent = "Updated " + new Date(current.dt * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      liveUpdatedMs = current.dt * 1000;
+      lastLoc = { label: cityLabel, lat, lng };
+      tickTimestamp();
+      renderHourly(forecast.list);
 
       const days = dailyFromForecastList(forecast.list);
       const strip = document.getElementById("forecastStrip");
@@ -327,10 +385,10 @@
         strip.appendChild(el);
       });
       renderChart(days.map((f) => f.day), days.map((f) => f.hi));
-      renderMap(current.coord.lat, current.coord.lon, document.getElementById("wCity").textContent);
+      if (!silent) renderMap(current.coord.lat, current.coord.lon, document.getElementById("wCity").textContent);
       setSourceTag(true);
       showWeatherBody();
-      RainAnim.initScrollReveal(".reveal-on-scroll");
+      if (!silent) RainAnim.initScrollReveal(".reveal-on-scroll");
       setWeatherCache({
         isLive: true,
         city: document.getElementById("wCity").textContent,
@@ -378,6 +436,7 @@
     document.getElementById("wWind").textContent = "—";
     document.getElementById("wVisibility").textContent = "—";
     document.getElementById("wTimestamp").textContent = `Offline — showing reading saved ${RainOffline.timeAgo(cached.cachedAt)}`;
+    hideHourly();
 
     const strip = document.getElementById("forecastStrip");
     strip.innerHTML = "";
@@ -447,6 +506,12 @@
       if (!e.target.closest("#citySearch") && !e.target.closest("#citySuggestions")) {
         document.getElementById("citySuggestions").classList.add("d-none");
       }
+    });
+
+    setInterval(tickTimestamp, 30000);
+    setInterval(autoRefresh, RainTimely.REFRESH_MS);
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden && liveUpdatedMs != null && Date.now() - liveUpdatedMs > RainTimely.REFRESH_MS) autoRefresh();
     });
 
     if (navigator.geolocation) {

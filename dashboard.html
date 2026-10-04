@@ -98,9 +98,9 @@
     <div class="col-6 col-lg-3">
       <div class="rain-card reveal-on-scroll">
         <div class="card-eyebrow"><span>Volcano</span><span class="icon-chip tone-warning"><i class="bi bi-fire dicon" data-dicon="fire"></i></span></div>
-        <h3 class="card-num">AL 3</h3>
-        <span class="status-badge status-warning"><span class="dot pulse-dot"></span>Mayon — Warning</span>
-        <div class="data-source-line"><i class="bi bi-clock-history dicon" data-dicon="clock-history"></i> Updated 06:00</div>
+        <h3 class="card-num">AL 1</h3>
+        <span class="status-badge status-caution"><span class="dot pulse-dot"></span>Taal — Reference</span>
+        <div class="data-source-line"><i class="bi bi-info-circle dicon" data-dicon="info-circle"></i> Reference only, not live</div>
       </div>
     </div>
     <div class="col-6 col-lg-3">
@@ -276,7 +276,7 @@
       categories.push({ label: "Incidents", value: incidentsValue, icon: "bi-flag", hasData: true });
 
       // Volcano — the NEAREST volcano's reference alert level (0-5), not the
-      // worst level anywhere in the country. A Mayon eruption ~470km away
+      // worst level anywhere in the country. A distant volcano's eruption
       // shouldn't spike a Tanauan resident's risk score; Taal, ~15km away,
       // should carry far more weight here.
       const volcanoes = RAIN_DEMO.volcanoes || [];

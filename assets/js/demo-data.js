@@ -48,13 +48,12 @@ const RAIN_DEMO = {
   // real incidents come from resident reports stored in Supabase.
   incidents: [],
 
+  // REFERENCE ONLY -- not a live feed. The official alert level has no public
+  // API, so this value is typed in by hand and shown as static reference
+  // information. Always verify the current level at phivolcs.dost.gov.ph.
+  // (Live volcano data on volcano.html comes from the USGS VolcView API.)
   volcanoes: [
-    { name: "Mayon Volcano", location: "Albay, Bicol Region", level: 3, status: "High-Level Unrest", eruptions: 51, updated: "2026-08-20 06:00 PST", lat: 13.2572, lng: 123.6856, desc: "Increased seismicity and lava effusion at the summit crater." },
-    { name: "Taal Volcano", location: "Batangas, Calabarzon", level: 1, status: "Low-Level Unrest", eruptions: 33, updated: "2026-08-20 06:00 PST", lat: 14.0021, lng: 120.9932, desc: "Continuing background degassing from the Main Crater." },
-    { name: "Mount Pinatubo", location: "Zambales/Pampanga/Tarlac", level: 0, status: "Normal", eruptions: 6, updated: "2026-08-19 18:00 PST", lat: 15.1300, lng: 120.3500, desc: "No significant deformation or seismic anomalies recorded." },
-    { name: "Kanlaon Volcano", location: "Negros Occidental", level: 2, status: "Moderate Unrest", eruptions: 30, updated: "2026-08-20 06:00 PST", lat: 10.4122, lng: 123.1322, desc: "Intermittent phreatic activity and elevated SO2 flux." },
-    { name: "Bulusan Volcano", location: "Sorsogon, Bicol Region", level: 0, status: "Normal", eruptions: 18, updated: "2026-08-19 18:00 PST", lat: 12.7700, lng: 124.0500, desc: "Quiescent; occasional steam emission from the summit." },
-    { name: "Hibok-Hibok Volcano", location: "Camiguin", level: 0, status: "Normal", eruptions: 6, updated: "2026-08-18 18:00 PST", lat: 9.2039, lng: 124.6750, desc: "No unusual activity observed in the past monitoring period." },
+    { name: "Taal Volcano", location: "Batangas, Calabarzon", level: 1, status: "Low-Level Unrest", eruptions: 33, updated: "Reference value — check PHIVOLCS for the current level", lat: 14.0021, lng: 120.9932, desc: "Continuing background degassing from the Main Crater. The entire Taal Volcano Island is a Permanent Danger Zone." },
   ],
 
   // Each alert carries its OWN real coordinates now (matching its "area"
