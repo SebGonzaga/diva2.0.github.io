@@ -2450,3 +2450,47 @@ a.src-chip:active{transform:scale(.96);}
   .src-chip{font-size:.68rem;}
   .msg-sources{gap:.3rem;}
 }
+
+
+/* ---- Timely weather: Next 24 Hours strip + rain heads-up ---- */
+.hourly-strip{
+  display:flex; gap:.6rem; overflow-x:auto; padding:.25rem .1rem .7rem;
+  scroll-snap-type:x proximity; scrollbar-width:thin;
+}
+.hourly-card{
+  flex:0 0 76px; scroll-snap-align:start;
+  display:flex; flex-direction:column; align-items:center; gap:.4rem;
+  padding:.85rem .35rem .75rem;
+  background:var(--surface); border:1px solid var(--surface-line);
+  border-radius:var(--radius-md); text-align:center;
+  transition:transform .18s ease, box-shadow .18s ease;
+}
+.hourly-card:hover{transform:translateY(-3px); box-shadow:var(--shadow-card-hover);}
+.hourly-card.is-now{border-color:var(--accent-cyan); box-shadow:0 0 0 1px var(--accent-cyan) inset;}
+.hourly-card .h-time{font-size:.74rem; font-weight:700; letter-spacing:.02em; color:var(--ink-600); white-space:nowrap;}
+.hourly-card.is-now .h-time{color:var(--accent-cyan-hover);}
+.hourly-card .h-icon{font-size:1.6rem; line-height:1; display:flex; align-items:center; justify-content:center; min-height:1.8rem;}
+.hourly-card .h-temp{font-size:1.05rem; font-weight:700; color:var(--navy-950);}
+.hourly-card .h-rain{
+  display:inline-flex; align-items:center; gap:.2rem;
+  font-size:.7rem; font-weight:700; line-height:1;
+  padding:.28rem .5rem; border-radius:999px;
+  background:rgba(51,201,209,.14); color:var(--accent-cyan-hover);
+}
+.hourly-card .h-rain.is-mid{background:var(--status-caution-bg); color:var(--caution-text);}
+.hourly-card .h-rain.is-high{background:var(--status-warning-bg); color:var(--status-warning-text);}
+@media (min-width:768px){
+  .hourly-strip{display:grid; grid-template-columns:repeat(8, 1fr); overflow-x:visible; padding-bottom:.25rem;}
+  .hourly-card{flex:initial; padding:1rem .4rem .9rem;}
+  .hourly-card .h-icon{font-size:1.9rem;}
+}
+
+.rain-heads-up{
+  display:flex; align-items:center; gap:.7rem;
+  padding:.75rem .95rem; margin-bottom:1rem;
+  border-radius:var(--radius-md); border-left:4px solid var(--status-caution);
+  background:var(--status-caution-bg); color:var(--caution-text);
+  font-size:.88rem; font-weight:600; line-height:1.4;
+}
+.rain-heads-up i{font-size:1.25rem; flex:0 0 auto;}
+.rain-heads-up.is-heavy{border-left-color:var(--status-warning); background:var(--status-warning-bg); color:var(--status-warning-text);}
