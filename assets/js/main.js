@@ -580,56 +580,172 @@ function initializeAnimations() {
 }
 
 /* =========================================================================
-   Immersive page transitions — a quick fade+rise on load, and a fade-out
-   before internal navigation, so moving between pages feels continuous
-   rather than a hard reload. Falls back to instant navigation if anime.js
-   or the user's OS reduced-motion setting isn't available.
+   Loading effect.
+   - A thin progress bar at the top while a page is loading or navigating.
+   - If loading drags on, a small "Loading..." overlay appears (only after a
+     short delay, so quick loads never flash it).
+   - If the page content area is still empty after a moment, shimmering
+     placeholder cards fill it until the real content arrives.
+   ========================================================================= */
+const RainLoading = (() => {
+  let bar = null, trickle = null, overlay = null, overlayTimer = null;
+
+  function ensureBar() {
+    if (bar) return bar;
+    bar = document.createElement("div");
+    bar.id = "rain-progress";
+    bar.setAttribute("aria-hidden", "true");
+    document.body.appendChild(bar);
+    return bar;
+  }
+
+  function start() {
+    ensureBar();
+    clearInterval(trickle);
+    bar.style.transition = "none";
+    bar.style.width = "0%";
+    bar.classList.add("active");
+    void bar.offsetWidth; // restart the transition
+    bar.style.transition = "";
+    bar.style.width = "10%";
+    trickle = setInterval(() => {
+      const w = parseFloat(bar.style.width) || 0;
+      if (w < 88) bar.style.width = (w + (90 - w) * 0.1) + "%";
+    }, 250);
+  }
+
+  function done() {
+    if (!bar) return;
+    clearInterval(trickle);
+    bar.style.width = "100%";
+    setTimeout(() => {
+      bar.classList.remove("active");
+      setTimeout(() => { if (!bar.classList.contains("active")) bar.style.width = "0%"; }, 250);
+    }, 200);
+  }
+
+  function showOverlay(delayMs) {
+    clearTimeout(overlayTimer);
+    overlayTimer = setTimeout(() => {
+      if (overlay) return;
+      overlay = document.createElement("div");
+      overlay.className = "rain-loading-overlay";
+      overlay.setAttribute("role", "status");
+      overlay.setAttribute("aria-live", "polite");
+      overlay.innerHTML = '<div class="rain-loading-box"><span class="rain-spinner" aria-hidden="true"></span><span>Loading\u2026</span></div>';
+      document.body.appendChild(overlay);
+    }, delayMs);
+  }
+
+  function hideOverlay() {
+    clearTimeout(overlayTimer);
+    if (overlay) { overlay.remove(); overlay = null; }
+  }
+
+  /** Placeholder cards while #app-content is still empty. */
+  function watchContent(delayMs) {
+    setTimeout(() => {
+      const c = document.getElementById("app-content");
+      if (!c || c.children.length) return;
+      const sk = document.createElement("div");
+      sk.className = "rain-skeleton-page";
+      sk.setAttribute("aria-hidden", "true");
+      sk.innerHTML = '<div class="rain-skeleton rain-skeleton-title"></div>' +
+        '<div class="rain-skeleton-grid"><div class="rain-skeleton"></div><div class="rain-skeleton"></div><div class="rain-skeleton"></div></div>' +
+        '<div class="rain-skeleton rain-skeleton-wide"></div>';
+      c.appendChild(sk);
+      const obs = new MutationObserver(() => {
+        if ([...c.children].some((el) => el !== sk)) { sk.remove(); obs.disconnect(); }
+      });
+      obs.observe(c, { childList: true });
+    }, delayMs);
+  }
+
+  return { start, done, showOverlay, hideOverlay, watchContent };
+})();
+
+function initLoadingEffect() {
+  if (document.readyState !== "complete") {
+    RainLoading.start();
+    RainLoading.showOverlay(1500); // only if the page is still loading after 1.5 s
+    window.addEventListener("load", () => { RainLoading.done(); RainLoading.hideOverlay(); }, { once: true });
+  }
+  RainLoading.watchContent(700);
+  // Returning via Back/Forward cache: clear any leftover loading state.
+  window.addEventListener("pageshow", () => { RainLoading.done(); RainLoading.hideOverlay(); });
+}
+
+/* =========================================================================
+   Smoother page switching.
+   - Entrance is a pure-CSS fade on the page content (see "Page transitions"
+     in style.css), so it starts on first paint with no flicker and the
+     sidebar / top bar stay put instead of fading with the whole page.
+   - On an internal link click, the content fades out briefly, the clicked
+     sidebar link highlights immediately, then the browser navigates.
+   - Pages are prefetched on hover / touch so they open faster.
+   - Skipped entirely when the OS asks for reduced motion.
    ========================================================================= */
 function prefersReducedMotion() {
   return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 }
 
-function initPageEntranceFade() {
-  if (!window.anime || prefersReducedMotion()) return;
-  document.body.style.willChange = "opacity, transform";
-  anime.animate(document.body, {
-    opacity: [0, 1],
-    translateY: [10, 0],
-    duration: 420,
-    easing: "easeOutQuad",
-    onComplete: () => { document.body.style.willChange = ""; },
-  });
+const PAGE_LEAVE_MS = 140;
+const _prefetched = new Set();
+
+function internalLinkUrl(link) {
+  if (!link) return null;
+  const href = link.getAttribute("href");
+  if (!href || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:") || href.startsWith("javascript:")) return null;
+  if (link.target && link.target !== "_self") return null;
+  if (link.hasAttribute("download")) return null;
+  let url;
+  try { url = new URL(href, window.location.href); } catch (e) { return null; }
+  if (url.origin !== window.location.origin) return null;
+  if (url.pathname === window.location.pathname) return null; // same page (anchor or reload)
+  return url;
+}
+
+function prefetchPage(e) {
+  const url = internalLinkUrl(e.target.closest && e.target.closest("a[href]"));
+  if (!url || _prefetched.has(url.pathname)) return;
+  _prefetched.add(url.pathname);
+  const l = document.createElement("link");
+  l.rel = "prefetch";
+  l.href = url.pathname + url.search;
+  l.as = "document";
+  document.head.appendChild(l);
 }
 
 function initPageTransitions() {
+  document.addEventListener("pointerover", prefetchPage, { passive: true });
+  document.addEventListener("touchstart", prefetchPage, { passive: true });
+
+  // Coming back via the browser's Back/Forward cache must not leave the page faded out.
+  window.addEventListener("pageshow", () => document.documentElement.classList.remove("page-leaving"));
+
   document.addEventListener("click", (e) => {
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     const link = e.target.closest("a[href]");
-    if (!link) return;
-    const href = link.getAttribute("href");
-    if (!href || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:") || href.startsWith("javascript:")) return;
-    if (link.target && link.target !== "_self") return;
-    if (link.hasAttribute("download")) return;
-    let url;
-    try { url = new URL(href, window.location.href); } catch (e) { return; }
-    if (url.origin !== window.location.origin) return; // external link — leave untouched
-    if (url.pathname === window.location.pathname && url.hash) return; // same-page anchor
-    if (!window.anime || prefersReducedMotion()) return; // let the browser navigate normally
+    const url = internalLinkUrl(link);
+    if (!url || prefersReducedMotion()) return; // normal browser navigation
 
     e.preventDefault();
-    anime.animate(document.body, {
-      opacity: [1, 0],
-      translateY: [0, -10],
-      duration: 200,
-      easing: "easeInQuad",
-      onComplete: () => { window.location.href = href; },
-    });
+    if (link.classList.contains("sidebar-link")) {
+      document.querySelectorAll(".sidebar-link.active").forEach((a) => a.classList.remove("active"));
+      link.classList.add("active");
+    }
+    document.documentElement.classList.add("page-leaving");
+    RainLoading.start();
+    RainLoading.showOverlay(700); // only appears if the next page is slow to arrive
+    setTimeout(() => { window.location.href = link.getAttribute("href"); }, PAGE_LEAVE_MS);
+    // Failsafe: if the navigation never happens (cancelled, blocked), clear the loading state.
+    setTimeout(() => { RainLoading.done(); RainLoading.hideOverlay(); document.documentElement.classList.remove("page-leaving"); }, 10000);
   });
 }
 
 document.addEventListener("DOMContentLoaded", () => {
   const year = document.getElementById("footerYear");
   if (year) year.textContent = new Date().getFullYear();
-  initPageEntranceFade();
+  initLoadingEffect();
   initPageTransitions();
 });
