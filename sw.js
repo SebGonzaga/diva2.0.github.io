@@ -61,6 +61,7 @@ const STATIC_ASSETS = [
   "./assets/js/tanauan-boundaries.js",
   "./assets/css/emergency.css",
   "./assets/js/weather-timely.js",
+  "./assets/js/rain-indices.js",
   "./assets/js/rain-auth.js",
   "./assets/js/icons.js",
   "./assets/js/main.js",
@@ -104,6 +105,8 @@ const NEVER_CACHE_PATTERNS = [
   /earthquake\.usgs\.gov/,            // USGS quake feed
   /volcview\.wr\.usgs\.gov/,          // PHIVOLCS-style volcano feed
   /openstreetmap\.org\/directions/,   // external directions link, not app content
+  /jma\.go\.jp\/bosai\/himawari/,    // JMA Himawari frame list + tiles: a cached list would hide new images
+  /earthdata\.nasa\.gov/,             // NASA GIBS satellite tiles (fallback source)
 ];
 
 function isNeverCache(url) {

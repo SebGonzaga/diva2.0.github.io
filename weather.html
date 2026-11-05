@@ -100,6 +100,32 @@
       </div>
     </div>
 
+    <div class="rain-card reveal-on-scroll mb-4" id="heatCard">
+      <div class="card-eyebrow"><span>Heat Index &mdash; how hot it really feels</span><span class="demo-data-tag">CALCULATED ESTIMATE</span></div>
+      <div class="heat-hero">
+        <div class="heat-gauge" aria-hidden="true">
+          <svg viewBox="0 0 300 168" id="heatGaugeSvg" role="img" aria-label="Heat index gauge"></svg>
+          <div class="heat-gauge-read"><div class="hg-val" id="heatVal">&mdash;</div><div class="hg-sub">Heat index</div></div>
+        </div>
+        <div>
+          <div class="d-flex flex-wrap align-items-center gap-2 mb-2"><span class="heat-pill" id="heatPill">&mdash;</span><span class="text-muted-rain" style="font-size:.8rem;" id="heatSummary"></span></div>
+          <div class="heat-delta"><span>Air <b id="heatAir">&mdash;</b></span>
+            <div class="hd-bar" aria-hidden="true"><div class="hd-feel" id="heatBarFeel"></div><div class="hd-air" id="heatBarAir"></div></div>
+            <span>Feels like <b id="heatFeel">&mdash;</b></span></div>
+          <p class="heat-advice" id="heatAdvice"></p>
+          <div class="heat-levels" id="heatLevels"></div>
+        </div>
+      </div>
+      <div id="heatMore">
+        <div class="card-eyebrow mt-4 mb-2"><span>Heat through the next 24 hours</span></div>
+        <div class="heat-strip" id="heatStrip"></div>
+        <div class="heat-callouts mt-2" id="heatCallouts"></div>
+        <div class="card-eyebrow mt-4 mb-2"><span>Peak heat index by day</span></div>
+        <div class="heat-days" id="heatDays"></div>
+      </div>
+      <div class="data-source-line"><i class="bi bi-info-circle dicon" data-dicon="info-circle"></i> Computed from OpenWeatherMap temperature and humidity (U.S. NWS Rothfusz formula, assumes shade and light wind) and labelled with PAGASA's heat-index classes. It is an estimate, not an official PAGASA observation or advisory; check <a href="https://www.pagasa.dost.gov.ph" target="_blank" rel="noopener">pagasa.dost.gov.ph</a> for official heat advisories.</div>
+    </div>
+
     <div class="rain-card reveal-on-scroll mb-4" id="hourlyCard">
       <div class="card-eyebrow"><span>Next 24 Hours</span><i class="bi bi-clock dicon" style="color:var(--accent-cyan);" data-dicon="clock"></i></div>
       <div id="rainHeadsUp" class="rain-heads-up d-none" role="status"></div>
@@ -113,8 +139,32 @@
     </div>
 
     <div class="rain-card reveal-on-scroll">
-      <div class="card-eyebrow"><span>Weather Map</span></div>
+      <div class="card-eyebrow"><span>Typhoon &amp; Satellite Map</span></div>
+      <div class="data-source-line mb-2" style="border-left:4px solid #b45309;padding-left:.6rem;">
+        <b>Read this first.</b> This map shows observed satellite cloud imagery and model-based weather layers. It does <b>not</b> show the official PAGASA storm position, forecast track or warnings, and it does not predict landfall. For official tropical cyclone information, see
+        <a href="https://www.pagasa.dost.gov.ph/tropical-cyclone/severe-weather-bulletin" target="_blank" rel="noopener">PAGASA's severe weather bulletin</a>.
+      </div>
+      <div class="d-flex flex-wrap gap-2 align-items-center mb-2" id="tmControls" style="font-size:.82rem;">
+        <label class="d-flex align-items-center gap-1"><input type="checkbox" id="tmSat" checked> Satellite loop (infrared)</label>
+        <label class="d-flex align-items-center gap-1"><input type="checkbox" id="tmClouds"> Cloud cover (model)</label>
+        <label class="d-flex align-items-center gap-1"><input type="checkbox" id="tmWind"> Wind speed (model)</label>
+        <label class="d-flex align-items-center gap-1"><input type="checkbox" id="tmRain"> Rain (model)</label>
+        <label class="d-flex align-items-center gap-1"><input type="checkbox" id="tmPres"> Pressure (model)</label>
+        <label class="d-flex align-items-center gap-1 ms-auto">Base map <select id="tmBase" class="form-select form-select-sm"><option value="street">Street</option><option value="sat">Satellite photo</option></select></label>
+      </div>
       <div class="map-frame"><div id="weather-map"></div></div>
+      <div class="d-flex flex-wrap gap-2 align-items-center mt-2" id="tmPlayer" style="font-size:.82rem;">
+        <button type="button" class="btn-rain btn-rain-primary btn-rain-sm" id="tmPlay"><i class="bi bi-play-fill"></i> Play</button>
+        <input type="range" id="tmSlider" min="0" max="0" value="0" style="flex:1;min-width:140px;" aria-label="Satellite frame">
+        <span id="tmFrameTime" style="min-width:190px;text-align:right;">—</span>
+      </div>
+      <div id="tmStatus" class="text-muted mt-1" style="font-size:.78rem;"></div>
+      <div class="data-source-line mt-2" style="font-size:.76rem;">
+        <b>Satellite loop:</b> observed Himawari-9 band 13 clean infrared (cold cloud tops appear bright) from the Japan Meteorological Agency, with NASA GIBS as a backup; frames are 30 minutes apart, in Philippine time.
+        <b>Cloud, wind, rain, pressure:</b> model/blended OpenWeatherMap tiles (the wind layer shows speed as color only), not station observations.
+        Imagery &copy; JMA; weather tiles &copy; OpenWeatherMap; street map &copy; OpenStreetMap contributors &copy; CARTO; satellite photo base &copy; Esri and its data providers.
+        Official satellite pages: <a href="https://www.pagasa.dost.gov.ph/products-and-services/satellite" target="_blank" rel="noopener">PAGASA</a> &middot; <a href="https://www.jma.go.jp/bosai/map.html#5/13/123/&amp;elem=ir&amp;contents=himawari" target="_blank" rel="noopener">JMA Himawari</a>.
+      </div>
     </div>
   </div>
 </template>
@@ -127,6 +177,7 @@
 <script src="assets/js/icons.js"></script>
 <script src="assets/js/demo-data.js"></script>
 <script src="assets/js/weather-timely.js"></script>
+<script src="assets/js/rain-indices.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/js/supabase-client.js"></script>
 <script src="assets/js/rain-auth.js"></script>
@@ -183,14 +234,166 @@
   // client-side and isn't a secret that needs server-side hiding.
   const CARTO_API_KEY = "cb1_3qde_1_313d908e961a073e7e5de450";
 
+  const $ = (id) => document.getElementById(id);
+  // Himawari-9 AHI Band 13 (clean IR) from NASA GIBS. NASA lists this near-real-time layer under the /nrt/ and /all/
+  // endpoints (not necessarily /best/), and the newest frame can lag by hours, so init() PROBES for a working
+  // endpoint + latest time instead of hard-coding one.
+  const GIBS_LAYER = "Himawari_AHI_Band13_Clean_Infrared_v0_NRT_ZENJPEG", MATRIX = "GoogleMapsCompatible_Level6", MAX_NATIVE_ZOOM = 6;
+  const GIBS_ENDPOINTS = ["best", "nrt", "all"];
+  const STEP_MIN = 30, FRAMES = 12;
+  const PROBE_LAGS_MIN = [30, 60, 90, 120, 180, 240, 360, 480, 720]; // how far behind "now" to look for the newest frame
+  const pad = (n) => String(n).padStart(2, "0");
+  const iso = (d) => d.getUTCFullYear() + "-" + pad(d.getUTCMonth() + 1) + "-" + pad(d.getUTCDate()) + "T" + pad(d.getUTCHours()) + ":" + pad(d.getUTCMinutes()) + ":00Z";
+
+
+  // Loads one image and checks it is a real picture (not a blank / missing tile).
+  function probeUrl(url) {
+    return new Promise((resolve) => {
+      const img = new Image(); img.crossOrigin = "anonymous";
+      let to = null;
+      const done = (ok) => { clearTimeout(to); img.onload = img.onerror = null; resolve(ok); };
+      to = setTimeout(() => done(false), 8000);
+      img.onerror = () => done(false);
+      img.onload = () => {
+        try {
+          const c = document.createElement("canvas"); c.width = c.height = 32;
+          const g = c.getContext("2d"); g.drawImage(img, 0, 0, 32, 32);
+          const d = g.getImageData(0, 0, 32, 32).data; let lo = 255, hi = 0, vis = 0;
+          for (let i = 0; i < d.length; i += 4) { if (d[i + 3] > 0) vis++; lo = Math.min(lo, d[i]); hi = Math.max(hi, d[i]); }
+          done(vis > 20 && hi - lo > 8);
+        } catch (e) { done(img.naturalWidth > 0); }   // tile loaded but pixels not readable (no CORS) -> trust the load
+      };
+      img.src = url;
+    });
+  }
+  // Test tile over the Philippines: z3 / x6 / y3.
+
+  // ---- Source 1 (primary): JMA full-disk Himawari, band 13 infrared. The same Himawari-9 data PAGASA uses.
+  // Tile feed behind JMA's own web map (not a documented public API, so paths can change -> hence the probe + fallback).
+  const JMA_BASE = "https://www.jma.go.jp/bosai/himawari/data/satimg", JMA_BAND = "B13/TBB", JMA_NATIVE_ZOOM = 5;
+  const jmaStamp = (d) => d.getUTCFullYear() + pad(d.getUTCMonth() + 1) + pad(d.getUTCDate()) + pad(d.getUTCHours()) + pad(d.getUTCMinutes()) + "00";
+  const jmaDate = (s) => new Date(Date.UTC(+s.slice(0, 4), +s.slice(4, 6) - 1, +s.slice(6, 8), +s.slice(8, 10), +s.slice(10, 12)));
+  const jmaTile = (f, z, x, y) => JMA_BASE + "/" + f.base + "/fd/" + f.valid + "/" + JMA_BAND + "/" + z + "/" + x + "/" + y + ".jpg";
+  async function jmaSource() {
+    let frames = [];                                    // oldest -> newest, 10 min apart
+    try {
+      const r = await fetch(JMA_BASE + "/targetTimes_fd.json", { cache: "no-store" });
+      if (r.ok) frames = (await r.json()).filter((x) => x && x.basetime && x.validtime).map((x) => ({ base: x.basetime, valid: x.validtime })).sort((a, b) => a.valid < b.valid ? -1 : 1);
+    } catch (e) { /* list not readable from the browser -> fall back to guessing 10-minute stamps below */ }
+    if (!frames.length) {
+      for (let lag = 180; lag >= 20; lag -= 10) { const st = jmaStamp(new Date(Math.floor((Date.now() - lag * 60000) / 600000) * 600000)); frames.push({ base: st, valid: st }); }
+    }
+    // newest frame that really has imagery (the very newest is sometimes not published yet)
+    let anchor = -1;
+    for (let i = frames.length - 1; i >= Math.max(0, frames.length - 6); i--) { if (await probeUrl(jmaTile(frames[i], 3, 6, 3))) { anchor = i; break; } }
+    if (anchor < 0) return null;
+    const picked = [];                                  // every 3rd frame = 30 min steps, ending at the anchor
+    for (let i = anchor; i >= 0 && picked.length < FRAMES; i -= 3) picked.unshift(frames[i]);
+    return { name: "JMA Himawari-9", times: picked.map((f) => jmaDate(f.valid)), native: JMA_NATIVE_ZOOM,
+             url: (i) => JMA_BASE + "/" + picked[i].base + "/fd/" + picked[i].valid + "/" + JMA_BAND + "/{z}/{x}/{y}.jpg", subdomains: [] };
+  }
+
+  // ---- Source 2 (fallback): NASA GIBS copy of the same Himawari band. Listed under /nrt/ and /all/; probe which one works.
+  const gibsPath = (ep, t) => "/wmts/epsg3857/" + ep + "/" + GIBS_LAYER + "/default/" + iso(t) + "/" + MATRIX;
+  const snap = (lagMin) => new Date(Math.floor((Date.now() - lagMin * 60000) / (STEP_MIN * 60000)) * STEP_MIN * 60000);
+  async function gibsSource() {
+    for (const lag of PROBE_LAGS_MIN) {
+      const t = snap(lag);
+      const hits = await Promise.all(GIBS_ENDPOINTS.map((ep) => probeUrl("https://gibs.earthdata.nasa.gov" + gibsPath(ep, t) + "/3/3/6.jpg").then((ok) => ok ? ep : null)));
+      const ep = hits.find(Boolean);
+      if (ep) {
+        const times = Array.from({ length: FRAMES }, (_, i) => new Date(t.getTime() - (FRAMES - 1 - i) * STEP_MIN * 60000));
+        return { name: "NASA GIBS (Himawari)", times, native: MAX_NATIVE_ZOOM, subdomains: ["a", "b"],
+                 url: (i) => "https://gibs-{s}.earthdata.nasa.gov" + gibsPath(ep, times[i]) + "/{z}/{y}/{x}.jpg" };
+      }
+    }
+    return null;
+  }
+
+  const phTime = (d) => d.toLocaleString("en-PH", { timeZone: "Asia/Manila", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }) + " PHT · " + pad(d.getUTCHours()) + ":" + pad(d.getUTCMinutes()) + " UTC";
+
+  function initSatelliteMap(lat, lng) {
+    map = L.map("weather-map", { zoomControl: true, minZoom: 3, maxZoom: 12 }).setView([13.0, 123.0], 5);
+    const street = L.tileLayer("https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=" + CARTO_API_KEY, { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>', maxZoom: 20 });
+    const photo = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19, attribution: "Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community" });
+    street.addTo(map);
+    L.control.scale({ imperial: false }).addTo(map);
+    map.attributionControl.addAttribution("Himawari imagery &copy; JMA; weather tiles &copy; OpenWeatherMap");
+
+    // --- model layers via server proxy (key stays server-side)
+    const owm = (layer, opacity) => L.tileLayer("/api/owm-tile?layer=" + layer + "&z={z}&x={x}&y={y}", { opacity, maxNativeZoom: 8, maxZoom: 12, attribution: "" });
+    const models = { tmClouds: owm("clouds_new", 0.7), tmWind: owm("wind_new", 0.7), tmRain: owm("precipitation_new", 0.8), tmPres: owm("pressure_new", 0.6) };
+    Object.entries(models).forEach(([id, layer]) => $(id).addEventListener("change", (e) => e.target.checked ? layer.addTo(map) : map.removeLayer(layer)));
+    $("tmBase").addEventListener("change", (e) => { if (e.target.value === "sat") { map.removeLayer(street); photo.addTo(map).bringToBack(); } else { map.removeLayer(photo); street.addTo(map).bringToBack(); } });
+
+    // --- satellite animation: one tile layer per frame, preloaded, opacity-switched
+    let times = [], layers = []; const errs = new Array(FRAMES).fill(0), loads = new Array(FRAMES).fill(0);
+    let idx = FRAMES - 1, timer = null, probing = true, noImagery = false, srcName = "";
+    const slider = $("tmSlider"); slider.max = FRAMES - 1; slider.value = idx;
+    function status() {
+      const bad = errs.reduce((a, b) => a + b, 0), ok = loads.reduce((a, b) => a + b, 0);
+      $("tmStatus").textContent = !$("tmSat").checked ? "Satellite loop is off." : probing ? "Finding the latest satellite frame…" : noImagery ? "Could not load satellite imagery from JMA or NASA right now. Try again in a few minutes, or open the PAGASA / JMA satellite pages linked below." : ok === 0 && bad > 0 ? "Satellite imagery could not be loaded (" + bad + " tile errors). It may be temporarily unavailable; use PAGASA and other official sources." : bad ? bad + " tile(s) failed to load; some frames may be incomplete." : ok ? "Loaded " + ok + " tiles across " + times.length + " frames · source: " + srcName + " · auto-refreshes every 10 min." : "Loading satellite frames…";
+    }
+    function show(i) {
+      if (!times[i]) return;
+      idx = i; slider.value = i;
+      layers.forEach((l, k) => l.setOpacity(k === i ? 0.8 : 0));
+      $("tmFrameTime").textContent = phTime(times[i]);
+    }
+    function setSat(on) { layers.forEach((l) => on ? l.addTo(map) : map.removeLayer(l)); if (on) show(idx); else { stop(); $("tmFrameTime").textContent = "Satellite loop off"; } status(); }
+    function play() { if (timer) return stop(); $("tmPlay").innerHTML = '<i class="bi bi-pause-fill"></i> Pause'; timer = setInterval(() => show((idx + 1) % FRAMES), 700); }
+    function stop() { if (timer) clearInterval(timer); timer = null; $("tmPlay").innerHTML = '<i class="bi bi-play-fill"></i> Play'; }
+    $("tmPlay").addEventListener("click", () => { if ($("tmSat").checked && layers.length) play(); });
+    slider.addEventListener("input", () => { stop(); show(Number(slider.value)); });
+    $("tmSat").addEventListener("change", (e) => setSat(e.target.checked));
+    let busy = false, lastCheck = Date.now();
+    // refresh=false: first load. refresh=true: quiet re-check; swaps in new frames only if a newer image exists.
+    async function buildFrames(refresh) {
+      if (busy) return; busy = true;
+      try {
+        if (!refresh) status();
+        let src = null;
+        for (const make of [jmaSource, gibsSource]) { try { src = await make(); } catch (e) { console.warn("satellite source failed", e); } if (src) break; }
+        lastCheck = Date.now();
+        if (!src) {
+          if (refresh && layers.length) return;                       // keep showing the frames we already have
+          probing = false; noImagery = true; $("tmFrameTime").textContent = "No satellite frames"; status(); return;
+        }
+        if (refresh && times.length && src.times[src.times.length - 1].getTime() === times[times.length - 1].getTime()) { status(); return; } // nothing newer yet
+        const wasPlaying = !!timer; if (wasPlaying) stop();
+        layers.forEach((l) => map.removeLayer(l));
+        errs.fill(0); loads.fill(0);
+        probing = false; noImagery = false; srcName = src.name; times = src.times;
+        layers = times.map((t, i) => {
+          const l = L.tileLayer(src.url(i), { subdomains: src.subdomains, noWrap: true, opacity: 0, maxNativeZoom: src.native, maxZoom: 12, updateWhenIdle: true, keepBuffer: 1, crossOrigin: true });
+          l.on("tileload", () => { loads[i]++; status(); });
+          l.on("tileerror", (e) => { errs[i]++; if (errs[i] === 1) console.warn("Satellite tile error", e.tile && e.tile.src); status(); });
+          return l;
+        });
+        idx = times.length - 1; slider.max = times.length - 1; slider.value = idx;
+        if ($("tmSat").checked) { setSat(true); if (wasPlaying) play(); }
+      } finally { busy = false; }
+    }
+    buildFrames(false);
+    // Himawari publishes a new image every 10 minutes: re-check on that cadence, and when the tab comes back to the foreground.
+    const REFRESH_MS = 10 * 60000;
+    const refreshTimer = setInterval(() => { if (!document.hidden && $("tmSat").checked) buildFrames(true); }, REFRESH_MS);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden && $("tmSat").checked && Date.now() - lastCheck > REFRESH_MS) buildFrames(true); });
+    window.addEventListener("pagehide", () => clearInterval(refreshTimer));
+    map.on("zoomend moveend", () => { layers.forEach((l, k) => { if (k !== idx && map.hasLayer(l)) l.setOpacity(0); }); });
+    window.addEventListener("pagehide", stop);
+    setTimeout(() => map.invalidateSize(), 200);
+    setTimeout(() => map.invalidateSize(), 900);
+    marker = L.marker([lat, lng], { icon: rainPinIcon("user", "bi-geo-alt-fill") }).addTo(map);
+  }
+
   function renderMap(lat, lng, label) {
     if (!map) {
-      map = L.map("weather-map").setView([lat, lng], 10);
-      L.tileLayer(`https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=${CARTO_API_KEY}`, { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>', maxZoom: 20 }).addTo(map);
-      marker = L.marker([lat, lng], { icon: rainPinIcon("user", "bi-geo-alt-fill") }).addTo(map);
+      initSatelliteMap(lat, lng);
     } else {
-      map.setView([lat, lng], 10);
       marker.setLatLng([lat, lng]);
+      // keep the regional (typhoon-scale) view; only pan if the chosen place is off-screen
+      if (!map.getBounds().contains([lat, lng])) map.panTo([lat, lng]);
     }
     marker.bindPopup(label).openPopup();
     setTimeout(() => map.invalidateSize(), 200);
@@ -251,9 +454,101 @@
     document.getElementById("hourlyCard").classList.toggle("d-none", slots.length === 0);
   }
 
+  // ---------- Heat index card (gauge + 24h heat strip + daily peaks) ----------
+  // PAGASA heat-index classes; colors keep >= 4.5:1 contrast with white text.
+  const HEAT_LV = [
+    { name: "Below caution", min: -99, color: "#0369a1", range: "under 27 °C" },
+    { name: "Caution", min: 27, color: "#15803d", range: "27–32 °C" },
+    { name: "Extreme caution", min: 33, color: "#b45309", range: "33–41 °C" },
+    { name: "Danger", min: 42, color: "#c2410c", range: "42–51 °C" },
+    { name: "Extreme danger", min: 52, color: "#b91c1c", range: "52 °C +" },
+  ];
+  const HG_MIN = 20, HG_MAX = 60, HG_CX = 150, HG_CY = 150, HG_R = 120;
+  const heatLevel = (hi) => { let k = 0; HEAT_LV.forEach((l, i) => { if (hi >= l.min) k = i; }); return k; };
+  const hgPt = (v, r) => { const f = Math.min(1, Math.max(0, (v - HG_MIN) / (HG_MAX - HG_MIN))), a = Math.PI * (1 - f); return [HG_CX + r * Math.cos(a), HG_CY - r * Math.sin(a)]; };
+  let heatGaugeBuilt = false;
+
+  function buildHeatGauge() {
+    const edges = [HG_MIN, 27, 33, 42, 52, HG_MAX];
+    let svg = "";
+    HEAT_LV.forEach((l, i) => {
+      const [x1, y1] = hgPt(edges[i], HG_R), [x2, y2] = hgPt(edges[i + 1], HG_R);
+      svg += `<path class="hg-seg" data-lv="${i}" stroke="${l.color}" d="M ${x1.toFixed(1)} ${y1.toFixed(1)} A ${HG_R} ${HG_R} 0 0 1 ${x2.toFixed(1)} ${y2.toFixed(1)}"/>`;
+    });
+    [27, 33, 42, 52].forEach((v) => {
+      const [x, y] = hgPt(v, HG_R + 17);
+      svg += `<text class="hg-tick" x="${x.toFixed(1)}" y="${(y + 3).toFixed(1)}" text-anchor="middle">${v}°</text>`;
+    });
+    svg += `<g class="hg-needle" id="heatNeedle" style="transform:rotate(-90deg)"><polygon points="146,150 154,150 150,48" fill="currentColor" style="color:var(--ink-900)"/></g><circle class="hg-hub" cx="${HG_CX}" cy="${HG_CY}" r="9"/>`;
+    document.getElementById("heatGaugeSvg").innerHTML = svg;
+    heatGaugeBuilt = true;
+  }
+
+  // list: raw OpenWeatherMap 3-hourly forecast list (optional); tz: seconds offset of the place.
+  function renderHeat(tempC, rh, list, tz, isDemo) {
+    const card = document.getElementById("heatCard");
+    if (typeof tempC !== "number" || typeof rh !== "number" || !window.RainIndices) { card.classList.add("d-none"); return; }
+    card.classList.remove("d-none");
+    if (!heatGaugeBuilt) buildHeatGauge();
+    const { heatIndexC, heatCategory } = RainIndices, f1 = (n) => `${Math.round(n)}°C`;
+    const hi = heatIndexC(tempC, rh), lv = heatLevel(hi), L = HEAT_LV[lv], advice = heatCategory(hi)[1];
+    const $ = (id) => document.getElementById(id);
+
+    const tag = card.querySelector(".demo-data-tag");
+    tag.textContent = isDemo ? "DEMO DATA" : "CALCULATED ESTIMATE";
+
+    // gauge
+    document.querySelectorAll("#heatGaugeSvg .hg-seg").forEach((el) => el.classList.toggle("on", +el.dataset.lv === lv));
+    requestAnimationFrame(() => { $("heatNeedle").style.transform = `rotate(${(Math.min(1, Math.max(0, (hi - HG_MIN) / (HG_MAX - HG_MIN))) * 180 - 90).toFixed(1)}deg)`; });
+    $("heatVal").textContent = f1(hi);
+    $("heatPill").textContent = L.name; $("heatPill").style.background = L.color;
+    $("heatSummary").textContent = `${tempC.toFixed(0)}°C air · ${rh}% humidity`;
+    $("heatAir").textContent = f1(tempC); $("heatFeel").textContent = f1(hi);
+    $("heatBarAir").style.width = Math.min(100, tempC / 55 * 100) + "%";
+    const bf = $("heatBarFeel"); bf.style.width = Math.min(100, hi / 55 * 100) + "%"; bf.style.background = L.color;
+    $("heatAdvice").textContent = advice;
+    $("heatLevels").innerHTML = HEAT_LV.map((l, i) => `<span class="hl${i === lv ? " now" : ""}" style="background:${l.color};color:#fff" title="${l.range}">${l.name}</span>`).join("");
+
+    // next 24 hours + daily peaks (needs the forecast list)
+    const more = $("heatMore"), callouts = $("heatCallouts");
+    const zone = typeof tz === "number" ? tz : 28800;
+    const local = (dt) => new Date((dt + zone) * 1000);                      // read with getUTC*
+    const hourLbl = (dt) => { const h = local(dt).getUTCHours(); return (h % 12 || 12) + (h < 12 ? "AM" : "PM"); };
+    const items = (list || []).filter((x) => x && x.main && typeof x.main.temp === "number" && typeof x.main.humidity === "number");
+    if (!items.length) { more.classList.add("d-none"); callouts.innerHTML = ""; return; }
+    more.classList.remove("d-none");
+    const slots = items.slice(0, 8).map((x) => ({ dt: x.dt, hi: heatIndexC(x.main.temp, x.main.humidity), t: x.main.temp, pop: Math.round((x.pop || 0) * 100) }));
+    const peak = slots.reduce((a, b) => (b.hi > a.hi ? b : a));
+    $("heatStrip").innerHTML = slots.map((s) => {
+      const h = Math.round(18 + Math.min(1, Math.max(0, (s.hi - HG_MIN) / (HG_MAX - HG_MIN))) * 92), c = HEAT_LV[heatLevel(s.hi)].color;
+      return `<div class="heat-slot" title="${Math.round(s.t)}°C air · ${Math.round(s.hi)}°C heat index · ${s.pop}% rain"><span class="hs-flag">${s === peak ? "Peak" : "&nbsp;"}</span><span class="hs-hi">${Math.round(s.hi)}°</span><div class="hs-col${s === peak ? " peak" : ""}" style="height:${h}px;background:${c}"></div><span>${hourLbl(s.dt)}</span></div>`;
+    }).join("");
+
+    // callouts: hottest slot, best daytime window, humidity boost
+    const day = slots.filter((s) => { const h = local(s.dt).getUTCHours(); return h >= 5 && h <= 17; });
+    const cool = day.length ? day.reduce((a, b) => (b.hi < a.hi ? b : a)) : null;
+    const endHr = (dt) => hourLbl(dt + 3 * 3600);
+    const boost = hi - tempC;
+    callouts.innerHTML =
+      `<div class="heat-callout"><i class="bi bi-brightness-high-fill" style="color:${HEAT_LV[heatLevel(peak.hi)].color}"></i><div><b>Hottest stretch</b>${hourLbl(peak.dt)}–${endHr(peak.dt)}: heat index about ${f1(peak.hi)} (${HEAT_LV[heatLevel(peak.hi)].name.toLowerCase()}).</div></div>` +
+      (cool ? `<div class="heat-callout"><i class="bi bi-cup-straw" style="color:#0369a1"></i><div><b>Gentlest daytime window</b>${hourLbl(cool.dt)}–${endHr(cool.dt)}: about ${f1(cool.hi)}. Plan outdoor tasks here if you can.</div></div>` : "") +
+      `<div class="heat-callout"><i class="bi bi-droplet-half" style="color:#0369a1"></i><div><b>Humidity effect</b>${boost >= 1 ? `Humidity makes it feel about ${Math.round(boost)}°C hotter than the air temperature.` : boost <= -1 ? "Dry air keeps it feeling a little cooler than the thermometer." : "Right now humidity adds little to how hot it feels."}</div></div>`;
+
+    const byDay = new Map();
+    items.forEach((x) => {
+      const k = local(x.dt).toISOString().slice(0, 10), v = heatIndexC(x.main.temp, x.main.humidity);
+      const d = byDay.get(k) || { key: k, hi: -99 }; d.hi = Math.max(d.hi, v); byDay.set(k, d);
+    });
+    $("heatDays").innerHTML = [...byDay.values()].slice(0, 5).map((d, i) => {
+      const l = HEAT_LV[heatLevel(d.hi)], name = i === 0 ? "Today" : new Date(d.key + "T00:00:00Z").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
+      return `<div class="heat-day"><div class="hy-d">${name}</div><div class="hy-n">${Math.round(d.hi)}°</div><span class="heat-pill" style="background:${l.color};font-size:.68rem;padding:.2rem .55rem;">${l.name}</span></div>`;
+    }).join("");
+  }
+
   function hideHourly() {
     liveUpdatedMs = null;
     document.getElementById("hourlyCard").classList.add("d-none");
+    document.getElementById("heatCard").classList.add("d-none");
   }
 
   function tickTimestamp() {
@@ -302,6 +597,7 @@
     document.getElementById("wVisibility").textContent = "10 km";
     document.getElementById("wTimestamp").textContent = "Demo snapshot — add an API key for live data";
     hideHourly();
+    renderHeat(31, 78, null, 28800, true);
 
     const strip = document.getElementById("forecastStrip");
     strip.innerHTML = "";
@@ -378,6 +674,7 @@
       lastLoc = { label: cityLabel, lat, lng };
       tickTimestamp();
       renderHourly(forecast.list);
+      renderHeat(current.main.temp, current.main.humidity, forecast.list, forecast.city && forecast.city.timezone, false);
 
       const days = dailyFromForecastList(forecast.list);
       const strip = document.getElementById("forecastStrip");
