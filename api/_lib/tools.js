@@ -446,7 +446,7 @@ export const TOOLS = {
       if (!demo?.emergencyContacts?.length) return { ok: false, error: 'The contact list is not available right now.' };
       return {
         ok: true,
-        contacts: demo.emergencyContacts.map((c) => ({ name: clean(c.name, 80), number: clean(c.number, 30) })),
+        contacts: demo.emergencyContacts.map((c) => ({ name: clean(c.name, 80), number: clean(c.number, 30), numbers: (c.numbers || [c.number]).slice(0, 4).map((n) => clean(n, 30)) })),
         source: 'RAIN emergency contacts (Tanauan City CDRRMO)',
       };
     },

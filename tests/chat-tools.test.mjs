@@ -217,10 +217,13 @@ test('get_recent_incidents: only VERIFIED incidents are requested; reporter iden
   assert.equal(r.result.incidents[0].reportedAgo, '2 hours ago');
 });
 
-test('find_evacuation_centers: with no CDRRMO records loaded, reports the list as unavailable instead of inventing centers', async () => {
+test('find_evacuation_centers: returns the nearest listed centers, nearest first, limit clamped to 5', async () => {
   const r1 = await executeTool('find_evacuation_centers', { limit: 99 }, ctx({ lat: 14.0863, lng: 121.1497, city: 'Tanauan' }));
-  assert.equal(r1.result.ok, false);
-  assert.match(r1.result.error, /not available/);
+  assert.equal(r1.result.ok, true);
+  assert.equal(r1.result.centers.length, 5);
+  const d = r1.result.centers.map((c) => c.distanceKm);
+  assert.deepEqual(d, [...d].sort((x, y) => x - y));
+  assert.ok(r1.result.centers.every((c) => c.name && Number.isFinite(c.distanceKm)));
 });
 
 test('get_emergency_contacts returns the app\'s list', async () => {
