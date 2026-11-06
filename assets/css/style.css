@@ -2608,40 +2608,42 @@ a.src-chip:active{transform:scale(.96);}
 
 
 /* =========================================================================
-   Page-switch transition (see assets/js/page-transition.js)
-   Deliberately calm: a soft cross-fade over the page content plus one small,
-   low-contrast ripple where you clicked. No large moving shapes, no flashes,
-   no zooming — so repeated page switches don't cause dizziness. The js also
-   skips the effect entirely when someone is switching pages rapidly.
-   z-index 800 keeps it BELOW the public navbar (1000), app top bar (900),
-   sidebar (1050) and bottom nav (1030).
+   Page arrival — "raindrop settle".
+   When a page opens, its content drops in a few pixels and settles (no
+   full-screen cover, no colour flash), while a thin cyan line sweeps across
+   the top of the content area like a ripple. Only the page content moves:
+   the navbar, sidebar, top bar and bottom nav are never touched.
+   Small distances and a short duration keep it easy on the eyes even when
+   switching pages repeatedly. Disabled for prefers-reduced-motion.
    ========================================================================= */
-.pt-curtain,
-html.pt-enter::before{
-  position:fixed; inset:0; z-index:800; pointer-events:none;
-  background:var(--pt-bg, var(--bg-primary, var(--navy-950)));
-  will-change:opacity;
+@keyframes rainSettle{
+  from{ opacity:0; transform:translateY(-12px) scale(.992); }
+  to  { opacity:1; transform:none; }
 }
-.pt-curtain{ opacity:0; animation:ptFadeIn .22s ease-out forwards; }
-html.pt-enter::before{ content:""; opacity:1; animation:ptFadeOut .32s ease-out forwards; }
+@keyframes rainSweep{
+  0%  { transform:scaleX(0); opacity:.9; }
+  70% { transform:scaleX(1); opacity:.9; }
+  100%{ transform:scaleX(1); opacity:0; }
+}
 
-@keyframes ptFadeIn { from{ opacity:0; } to{ opacity:1; } }
-@keyframes ptFadeOut{ from{ opacity:1; } to{ opacity:0; visibility:hidden; } }
+/* App pages (sidebar layout): settle the content area only */
+.app-content{ animation:rainSettle .38s cubic-bezier(.2,.8,.25,1) backwards; }
+.app-content::before{
+  content:""; position:absolute; left:0; right:0; top:0; height:2px; z-index:3;
+  transform-origin:left center; pointer-events:none;
+  background:linear-gradient(90deg, transparent, var(--accent-cyan, #33c9d1) 30%, var(--accent-cyan, #33c9d1) 70%, transparent);
+  animation:rainSweep .7s ease-out backwards;
+}
 
-/* One small, soft ripple at the click point (contained, low contrast) */
-.pt-ripple{
-  position:fixed; left:var(--pt-x); top:var(--pt-y);
-  width:24px; height:24px; margin:-12px 0 0 -12px; border-radius:50%;
-  border:2px solid var(--accent-cyan, #33c9d1);
-  opacity:0; will-change:transform,opacity;
-  animation:ptRipple .4s ease-out forwards;
+/* Public pages (landing / login / register): settle everything except the navbar */
+body:not(:has(#app-shell-root)) > *:not(.rain-navbar):not(.rl-loader):not(.skip-link):not(script):not(style):not(link):not(.toast-container){
+  animation:rainSettle .38s cubic-bezier(.2,.8,.25,1) backwards;
 }
-@keyframes ptRipple{
-  0%{ transform:scale(.5); opacity:.45; }
-  100%{ transform:scale(2.6); opacity:0; }
-}
-.pt-drop{ display:none; }
+
+/* Never let the browser's white canvas show behind the fade on app pages */
+html:has(#app-shell-root){ background:var(--bg-primary); }
 
 @media (prefers-reduced-motion: reduce){
-  .pt-curtain, html.pt-enter::before{ display:none; }
+  .app-content, .app-content::before,
+  body:not(:has(#app-shell-root)) > *{ animation:none !important; }
 }
