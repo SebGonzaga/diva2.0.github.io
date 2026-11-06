@@ -52,3 +52,5 @@
 @keyframes vo-ping{to{transform:scale(2.3);opacity:0}}
 .vo-map{height:340px;border-radius:12px;overflow:hidden}
 @media (prefers-reduced-motion:reduce){.vo-ember,.vo-hero::after,.vo-pin::after{animation:none}.vo-page *{transition-duration:.01ms!important}}
+/* Tags with an inline background (OFFICIAL SOURCE, AI-GENERATED…) need white text; the base tag colour made them unreadable. */
+.vo-page .demo-data-tag[style]{color:#fff;background-image:none;padding:.2rem .55rem}
