@@ -1,0 +1,58 @@
+/* RAIN — dashboard.css : visual layer for dashboard.html (resident) and admin-dashboard.html.
+   Styling + header markup only; every id the page scripts use is unchanged. Scoped under .db-page */
+.db-page{--db-ease:cubic-bezier(.65,0,.35,1)}
+
+/* ---- Hero ---- */
+.db-hero{position:relative;overflow:hidden;isolation:isolate;border-radius:var(--radius-md,16px);padding:1.6rem 1.6rem 1.3rem;margin-bottom:1.5rem;color:#fff;
+  background:radial-gradient(90% 140% at 100% 0%,rgba(51,201,209,.38),transparent 55%),radial-gradient(70% 120% at 0% 110%,rgba(59,130,246,.3),transparent 60%),linear-gradient(160deg,#10264a,#060e1c 80%);
+  border:1px solid rgba(51,201,209,.3);box-shadow:0 26px 52px -30px rgba(6,14,28,.8)}
+.db-hero::before{content:"";position:absolute;inset:-30% 0 0;z-index:-1;opacity:.3;background:repeating-linear-gradient(105deg,transparent 0 26px,rgba(160,215,255,.25) 26px 27px);background-size:200px 200px;animation:db-rain 1.2s linear infinite}
+@keyframes db-rain{to{background-position:-40px 200px}}
+.db-hero::after{content:"";position:absolute;width:340px;height:340px;right:-110px;top:-150px;z-index:-1;border-radius:50%;border:1px solid rgba(255,255,255,.1);box-shadow:0 0 0 60px rgba(255,255,255,.03),0 0 0 130px rgba(255,255,255,.02)}
+.db-admin .db-hero{background:radial-gradient(90% 140% at 100% 0%,rgba(139,92,246,.36),transparent 55%),radial-gradient(70% 120% at 0% 110%,rgba(51,201,209,.25),transparent 60%),linear-gradient(160deg,#141a3d,#060a18 80%);border-color:rgba(139,92,246,.35)}
+.db-admin .db-hero::before{background:linear-gradient(transparent 0 48%,rgba(51,201,209,.5) 50%,transparent 52% 100%) 0 0/100% 160px;opacity:.35;animation:db-scan 4.5s linear infinite}
+@keyframes db-scan{to{background-position:0 160px}}
+.db-kicker{font-family:var(--font-mono);font-size:.7rem;letter-spacing:.15em;text-transform:uppercase;color:#8fe3e8}
+.db-hero h1{font-family:var(--font-display);font-weight:700;font-size:clamp(1.5rem,3.4vw,2.2rem);margin:.3rem 0 .25rem;color:#fff}
+.db-hero p{margin:0;color:rgba(255,255,255,.78);font-size:.92rem;max-width:56ch}
+.db-hero-top{display:flex;flex-wrap:wrap;gap:1rem;justify-content:space-between;align-items:flex-start}
+.db-date{padding:.35rem .8rem;border-radius:999px;font-family:var(--font-mono);font-size:.72rem;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(6px);white-space:nowrap}
+.db-date .live-badge{margin-right:.4rem}
+.db-chips{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1.1rem}
+.db-chip{display:inline-flex;align-items:center;gap:.45rem;padding:.5rem .95rem;border-radius:999px;font-size:.8rem;font-weight:600;color:#fff;text-decoration:none;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);backdrop-filter:blur(6px);transition:transform .25s var(--db-ease),background .25s,box-shadow .25s}
+.db-chip:hover{color:#fff;transform:translateY(-3px);background:rgba(255,255,255,.2);box-shadow:0 12px 22px -10px rgba(0,0,0,.6)}
+.db-chip.hot{background:linear-gradient(135deg,#e8485a,#b02133);border-color:transparent}
+.db-chip i{font-size:.95rem}
+
+/* ---- Stat cards: coloured accent, lift on hover ---- */
+.db-stats .rain-card{overflow:hidden;transition:transform .3s var(--db-ease),box-shadow .3s}
+.db-stats .rain-card:hover{transform:translateY(-4px);box-shadow:0 22px 36px -22px var(--ac,#33c9d1)}
+.db-stats .rain-card::before{height:4px;opacity:1;background:linear-gradient(90deg,var(--ac,#33c9d1),transparent 90%)}
+.db-stats .rain-card::after{content:"";position:absolute;right:-40px;bottom:-60px;width:130px;height:130px;border-radius:50%;background:radial-gradient(circle,var(--ac,#33c9d1),transparent 70%);opacity:.16;pointer-events:none;transition:opacity .4s,transform .4s}
+.db-stats .rain-card:hover::after{opacity:.3;transform:scale(1.25)}
+.db-stats>div:nth-child(1) .rain-card{--ac:#33c9d1}.db-stats>div:nth-child(2) .rain-card{--ac:#f97316}
+.db-stats>div:nth-child(3) .rain-card{--ac:#ef4444}.db-stats>div:nth-child(4) .rain-card{--ac:#22c55e}
+.db-admin .db-stats>div:nth-child(1) .rain-card{--ac:#8b5cf6}.db-admin .db-stats>div:nth-child(2) .rain-card{--ac:#ef4444}
+.db-admin .db-stats>div:nth-child(3) .rain-card{--ac:#f59e0b}.db-admin .db-stats>div:nth-child(4) .rain-card{--ac:#f97316}
+.db-stats .card-num{letter-spacing:-.02em}
+.db-stats .icon-chip{transition:transform .35s var(--db-ease)}
+.db-stats .rain-card:hover .icon-chip{transform:rotate(-8deg) scale(1.12)}
+
+/* ---- Risk ring glow, map frame, emergency tiles ---- */
+.db-page .risk-ring-value{filter:drop-shadow(0 0 7px currentColor)}
+.db-page .map-frame{border-radius:16px;overflow:hidden;box-shadow:0 20px 40px -26px rgba(6,14,28,.75)}
+.db-page .leaflet-bar{border:0!important;border-radius:12px;overflow:hidden;box-shadow:0 10px 24px -10px rgba(6,14,28,.65)!important}
+.db-page .leaflet-bar a{background:rgba(255,255,255,.9);color:#0a1830;transition:background .2s,color .2s}
+.db-page .leaflet-bar a:hover{background:#fff;color:#1f8489}
+.db-page .leaflet-control-attribution{background:rgba(6,14,28,.6)!important;color:#cbd5e1!important;backdrop-filter:blur(6px);font-size:10px}
+.db-page .leaflet-control-attribution a{color:#7dd3fc!important}
+.db-page .btn-rain-ghost.flex-column{border-radius:16px;transition:transform .25s var(--db-ease),box-shadow .25s,background .25s}
+.db-page .btn-rain-ghost.flex-column:hover{transform:translateY(-4px);box-shadow:0 16px 26px -16px rgba(15,38,74,.6)}
+.db-page .btn-rain-ghost.flex-column i{transition:transform .3s var(--db-ease)}
+.db-page .btn-rain-ghost.flex-column:hover i{transform:scale(1.25) rotate(-6deg)}
+.db-page .card-heading{position:relative;padding-left:.8rem}
+.db-page .card-heading::before{content:"";position:absolute;left:0;top:.2em;bottom:.2em;width:4px;border-radius:4px;background:linear-gradient(var(--accent-cyan),var(--accent-cyan-hover))}
+.db-page canvas{border-radius:10px}
+.db-admin .rain-card:has(canvas){transition:box-shadow .3s}
+.db-admin .rain-card:has(canvas):hover{box-shadow:0 22px 40px -26px rgba(139,92,246,.55)}
+@media (prefers-reduced-motion:reduce){.db-hero::before{animation:none}.db-page *{transition-duration:.01ms!important}}

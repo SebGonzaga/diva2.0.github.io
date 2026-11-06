@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/earthquake.css">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0a1830">
 <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
@@ -17,117 +18,193 @@
 <div id="app-shell-root"></div>
 
 <template id="earthquake-content">
-  <div class="alert-banner level-advisory mb-4">
-    <i class="bi bi-info-circle icon dicon" data-dicon="info-circle"></i>
-    <div style="font-size:.86rem;">
-      Live data from the <strong>USGS</strong> earthquake feed — free, no API key needed, updated every few minutes.
-      <strong>PHIVOLCS</strong> is the official source for Philippine seismic bulletins and intensity reports, but doesn't
-      publish a public API, so this page can't pull directly from them. Always check
-      <a href="https://earthquake.phivolcs.dost.gov.ph/" target="_blank" rel="noopener" style="font-weight:600;">PHIVOLCS' earthquake bulletin</a>
-      for official intensity and advisories.
+<div class="eq-page">
+
+  <!-- ===================== CONTROLS ===================== -->
+  <div class="eq-controls mb-3">
+    <div class="d-flex flex-wrap gap-3 align-items-center">
+      <div class="eq-group" role="group" aria-label="Time window">
+        <span class="eq-seg-label">Window</span>
+        <div class="eq-seg" id="segWindow">
+          <button type="button" data-v="1">24 h</button>
+          <button type="button" data-v="7" class="active">7 days</button>
+          <button type="button" data-v="30">30 days</button>
+        </div>
+      </div>
+      <div class="eq-group" role="group" aria-label="Minimum magnitude">
+        <span class="eq-seg-label">Magnitude</span>
+        <div class="eq-seg" id="segMag">
+          <button type="button" data-v="1.5">1.5+</button>
+          <button type="button" data-v="2.5" class="active">2.5+</button>
+          <button type="button" data-v="4.5">4.5+</button>
+        </div>
+      </div>
+      <div class="eq-group" role="group" aria-label="Distance from you">
+        <span class="eq-seg-label">Distance</span>
+        <div class="eq-seg" id="segRadius">
+          <button type="button" data-v="0" class="active">All PH</button>
+          <button type="button" data-v="300">300 km</button>
+          <button type="button" data-v="100">100 km</button>
+        </div>
+      </div>
     </div>
+    <button class="btn-rain btn-rain-ghost btn-rain-sm" id="quakeRefreshBtn" data-press><i class="bi bi-arrow-clockwise"></i> Refresh</button>
   </div>
 
-  <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-4">
-    <div class="d-flex flex-wrap gap-2" id="quakeFilters">
-      <select class="form-select form-control-rain" id="quakeWindow" style="width:auto;">
-        <option value="1">Past 24 hours</option>
-        <option value="7" selected>Past 7 days</option>
-        <option value="30">Past 30 days</option>
-      </select>
-      <select class="form-select form-control-rain" id="quakeMinMag" style="width:auto;">
-        <option value="1.5">M1.5+</option>
-        <option value="2.5" selected>M2.5+</option>
-        <option value="4.5">M4.5+</option>
-      </select>
-    </div>
-    <button class="btn-rain btn-rain-ghost btn-rain-sm" id="quakeRefreshBtn" data-press><i class="bi bi-arrow-clockwise dicon" data-dicon="arrow-clockwise"></i> Refresh</button>
-  </div>
-
+  <!-- ===================== SKELETON / ERROR ===================== -->
   <div id="quakeSkeleton" aria-live="polite" aria-label="Loading earthquake data">
+    <div class="rain-card mb-4"><span class="skeleton d-block mb-3" style="width:35%; height:16px;"></span><span class="skeleton d-block mb-3" style="width:70%; height:2rem;"></span><span class="skeleton d-block" style="height:110px;"></span></div>
     <div class="row g-4 mb-4">
-      <div class="col-lg-5">
-        <div class="rain-card h-100">
-          <span class="skeleton d-block mb-3" style="width:45%; height:14px;"></span>
-          <span class="skeleton d-block mb-3" style="width:55%; height:2.4rem;"></span>
-          <span class="skeleton d-block" style="width:70%; height:16px;"></span>
-        </div>
-      </div>
-      <div class="col-lg-7">
-        <div class="rain-card h-100">
-          <span class="skeleton d-block mb-3" style="width:35%; height:14px;"></span>
-          <span class="skeleton d-block" style="height:220px;"></span>
-        </div>
-      </div>
-    </div>
-    <div class="rain-card">
-      <span class="skeleton d-block mb-3" style="width:30%; height:14px;"></span>
-      <span class="skeleton d-block mb-2" style="height:56px;"></span>
-      <span class="skeleton d-block mb-2" style="height:56px;"></span>
-      <span class="skeleton d-block" style="height:56px;"></span>
+      <div class="col-lg-8"><div class="rain-card h-100"><span class="skeleton d-block" style="height:360px;"></span></div></div>
+      <div class="col-lg-4"><div class="rain-card h-100"><span class="skeleton d-block mb-3" style="width:45%; height:14px;"></span><span class="skeleton d-block" style="height:120px;"></span></div></div>
     </div>
   </div>
 
   <div id="quakeError" class="error-state d-none">
-    <div class="glyph"><i class="bi bi-exclamation-octagon dicon" data-dicon="exclamation-octagon"></i></div>
+    <div class="glyph"><i class="bi bi-exclamation-octagon"></i></div>
     <div><strong>Unable to reach the USGS earthquake feed.</strong> Check your connection and try again.</div>
     <button class="btn-rain btn-rain-ghost btn-rain-sm mt-3" id="retryQuake">Retry</button>
   </div>
 
   <div id="quakeBody" class="d-none">
+
+    <!-- ===================== HERO ===================== -->
+    <section class="eq-hero mb-4" aria-labelledby="eqHeadline">
+      <span class="eq-kicker"><span class="eq-live"></span> Seismic activity · Philippines</span>
+      <h1 class="eq-headline" id="eqHeadline">—</h1>
+      <p class="eq-subline" id="eqSubline"></p>
+      <div class="eq-stats" id="eqStats"></div>
+      <div class="eq-strip-wrap">
+        <div class="eq-strip-head"><span>Event strip · every spike is a real earthquake</span><span id="eqStripRange"></span></div>
+        <svg class="eq-strip" id="eqStrip" viewBox="0 0 800 130" role="img" aria-label="Timeline of recent earthquakes, spike height shows magnitude"></svg>
+      </div>
+    </section>
+
+    <!-- ===================== MAP + SIDE ===================== -->
     <div class="row g-4 mb-4">
-      <div class="col-lg-5">
-        <div class="rain-card reveal-on-scroll h-100">
-          <div class="card-eyebrow"><span>Nearest to You</span><span class="demo-data-tag" style="background:var(--accent-cyan); color:#fff;">LIVE</span></div>
-          <div id="qNearestEmpty" class="empty-state-inline d-none">
-            <i class="bi bi-check-circle glyph dicon" data-dicon="check-circle"></i>
-            <p>No tracked earthquakes match the current time window and magnitude filter.</p>
-          </div>
-          <div id="qNearestBody" class="d-none">
-            <h3 class="card-num" id="qNearestMag" style="font-size:2.6rem;">—</h3>
-            <div style="font-weight:600; color:var(--navy-950);" id="qNearestPlace">—</div>
-            <div class="row g-2 mt-2" style="font-size:.85rem;">
-              <div class="col-6"><span class="text-muted-rain">Distance</span><div style="font-weight:600;" id="qNearestDist">—</div></div>
-              <div class="col-6"><span class="text-muted-rain">Depth</span><div style="font-weight:600;" id="qNearestDepth">—</div></div>
+      <div class="col-lg-8">
+        <div class="rain-card h-100" style="padding-bottom:1rem;">
+          <div class="card-eyebrow"><span>Epicenter Map</span><span class="demo-data-tag" style="background:var(--accent-cyan-hover); color:#fff;">LIVE · USGS</span></div>
+          <div class="eq-map-frame">
+            <div id="quake-map" role="region" aria-label="Map of recent earthquake epicenters"></div>
+            <div class="eq-replay-label" id="eqReplayLabel" aria-live="off"></div>
+            <div class="eq-map-tools">
+              <button type="button" class="eq-tool" id="eqReplayBtn"><i class="bi bi-play-fill"></i> <span>Replay</span></button>
+              <button type="button" class="eq-tool" id="eqFitBtn"><i class="bi bi-arrows-fullscreen"></i> Fit all</button>
+              <button type="button" class="eq-tool" id="eqMeBtn"><i class="bi bi-geo-alt-fill"></i> Me</button>
             </div>
-            <div class="data-source-line mt-2"><i class="bi bi-clock-history dicon" data-dicon="clock-history"></i> <span id="qNearestTime">—</span></div>
-            <a href="#" target="_blank" rel="noopener" class="btn-rain btn-rain-ghost btn-rain-sm mt-3" id="qNearestLink">View on USGS &rarr;</a>
           </div>
-          <div class="mt-3" style="font-size:.78rem; color:var(--ink-400);" id="qLocSourceNote"></div>
+          <div class="eq-legend">
+            <span><span class="size"><i style="width:6px;height:6px;"></i><i style="width:10px;height:10px;"></i><i style="width:16px;height:16px;"></i></span>Bigger circle = stronger</span>
+            <span><span class="sw shallow"></span>Shallow &lt; 70 km</span>
+            <span><span class="sw mid"></span>70–300 km</span>
+            <span><span class="sw deep"></span>Deep &gt; 300 km</span>
+            <span>Pulsing = past 6 hours</span>
+          </div>
         </div>
       </div>
-      <div class="col-lg-7">
-        <div class="rain-card reveal-on-scroll h-100" style="padding-bottom:1rem;">
-          <div class="card-eyebrow"><span>Epicenter Map</span><span class="demo-data-tag" style="background:var(--accent-cyan); color:#fff;">LIVE</span></div>
-          <div class="map-frame"><div id="quake-map"></div></div>
+
+      <div class="col-lg-4 d-flex flex-column gap-4">
+        <div class="rain-card reveal-on-scroll">
+          <div class="card-eyebrow"><span>Nearest to You</span></div>
+          <div id="qNearestEmpty" class="empty-state-inline d-none"><i class="bi bi-check-circle glyph"></i><p>No tracked earthquakes match the current filters.</p></div>
+          <div id="qNearestBody" class="d-none">
+            <div class="eq-near-mag">
+              <div class="eq-badge t-safe" id="qNearestBadge"><small>MAG</small><b>—</b></div>
+              <div>
+                <div class="eq-place" id="qNearestPlace">—</div>
+                <div class="eq-meta"><span id="qNearestDist">—</span> · <span id="qNearestDepth">—</span> · <span id="qNearestTime">—</span></div>
+              </div>
+            </div>
+            <div class="mt-3 d-flex flex-wrap gap-2 align-items-center">
+              <span id="qNearestFeel"></span>
+              <a href="#" target="_blank" rel="noopener" class="btn-rain btn-rain-ghost btn-rain-sm" id="qNearestLink">USGS details &rarr;</a>
+            </div>
+          </div>
+          <div class="mt-3" style="font-size:.78rem; color:var(--ink-600);" id="qLocSourceNote"></div>
+        </div>
+
+        <div class="rain-card reveal-on-scroll flex-grow-1">
+          <div class="card-eyebrow"><span>Could you have felt these?</span></div>
+          <div id="feltBody"></div>
+          <p class="eq-caveat mb-0">A rough estimate from magnitude and distance to your location. It is not an official intensity report. PHIVOLCS publishes those.</p>
         </div>
       </div>
     </div>
 
+    <!-- ===================== INSIGHTS ===================== -->
+    <div class="row g-4 mb-4">
+      <div class="col-md-6">
+        <div class="rain-card reveal-on-scroll h-100">
+          <div class="card-eyebrow"><span>How strong?</span><span class="text-muted-rain" style="font-size:.75rem;">events by magnitude</span></div>
+          <div id="magBars"></div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="rain-card reveal-on-scroll h-100">
+          <div class="card-eyebrow"><span id="actTitle">Activity</span><span class="text-muted-rain" style="font-size:.75rem;" id="actSub"></span></div>
+          <div class="eq-cols" id="actCols"></div>
+          <div class="eq-col-labels" id="actLabels"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== LIST ===================== -->
     <div class="rain-card reveal-on-scroll mb-4">
       <div class="card-eyebrow">
         <span>Recent Activity</span>
         <span class="status-badge status-caution" id="qCountBadge"><span class="dot"></span>0 tracked</span>
       </div>
-      <div class="d-flex flex-column gap-2" id="quakeList"></div>
-      <div class="empty-state-inline d-none" id="quakeListEmpty">
-        <i class="bi bi-check-circle glyph dicon" data-dicon="check-circle"></i>
-        <p>No earthquakes at or above this magnitude in the Philippines for this window.</p>
+      <div class="eq-sort" id="sortRow">
+        <span class="eq-seg-label" style="color:var(--ink-600);">Sort</span>
+        <div class="eq-seg" id="segSort">
+          <button type="button" data-v="time" class="active">Newest</button>
+          <button type="button" data-v="mag">Strongest</button>
+          <button type="button" data-v="dist">Nearest</button>
+        </div>
       </div>
+      <div class="eq-list" id="quakeList"></div>
+      <div class="eq-empty d-none" id="quakeListEmpty">No earthquakes match these filters. Try a wider window or a lower magnitude.</div>
+      <button type="button" class="btn-rain btn-rain-ghost eq-more d-none" id="eqMoreBtn">Show more</button>
     </div>
   </div>
 
+  <!-- ===================== SAFETY ===================== -->
+  <section class="rain-card reveal-on-scroll mb-4" aria-labelledby="eqSafeTitle">
+    <div class="card-eyebrow"><span id="eqSafeTitle">When the ground shakes</span><a href="emergency.html" style="font-size:.78rem; font-weight:700;">Emergency hotlines &amp; shelters &rarr;</a></div>
+    <div class="eq-steps">
+      <div class="eq-step"><span class="n">STEP 1</span><div class="t"><i class="bi bi-arrow-down-square-fill"></i> DROP</div><p>Get down on your hands and knees right away so the shaking can't knock you over.</p></div>
+      <div class="eq-step"><span class="n">STEP 2</span><div class="t"><i class="bi bi-shield-fill"></i> COVER</div><p>Shelter under a sturdy table or desk. If none is near, cover your head and neck with your arms and stay away from windows.</p></div>
+      <div class="eq-step"><span class="n">STEP 3</span><div class="t"><i class="bi bi-hand-index-thumb-fill"></i> HOLD ON</div><p>Hold your cover until the shaking stops. Outdoors, move to an open area away from buildings, poles and wires.</p></div>
+    </div>
+    <ul class="eq-after">
+      <li><i class="bi bi-check-circle-fill"></i> Expect aftershocks. Drop, cover and hold on each time.</li>
+      <li><i class="bi bi-check-circle-fill"></i> Check yourself and others for injuries before moving anyone badly hurt.</li>
+      <li><i class="bi bi-check-circle-fill"></i> Near the coast, if shaking is strong or lasts long, move to higher ground at once. Don't wait for a warning.</li>
+      <li><i class="bi bi-check-circle-fill"></i> Smell gas or see damage? Leave the building. Use text messages to keep phone lines free.</li>
+      <li><i class="bi bi-check-circle-fill"></i> Follow PHIVOLCS and your barangay or city DRRMO for official advisories.</li>
+    </ul>
+  </section>
+
+  <!-- ===================== ABOUT ===================== -->
   <div class="rain-card reveal-on-scroll">
-    <div class="card-eyebrow"><span>About This Data</span><i class="bi bi-info-circle dicon" style="color:var(--accent-cyan);" data-dicon="info-circle"></i></div>
+    <div class="card-eyebrow"><span>About This Data</span><i class="bi bi-info-circle" style="color:var(--accent-cyan-hover);"></i></div>
     <p style="font-size:.87rem; color:var(--ink-600);">
-      Events are pulled live from the USGS FDSN earthquake catalog, filtered to a bounding box around the Philippine
-      archipelago (roughly 4–21°N, 116–127°E) so offshore events like those in the Philippine Trench or Moro Gulf are
-      included. USGS locates events worldwide using its own global seismic network, so magnitudes, depths, and locations
-      can differ slightly from PHIVOLCS' own catalog for the same event — treat this as a live cross-check, not a
-      replacement for official PHIVOLCS bulletins and intensity reports.
+      Events come live from the USGS FDSN earthquake catalog, filtered to a box around the Philippine archipelago
+      (roughly 4–21°N, 116–127°E), so offshore events like those in the Philippine Trench or Moro Gulf are included.
+      USGS locates events with its own global network, so magnitudes, depths and locations can differ slightly from the
+      PHIVOLCS catalog for the same event. Treat this as a live cross-check, not a replacement for official PHIVOLCS
+      bulletins and intensity reports.
     </p>
-    <div class="data-source-line"><i class="bi bi-box-arrow-up-right dicon" data-dicon="box-arrow-up-right"></i> <a href="https://earthquake.phivolcs.dost.gov.ph/" target="_blank" rel="noopener">Check official PHIVOLCS earthquake bulletins &rarr;</a></div>
+    <p style="font-size:.87rem; color:var(--ink-600);">
+      <strong>“Could you have felt it?”</strong> compares each quake's distance from you (including depth) with a rough
+      felt-distance rule of thumb for its magnitude. It is a guide only. Local soil, building type and floor level change
+      what people actually feel. <strong>Dot colors</strong> show depth, and shallow quakes tend to shake the surface harder.
+    </p>
+    <div class="data-source-line"><i class="bi bi-box-arrow-up-right"></i> <a href="https://earthquake.phivolcs.dost.gov.ph/" target="_blank" rel="noopener">Check official PHIVOLCS earthquake bulletins &rarr;</a></div>
   </div>
+
+</div>
 </template>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -143,203 +220,383 @@
 <script src="assets/js/main.js"></script>
 <script type="module">
   await RainAuth.init();
-  // CARTO Basemaps API key — required since CARTO deprecated anonymous
-  // keyless raster tile access (tiles otherwise render stamped "API KEY
-  // REQUIRED"). Like a Mapbox access token, this is meant to ship in
-  // client-side code and isn't a secret that needs server-side hiding.
+  // CARTO Basemaps API key (client-side key, like a Mapbox token — not a secret).
   const CARTO_API_KEY = "cb1_3qde_1_313d908e961a073e7e5de450";
   const user = renderAppShell("earthquake.html", { title: "Earthquake" });
-  let quakeMap = null;
-  let quakeMarkers = [];
-  // Fallback location if geolocation is denied/unavailable — Tanauan City,
-  // Batangas, same fallback used everywhere else in this app. Clearly noted
-  // in the UI, never presented as if it were the resident's real GPS.
+
+  // Fallback if geolocation is denied: Tanauan City, Batangas. Always labelled as approximate in the UI.
   const FALLBACK_LAT = 14.0863, FALLBACK_LNG = 121.1497;
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-  function magTone(mag) {
-    if (mag == null) return "status-safe";
-    if (mag >= 6) return "status-critical";
-    if (mag >= 4.5) return "status-warning";
-    if (mag >= 3) return "status-caution";
-    return "status-safe";
-  }
-
+  /* ---------- helpers ---------- */
+  const tone = (m) => (m == null ? "safe" : m >= 6 ? "critical" : m >= 4.5 ? "warning" : m >= 3 ? "caution" : "safe");
+  const TONE_HEX = { critical: "#e8485a", warning: "#f2a33a", caution: "#f3c74a", safe: "#34d3a0" };
+  const depthClass = (d) => (d == null || d < 70 ? "shallow" : d <= 300 ? "mid" : "deep");
+  const DEPTH_HEX = { shallow: "#e8485a", mid: "#f2a33a", deep: "#5b8cff" };
+  const DEPTH_LABEL = { shallow: "Shallow", mid: "Intermediate", deep: "Deep" };
+  const shortPlace = (p) => String(p || "Unknown location").replace(/,\s*Philippines$/i, "");
+  const magText = (m) => (m != null ? m.toFixed(1) : "—");
   function timeAgo(ms) {
-    const diffMin = Math.round((Date.now() - ms) / 60000);
-    if (diffMin < 1) return "just now";
-    if (diffMin < 60) return `${diffMin} min ago`;
-    const diffHr = Math.round(diffMin / 60);
-    if (diffHr < 24) return `${diffHr} hr ago`;
-    return `${Math.round(diffHr / 24)} day${Math.round(diffHr / 24) === 1 ? "" : "s"} ago`;
+    const min = Math.round((Date.now() - ms) / 60000);
+    if (min < 1) return "just now";
+    if (min < 60) return `${min} min ago`;
+    const hr = Math.round(min / 60);
+    if (hr < 24) return `${hr} hr ago`;
+    const d = Math.round(hr / 24);
+    return `${d} day${d === 1 ? "" : "s"} ago`;
   }
+  const fmtTime = (ms) => new Date(ms).toLocaleString("en-PH", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
-  function showSkeleton() {
-    document.getElementById("quakeSkeleton").classList.remove("d-none");
-    document.getElementById("quakeBody").classList.add("d-none");
-    document.getElementById("quakeError").classList.add("d-none");
+  // Rough felt-distance rule of thumb (km) for a given magnitude: ~25 km at M3, ~70 at M4, ~200 at M5, ~560 at M6.
+  // Compared against the straight-line distance to the hypocentre. A guide, never an intensity report.
+  function feltLevel(q) {
+    if (q.mag == null || q.distKm == null) return "no";
+    const hypo = Math.hypot(q.distKm, Math.max(q.depthKm || 0, 0));
+    const ratio = hypo / Math.pow(10, 0.45 * q.mag + 0.05);
+    return ratio <= 0.6 ? "likely" : ratio <= 1 ? "maybe" : "no";
   }
-  function showBody() {
-    document.getElementById("quakeSkeleton").classList.add("d-none");
-    document.getElementById("quakeError").classList.add("d-none");
-    document.getElementById("quakeBody").classList.remove("d-none");
-  }
-  function showError() {
-    document.getElementById("quakeSkeleton").classList.add("d-none");
-    document.getElementById("quakeBody").classList.add("d-none");
-    document.getElementById("quakeError").classList.remove("d-none");
-  }
-
-  function renderMap(userLat, userLng, quakes, nearest) {
-    if (!quakeMap) {
-      quakeMap = L.map("quake-map").setView([userLat, userLng], 6);
-      L.tileLayer(`https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=${CARTO_API_KEY}`, { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>', maxZoom: 20 }).addTo(quakeMap);
-      L.marker([userLat, userLng], { icon: rainPinIcon("user", "bi-person-fill") }).addTo(quakeMap).bindPopup("Your location");
-    }
-    quakeMarkers.forEach((m) => quakeMap.removeLayer(m));
-    let nearestMarker = null;
-    quakeMarkers = quakes.map((q) => {
-      const isNearest = nearest && q === nearest;
-      const pulse = isNearest || (q.mag != null && q.mag >= 4.5);
-      const marker = L.marker([q.lat, q.lng], { icon: rainPinIcon("quake", "bi-activity", pulse) }).addTo(quakeMap);
-      marker.bindPopup(`${isNearest ? "<strong>Nearest epicenter</strong><br>" : ""}<strong>M${q.mag != null ? q.mag.toFixed(1) : "?"}</strong> — ${q.place}<br>Depth: ${q.depthKm != null ? q.depthKm.toFixed(0) + " km" : "—"}<br>${new Date(q.timeMs).toLocaleString()}`);
-      if (isNearest) nearestMarker = marker;
-      return marker;
-    });
-
-    // "Epicenter Map" should actually center on the nearest epicenter, not
-    // just show a fixed wide view of the user's region — this is what ties
-    // the map to the "Nearest to You" card beside it, and it re-fits every
-    // time the window/magnitude filter changes the nearest quake, not just
-    // once on first load.
-    //
-    // invalidateSize() MUST run before fitBounds()/setView(), not after —
-    // the map container is freshly inserted from a <template> and has no
-    // real size yet, so calling fitBounds() first makes Leaflet compute a
-    // broken view against a zero-size box, leaving a permanently gray map
-    // even once the container is later resized.
-    setTimeout(() => {
-      quakeMap.invalidateSize();
-      if (nearest) {
-        quakeMap.fitBounds([[userLat, userLng], [nearest.lat, nearest.lng]], { padding: [40, 40], maxZoom: 9 });
-        nearestMarker?.openPopup();
-      } else {
-        quakeMap.setView([userLat, userLng], 6);
-      }
-    }, 200);
-  }
-
-  function renderNearest(userLat, userLng, nearbyQuakes) {
-    const emptyEl = document.getElementById("qNearestEmpty");
-    const bodyEl = document.getElementById("qNearestBody");
-    if (!nearbyQuakes.length) {
-      emptyEl.classList.remove("d-none");
-      bodyEl.classList.add("d-none");
-      return;
-    }
-    emptyEl.classList.add("d-none");
-    bodyEl.classList.remove("d-none");
-    const nearest = nearbyQuakes[0]; // pre-sorted by distance
-    document.getElementById("qNearestMag").textContent = nearest.mag != null ? `M${nearest.mag.toFixed(1)}` : "M—";
-    document.getElementById("qNearestPlace").textContent = nearest.place;
-    document.getElementById("qNearestDist").textContent = `${Math.round(nearest.distKm)} km away`;
-    document.getElementById("qNearestDepth").textContent = nearest.depthKm != null ? `${nearest.depthKm.toFixed(0)} km` : "—";
-    document.getElementById("qNearestTime").textContent = timeAgo(nearest.timeMs);
-    document.getElementById("qNearestLink").href = nearest.url || "https://earthquake.usgs.gov/";
-  }
-
-  function renderList(quakes) {
-    const list = document.getElementById("quakeList");
-    const empty = document.getElementById("quakeListEmpty");
-    list.innerHTML = "";
-    document.getElementById("qCountBadge").innerHTML = `<span class="dot"></span>${quakes.length} tracked`;
-    if (!quakes.length) { empty.classList.remove("d-none"); return; }
-    empty.classList.add("d-none");
-    quakes.slice(0, 25).forEach((q) => {
-      const el = document.createElement("div");
-      el.className = "alert-banner level-advisory reveal-on-scroll";
-      el.innerHTML = `<i class="bi bi-activity icon dicon" data-dicon="activity"></i>
-        <div class="flex-grow-1">
-          <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
-            <strong>${q.place}</strong>
-            <span class="status-badge ${magTone(q.mag)}">${q.mag != null ? `M${q.mag.toFixed(1)}` : "M—"}</span>
-          </div>
-          <div class="data-source-line mt-1"><i class="bi bi-arrows-vertical"></i> ${q.depthKm != null ? q.depthKm.toFixed(0) + " km deep" : "Depth unknown"} · <i class="bi bi-clock-history"></i> ${timeAgo(q.timeMs)}${q.distKm != null ? ` · <i class="bi bi-geo"></i> ${Math.round(q.distKm)} km from you` : ""}</div>
-        </div>`;
-      list.appendChild(el);
-    });
-  }
-
-  async function loadEarthquakes(userLat, userLng, isRealLocation) {
-    showSkeleton();
-    const days = Number(document.getElementById("quakeWindow").value);
-    const minMagnitude = Number(document.getElementById("quakeMinMag").value);
-    try {
-      const quakes = await fetchPhilippineEarthquakes({ days, minMagnitude });
-      const withDist = quakes.map((q) => ({ ...q, distKm: haversineKm(userLat, userLng, q.lat, q.lng) }));
-      // "Nearest to You" always shows the closest tracked earthquake, no
-      // matter how far away — a 300km cutoff meant residents sometimes saw
-      // "no earthquakes" purely because the nearest one was 310km out, which
-      // reads as "nothing is happening" when something clearly is.
-      const byDistance = [...withDist].sort((a, b) => a.distKm - b.distKm);
-      const nearest = byDistance[0] || null;
-
-      renderNearest(userLat, userLng, byDistance);
-      renderMap(userLat, userLng, withDist, nearest);
-      renderList(withDist.sort((a, b) => b.timeMs - a.timeMs));
-
-      document.getElementById("qLocSourceNote").textContent = isRealLocation
-        ? "Distances use your device's GPS location."
-        : "Distances use an approximate location (GPS unavailable) — showing Tanauan City, Batangas.";
-
-      showBody();
-      RainAnim.initScrollReveal(".reveal-on-scroll");
-      // Save the raw (undistanced) list — distance is recomputed on
-      // fallback since a saved snapshot's userLat/userLng may be stale.
-      RainOffline.save("earthquakes", quakes);
-    } catch (err) {
-      console.error(err);
-      const cached = RainOffline.load("earthquakes");
-      if (cached && !RainOffline.isOnline()) {
-        const withDist = cached.data.map((q) => ({ ...q, distKm: haversineKm(userLat, userLng, q.lat, q.lng) }));
-        const byDistance = [...withDist].sort((a, b) => a.distKm - b.distKm);
-        renderNearest(userLat, userLng, byDistance);
-        renderMap(userLat, userLng, withDist, byDistance[0] || null);
-        renderList(withDist.sort((a, b) => b.timeMs - a.timeMs));
-        document.getElementById("qLocSourceNote").innerHTML =
-          `<span class="cached-data-tag"><i class="bi bi-cloud-slash"></i> Saved data</span> Offline — showing earthquakes saved ${RainOffline.timeAgo(cached.savedAt)}.`;
-        showBody();
-        RainAnim.initScrollReveal(".reveal-on-scroll");
-      } else {
-        showError();
-      }
-    }
-  }
-
-  function initWithLocation(lat, lng, isRealLocation) {
-    loadEarthquakes(lat, lng, isRealLocation);
-  }
+  const FEEL_TEXT = { likely: "Likely felt", maybe: "Possibly felt", no: "Probably not felt" };
+  const feelChip = (q) => `<span class="eq-feel ${feltLevel(q)}"><i class="bi ${feltLevel(q) === "no" ? "bi-dash-circle" : "bi-broadcast"}"></i>${FEEL_TEXT[feltLevel(q)]}</span>`;
 
   function initEarthquakePage() {
     document.getElementById("app-content").appendChild(document.getElementById("earthquake-content").content.cloneNode(true));
     initializeAnimations();
 
-    let lastLat = FALLBACK_LAT, lastLng = FALLBACK_LNG, lastIsReal = false;
+    const $ = (id) => document.getElementById(id);
+    const state = { days: 7, minMag: 2.5, radius: 0, sort: "time", limit: 10, all: [], view: [], lat: FALLBACK_LAT, lng: FALLBACK_LNG, real: false, offlineNote: "" };
 
-    const reload = () => loadEarthquakes(lastLat, lastLng, lastIsReal);
-    document.getElementById("quakeRefreshBtn").addEventListener("click", reload);
-    document.getElementById("retryQuake").addEventListener("click", reload);
-    document.getElementById("quakeWindow").addEventListener("change", reload);
-    document.getElementById("quakeMinMag").addEventListener("change", reload);
+    /* ---------- segmented controls ---------- */
+    function wireSeg(id, key, parse, reload) {
+      $(id).addEventListener("click", (e) => {
+        const b = e.target.closest("button[data-v]"); if (!b) return;
+        $(id).querySelectorAll("button").forEach((x) => x.classList.toggle("active", x === b));
+        state[key] = parse(b.dataset.v); state.limit = 10;
+        stopReplay(); reload();
+      });
+    }
+    wireSeg("segWindow", "days", Number, () => load());
+    wireSeg("segMag", "minMag", Number, () => load());
+    wireSeg("segRadius", "radius", Number, () => render());
+    wireSeg("segSort", "sort", String, () => renderList());
+    $("quakeRefreshBtn").addEventListener("click", () => load());
+    $("retryQuake").addEventListener("click", () => load());
+    $("eqMoreBtn").addEventListener("click", () => { state.limit += 15; renderList(); });
 
+    /* ---------- map ---------- */
+    let map = null, quakeLayer = null, rippleLayer = null, meMarker = null, ringLayer = null;
+    const markerById = {};
+    function ensureMap() {
+      if (map) return;
+      map = L.map("quake-map", { zoomControl: true }).setView([state.lat, state.lng], 6);
+      const attr = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
+      const light = L.tileLayer(`https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=${CARTO_API_KEY}`, { attribution: attr, maxZoom: 19 });
+      const dark = L.tileLayer(`https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png?key=${CARTO_API_KEY}`, { attribution: attr, maxZoom: 19 });
+      const sat = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { attribution: "Tiles &copy; Esri", maxZoom: 19 });
+      (document.documentElement.getAttribute("data-theme") === "dark" ? dark : light).addTo(map);
+      L.control.layers({ Light: light, Dark: dark, Satellite: sat }, null, { collapsed: true }).addTo(map);
+      ringLayer = L.layerGroup().addTo(map);
+      rippleLayer = L.layerGroup().addTo(map);
+      quakeLayer = L.layerGroup().addTo(map);
+      map.createPane("eq-me").style.zIndex = 650;
+    }
+    function drawMeAndRings() {
+      ringLayer.clearLayers();
+      [100, 300].forEach((km) => {
+        L.circle([state.lat, state.lng], { radius: km * 1000, color: "#0b6e75", weight: 1.2, dashArray: "4 6", fill: false, interactive: false }).addTo(ringLayer);
+        L.marker([state.lat + km / 111.2, state.lng], { interactive: false, keyboard: false,
+          icon: L.divIcon({ className: "", html: `<span class="eq-ring-label" style="position:absolute; transform:translate(-50%,-50%); white-space:nowrap;">${km} km</span>`, iconSize: [0, 0] }) }).addTo(ringLayer);
+      });
+      if (meMarker) map.removeLayer(meMarker);
+      meMarker = L.marker([state.lat, state.lng], { pane: "eq-me", title: "You are here",
+        icon: L.divIcon({ className: "", html: '<div class="eq-me"></div>', iconSize: [0, 0] }) }).addTo(map)
+        .bindPopup(state.real ? "Your location (GPS)" : "Approximate location: Tanauan City, Batangas");
+    }
+    const radiusPx = (m) => Math.min(30, 3 + Math.pow(1.55, m == null ? 2 : m));
+    function popupHtml(q) {
+      return `<strong>M${magText(q.mag)}</strong> · ${esc(shortPlace(q.place))}<br>` +
+        `${DEPTH_LABEL[depthClass(q.depthKm)]}, ${q.depthKm != null ? q.depthKm.toFixed(0) + " km deep" : "depth unknown"}<br>` +
+        `${esc(fmtTime(q.timeMs))} (${timeAgo(q.timeMs)})<br>` +
+        (q.distKm != null ? `${Math.round(q.distKm)} km from you<br>` : "") +
+        (q.felt ? `Felt by ${q.felt} people (USGS reports)<br>` : "") +
+        `<a href="${esc(q.url || "https://earthquake.usgs.gov/")}" target="_blank" rel="noopener">USGS details</a>`;
+    }
+    function addQuakeMarker(q, forceRipple) {
+      const hex = DEPTH_HEX[depthClass(q.depthKm)];
+      const m = L.circleMarker([q.lat, q.lng], {
+        radius: radiusPx(q.mag), color: "#0a1830", weight: 1, opacity: 0.55, fillColor: hex, fillOpacity: 0.6,
+      }).addTo(quakeLayer).bindPopup(() => popupHtml(q));
+      markerById[q.id] = m;
+      if (forceRipple || Date.now() - q.timeMs < 6 * 3600 * 1000) {
+        const size = radiusPx(q.mag) * 2.4;
+        const r = L.marker([q.lat, q.lng], { interactive: false, keyboard: false,
+          icon: L.divIcon({ className: "", html: `<span class="eq-ripple" style="--s:${size}px; --c:${hex};"></span>`, iconSize: [0, 0] }) }).addTo(rippleLayer);
+        if (forceRipple) setTimeout(() => rippleLayer.removeLayer(r), 1800);
+      }
+    }
+    function drawQuakes() {
+      quakeLayer.clearLayers(); rippleLayer.clearLayers();
+      Object.keys(markerById).forEach((k) => delete markerById[k]);
+      // biggest first so small circles are drawn on top and stay clickable
+      [...state.view].sort((a, b) => (b.mag || 0) - (a.mag || 0)).forEach((q) => addQuakeMarker(q, false));
+    }
+    function fitView() {
+      map.invalidateSize();
+      const nearest = [...state.view].sort((a, b) => a.distKm - b.distKm)[0];
+      if (nearest) map.fitBounds([[state.lat, state.lng], [nearest.lat, nearest.lng]], { padding: [50, 50], maxZoom: 9 });
+      else map.setView([state.lat, state.lng], 6);
+    }
+    function fitAll() {
+      map.invalidateSize();
+      const pts = state.view.map((q) => [q.lat, q.lng]).concat([[state.lat, state.lng]]);
+      map.fitBounds(L.latLngBounds(pts), { padding: [40, 40], maxZoom: 9 });
+    }
+    function focusQuake(id) {
+      const q = state.view.find((x) => x.id === id); if (!q) return;
+      stopReplay();
+      $("quake-map").scrollIntoView({ behavior: "smooth", block: "nearest" });
+      map.flyTo([q.lat, q.lng], Math.max(map.getZoom(), 8), { duration: 0.7 });
+      map.once("moveend", () => markerById[id] && markerById[id].openPopup());
+    }
+    $("eqFitBtn").addEventListener("click", () => { stopReplay(); fitAll(); });
+    $("eqMeBtn").addEventListener("click", () => { stopReplay(); map.flyTo([state.lat, state.lng], 8, { duration: 0.7 }); });
+
+    /* ---------- replay: quakes appear in the order they happened ---------- */
+    let replayTimer = null;
+    function stopReplay() {
+      if (replayTimer) { clearInterval(replayTimer); replayTimer = null; }
+      const btn = $("eqReplayBtn");
+      if (btn) { btn.classList.remove("on"); btn.querySelector("i").className = "bi bi-play-fill"; btn.querySelector("span").textContent = "Replay"; }
+      $("eqReplayLabel").classList.remove("on");
+      const ph = document.getElementById("eqPlayhead"); if (ph) ph.classList.remove("on");
+      if (map && quakeLayer && state.view.length && quakeLayer.getLayers().length !== state.view.length) drawQuakes();
+    }
+    $("eqReplayBtn").addEventListener("click", () => {
+      if (replayTimer) { stopReplay(); return; }
+      if (!state.view.length) return;
+      const seq = [...state.view].sort((a, b) => a.timeMs - b.timeMs);
+      quakeLayer.clearLayers(); rippleLayer.clearLayers(); map.closePopup();
+      fitAll();
+      const btn = $("eqReplayBtn");
+      btn.classList.add("on"); btn.querySelector("i").className = "bi bi-stop-fill"; btn.querySelector("span").textContent = "Stop";
+      $("eqReplayLabel").classList.add("on");
+      const step = Math.max(40, Math.min(420, 7000 / seq.length));
+      let i = 0;
+      replayTimer = setInterval(() => {
+        if (i >= seq.length) { clearInterval(replayTimer); replayTimer = null; setTimeout(() => { if (!replayTimer) stopReplay(); }, 1200); return; }
+        const q = seq[i++];
+        addQuakeMarker(q, true);
+        $("eqReplayLabel").textContent = fmtTime(q.timeMs);
+        const ph = document.getElementById("eqPlayhead");
+        if (ph && stripGeo) { const x = stripGeo.x(q.timeMs); ph.setAttribute("x1", x); ph.setAttribute("x2", x); ph.classList.add("on"); }
+      }, step);
+    });
+
+    /* ---------- hero ---------- */
+    let stripGeo = null;
+    function renderHero() {
+      const v = state.view, now = Date.now();
+      const strongest = [...v].sort((a, b) => (b.mag || 0) - (a.mag || 0))[0];
+      const latest = [...v].sort((a, b) => b.timeMs - a.timeMs)[0];
+      const nearest = [...v].sort((a, b) => a.distKm - b.distKm)[0];
+      const feltRecent = v.filter((q) => now - q.timeMs < 24 * 3600 * 1000 && feltLevel(q) === "likely").sort((a, b) => b.timeMs - a.timeMs)[0];
+      const within100 = v.filter((q) => q.distKm <= 100).length;
+      const winText = state.days === 1 ? "the past 24 hours" : `the past ${state.days} days`;
+
+      let head, sub;
+      if (!v.length) {
+        head = "No earthquakes match these filters";
+        sub = "Try a wider time window, a lower magnitude, or a larger distance.";
+      } else if (feltRecent) {
+        head = `A quake you likely felt: M${magText(feltRecent.mag)}, ${timeAgo(feltRecent.timeMs)}`;
+        sub = `${shortPlace(feltRecent.place)}, about ${Math.round(feltRecent.distKm)} km from you. Check for damage and expect possible aftershocks.`;
+      } else if (within100) {
+        head = `${within100} quake${within100 === 1 ? "" : "s"} within 100 km of you in ${winText}`;
+        sub = `None looks likely to have been felt strongly at your location. Nearest was M${magText(nearest.mag)}, ${Math.round(nearest.distKm)} km away.`;
+      } else {
+        head = `Quiet around you in ${winText}`;
+        sub = `The nearest tracked quake was M${magText(nearest.mag)}, ${Math.round(nearest.distKm)} km away (${shortPlace(nearest.place)}).`;
+      }
+      $("eqHeadline").textContent = head;
+      $("eqSubline").textContent = sub;
+
+      const stat = (k, val, s) => `<div class="eq-stat"><div class="k">${k}</div><div class="v">${val}</div><div class="s">${s}</div></div>`;
+      $("eqStats").innerHTML = v.length
+        ? stat("Tracked", v.length, `in ${winText}`) +
+          stat("Strongest", "M" + magText(strongest.mag), esc(shortPlace(strongest.place))) +
+          stat("Latest", timeAgo(latest.timeMs), "M" + magText(latest.mag) + " · " + esc(shortPlace(latest.place))) +
+          stat("Nearest", Math.round(nearest.distKm) + " km", "M" + magText(nearest.mag) + " · " + esc(shortPlace(nearest.place)))
+        : "";
+      renderStrip();
+    }
+
+    function renderStrip() {
+      const svg = $("eqStrip"), W = 800, base = 100, padL = 10, padR = 14;
+      const now = Date.now(), start = now - state.days * 86400000;
+      const x = (t) => padL + ((t - start) / (now - start)) * (W - padL - padR);
+      stripGeo = { x };
+      let html = "";
+      // tick marks + labels
+      const ticks = [];
+      const d = new Date(now);
+      if (state.days === 1) { d.setMinutes(0, 0, 0); d.setHours(Math.floor(d.getHours() / 6) * 6); }
+      else d.setHours(0, 0, 0, 0);
+      const stepMs = state.days === 1 ? 6 * 3600e3 : state.days === 7 ? 86400e3 : 5 * 86400e3;
+      for (let t = d.getTime(); t > start; t -= stepMs) ticks.push(t);
+      ticks.filter((t) => x(now) - x(t) > 34).forEach((t) => {   // keep clear of the “now” label
+        const label = state.days === 1 ? new Date(t).toLocaleTimeString("en-PH", { hour: "numeric" }) : state.days === 7 ? new Date(t).toLocaleDateString("en-PH", { weekday: "short" }) : new Date(t).toLocaleDateString("en-PH", { month: "short", day: "numeric" });
+        html += `<line class="tick" x1="${x(t)}" x2="${x(t)}" y1="12" y2="${base + 6}"/><text class="tl" x="${x(t) + 3}" y="${base + 20}">${esc(label)}</text>`;
+      });
+      html += `<line class="base" x1="${padL}" x2="${W - padR}" y1="${base}" y2="${base}"/>`;
+      // spikes: weakest first so strong ones sit on top
+      [...state.view].sort((a, b) => (a.mag || 0) - (b.mag || 0)).forEach((q) => {
+        const h = Math.min(84, 6 + (q.mag || 0) * 10.5), px = x(q.timeMs), t = tone(q.mag);
+        const isNew = now - q.timeMs < 6 * 3600e3;
+        html += `<g class="eq-spike t-${t}${isNew ? " is-new" : ""}" data-id="${esc(q.id)}" tabindex="0" role="button" aria-label="M${magText(q.mag)} ${esc(shortPlace(q.place))}">` +
+          `<title>M${magText(q.mag)} · ${esc(shortPlace(q.place))} · ${esc(fmtTime(q.timeMs))}</title>` +
+          `<line x1="${px}" x2="${px}" y1="${base}" y2="${base - h}"/><circle cx="${px}" cy="${base - h}" r="3.4"/>` +
+          `<line x1="${px}" x2="${px}" y1="${base - h - 8}" y2="${base}" stroke="transparent" stroke-width="12"/></g>`;
+      });
+      html += `<line id="eqPlayhead" class="eq-playhead" x1="0" x2="0" y1="8" y2="${base}"/>`;
+      html += `<circle class="eq-now" cx="${W - padR}" cy="${base}" r="4"/><text class="tl" x="${W - padR - 8}" y="${base + 20}" text-anchor="end">now</text>`;
+      svg.innerHTML = html;
+      $("eqStripRange").textContent = state.days === 1 ? "past 24 h" : `past ${state.days} days`;
+    }
+    $("eqStrip").addEventListener("click", (e) => { const g = e.target.closest(".eq-spike"); if (g) focusQuake(g.dataset.id); });
+    $("eqStrip").addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { const g = e.target.closest(".eq-spike"); if (g) { e.preventDefault(); focusQuake(g.dataset.id); } } });
+
+    /* ---------- nearest + felt ---------- */
+    function renderNearest() {
+      const nearest = [...state.view].sort((a, b) => a.distKm - b.distKm)[0];
+      $("qNearestEmpty").classList.toggle("d-none", !!nearest);
+      $("qNearestBody").classList.toggle("d-none", !nearest);
+      if (nearest) {
+        const b = $("qNearestBadge"); b.className = "eq-badge t-" + tone(nearest.mag); b.innerHTML = `<small>MAG</small><b>${magText(nearest.mag)}</b>`;
+        $("qNearestPlace").textContent = shortPlace(nearest.place);
+        $("qNearestDist").textContent = `${Math.round(nearest.distKm)} km away`;
+        $("qNearestDepth").textContent = nearest.depthKm != null ? `${nearest.depthKm.toFixed(0)} km deep` : "depth unknown";
+        $("qNearestTime").textContent = timeAgo(nearest.timeMs);
+        $("qNearestLink").href = nearest.url || "https://earthquake.usgs.gov/";
+        $("qNearestFeel").innerHTML = feelChip(nearest);
+      }
+      const note = state.real ? "Distances use your device's GPS location." : "Distances use an approximate location (GPS unavailable): Tanauan City, Batangas.";
+      $("qLocSourceNote").innerHTML = (state.offlineNote || "") + esc(note);
+    }
+    function renderFelt() {
+      const c = { likely: 0, maybe: 0, no: 0 };
+      state.view.forEach((q) => { c[feltLevel(q)]++; });
+      const n = state.view.length || 1;
+      $("feltBody").innerHTML = state.view.length
+        ? `<div class="eq-felt-bar" role="img" aria-label="${c.likely} likely felt, ${c.maybe} possibly felt, ${c.no} probably not felt">
+             <div class="likely" style="width:${(c.likely / n) * 100}%"></div><div class="maybe" style="width:${(c.maybe / n) * 100}%"></div><div class="no" style="width:${(c.no / n) * 100}%"></div></div>
+           <div class="eq-felt-key"><span><b>${c.likely}</b> likely felt</span><span><b>${c.maybe}</b> possibly felt</span><span><b>${c.no}</b> probably not</span></div>`
+        : `<div class="eq-meta">Nothing to estimate for these filters.</div>`;
+    }
+
+    /* ---------- charts ---------- */
+    function renderCharts() {
+      const v = state.view;
+      const bins = [["Under 3", (m) => m < 3, "safe"], ["3 – 3.9", (m) => m >= 3 && m < 4, "caution"], ["4 – 4.9", (m) => m >= 4 && m < 5, "warning"], ["5 – 5.9", (m) => m >= 5 && m < 6, "warning"], ["6 and up", (m) => m >= 6, "critical"]];
+      const counts = bins.map(([, f]) => v.filter((q) => q.mag != null && f(q.mag)).length);
+      const max = Math.max(1, ...counts);
+      $("magBars").innerHTML = bins.map(([label, , t], i) =>
+        `<div class="eq-hbar"><span>${label}</span><div class="track"><div class="fill t-${t}" data-w="${(counts[i] / max) * 100}"></div></div><span class="n">${counts[i]}</span></div>`).join("");
+      requestAnimationFrame(() => $("magBars").querySelectorAll(".fill").forEach((f) => { f.style.width = f.dataset.w + "%"; }));
+
+      const now = Date.now(), n = state.days === 1 ? 24 : state.days, bucket = state.days === 1 ? 3600e3 : 86400e3, start = now - n * bucket;
+      const buckets = Array.from({ length: n }, () => 0);
+      v.forEach((q) => { const i = Math.floor((q.timeMs - start) / bucket); if (i >= 0 && i < n) buckets[i]++; });
+      const bm = Math.max(1, ...buckets);
+      $("actTitle").textContent = state.days === 1 ? "Quakes per hour" : "Quakes per day";
+      $("actSub").textContent = `busiest: ${bm} in one ${state.days === 1 ? "hour" : "day"}`;
+      $("actCols").innerHTML = buckets.map((c, i) => {
+        const t0 = start + i * bucket;
+        return `<div class="c" title="${c} quake${c === 1 ? "" : "s"} · ${esc(state.days === 1 ? new Date(t0).toLocaleTimeString("en-PH", { hour: "numeric" }) : new Date(t0).toLocaleDateString("en-PH", { month: "short", day: "numeric" }))}"><div class="bar${c ? "" : " zero"}" data-h="${(c / bm) * 100}" style="height:2px"></div></div>`;
+      }).join("");
+      requestAnimationFrame(() => $("actCols").querySelectorAll(".bar").forEach((b) => { if (!b.classList.contains("zero")) b.style.height = Math.max(4, Number(b.dataset.h)) + "%"; }));
+      const every = n > 14 ? 5 : n > 8 ? 3 : 1;
+      $("actLabels").innerHTML = buckets.map((_, i) => {
+        const t0 = start + i * bucket;
+        const show = (n - 1 - i) % every === 0;
+        return `<span>${show ? esc(state.days === 1 ? new Date(t0).toLocaleTimeString("en-PH", { hour: "numeric" }).replace(" ", "") : state.days === 7 ? new Date(t0).toLocaleDateString("en-PH", { weekday: "short" }) : new Date(t0).getDate()) : ""}</span>`;
+      }).join("");
+    }
+
+    /* ---------- list ---------- */
+    function renderList() {
+      const sorters = { time: (a, b) => b.timeMs - a.timeMs, mag: (a, b) => (b.mag || 0) - (a.mag || 0), dist: (a, b) => a.distKm - b.distKm };
+      const sorted = [...state.view].sort(sorters[state.sort]);
+      $("qCountBadge").innerHTML = `<span class="dot"></span>${sorted.length} tracked`;
+      $("quakeListEmpty").classList.toggle("d-none", sorted.length > 0);
+      $("sortRow").classList.toggle("d-none", sorted.length === 0);
+      const shown = sorted.slice(0, state.limit);
+      $("quakeList").innerHTML = shown.map((q) => {
+        const dc = depthClass(q.depthKm);
+        return `<div class="eq-row" tabindex="0" role="button" data-id="${esc(q.id)}" aria-label="Show M${magText(q.mag)} ${esc(shortPlace(q.place))} on the map">
+          <div class="eq-badge sm t-${tone(q.mag)}"><small>MAG</small><b>${magText(q.mag)}</b></div>
+          <div class="body">
+            <div class="eq-place">${esc(shortPlace(q.place))}</div>
+            <div class="eq-meta">${esc(fmtTime(q.timeMs))}${q.distKm != null ? ` · ${Math.round(q.distKm)} km from you` : ""}</div>
+            <div class="chips">
+              <span class="eq-chip depth-${dc}"><i class="bi bi-arrows-vertical"></i>${DEPTH_LABEL[dc]}${q.depthKm != null ? ` · ${q.depthKm.toFixed(0)} km` : ""}</span>
+              ${feelChip(q)}
+              ${q.felt ? `<span class="eq-chip"><i class="bi bi-people-fill"></i>${q.felt} USGS felt report${q.felt === 1 ? "" : "s"}</span>` : ""}
+              ${q.tsunami && q.mag >= 6 ? `<span class="eq-chip warn" title="USGS marks this as an ocean-region event. Check PHIVOLCS for any tsunami information."><i class="bi bi-water"></i>Ocean-region quake: check PHIVOLCS</span>` : ""}
+            </div>
+          </div>
+          <div class="ago">${timeAgo(q.timeMs)}</div>
+        </div>`;
+      }).join("");
+      const more = $("eqMoreBtn");
+      more.classList.toggle("d-none", sorted.length <= state.limit);
+      more.textContent = `Show more (${sorted.length - state.limit} left)`;
+    }
+    $("quakeList").addEventListener("click", (e) => { const r = e.target.closest(".eq-row"); if (r) focusQuake(r.dataset.id); });
+    $("quakeList").addEventListener("keydown", (e) => { if ((e.key === "Enter" || e.key === " ") && e.target.classList.contains("eq-row")) { e.preventDefault(); focusQuake(e.target.dataset.id); } });
+
+    /* ---------- render / load ---------- */
+    function render(refit = true) {
+      state.view = state.all.filter((q) => !state.radius || q.distKm <= state.radius);
+      stopReplay();
+      ensureMap(); drawMeAndRings(); drawQuakes();
+      renderHero(); renderNearest(); renderFelt(); renderCharts(); renderList();
+      $("eqReplayBtn").disabled = !state.view.length;
+      if (refit) setTimeout(fitView, 200);
+    }
+    const show = (which) => {
+      $("quakeSkeleton").classList.toggle("d-none", which !== "skeleton");
+      $("quakeError").classList.toggle("d-none", which !== "error");
+      $("quakeBody").classList.toggle("d-none", which !== "body");
+    };
+    const withDist = (list) => list.map((q) => ({ ...q, distKm: haversineKm(state.lat, state.lng, q.lat, q.lng) }));
+
+    async function load() {
+      show("skeleton"); stopReplay();
+      try {
+        const quakes = await fetchPhilippineEarthquakes({ days: state.days, minMagnitude: state.minMag });
+        state.offlineNote = "";
+        state.all = withDist(quakes);
+        show("body"); render();
+        RainAnim.initScrollReveal(".reveal-on-scroll");
+        RainOffline.save("earthquakes", quakes);   // raw list: distance is recomputed from the current location
+      } catch (err) {
+        console.error(err);
+        const cached = RainOffline.load("earthquakes");
+        if (cached && !RainOffline.isOnline()) {
+          state.all = withDist(cached.data);
+          state.offlineNote = `<span class="cached-data-tag"><i class="bi bi-cloud-slash"></i> Saved data</span> Offline: showing earthquakes saved ${esc(RainOffline.timeAgo(cached.savedAt))}. `;
+          show("body"); render();
+          RainAnim.initScrollReveal(".reveal-on-scroll");
+        } else show("error");
+      }
+    }
+
+    window.addEventListener("resize", () => map && map.invalidateSize());
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => { lastLat = pos.coords.latitude; lastLng = pos.coords.longitude; lastIsReal = true; initWithLocation(lastLat, lastLng, lastIsReal); },
-        () => initWithLocation(lastLat, lastLng, lastIsReal),
-        { timeout: 8000 }
-      );
-    } else {
-      initWithLocation(lastLat, lastLng, lastIsReal);
-    }
+        (pos) => { state.lat = pos.coords.latitude; state.lng = pos.coords.longitude; state.real = true; load(); },
+        () => load(),
+        { timeout: 8000 });
+    } else load();
   }
 
   if (user) initEarthquakePage();

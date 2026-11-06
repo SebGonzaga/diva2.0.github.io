@@ -1,0 +1,45 @@
+/* RAIN — weather-map.css : visual polish for the Typhoon & Satellite map on weather.html.
+   Styling only: it targets existing ids/classes and changes no behaviour. */
+
+/* "Read this first" notice -> calm amber callout */
+.rain-card .data-source-line[style*="#b45309"]{background:linear-gradient(90deg,rgba(245,158,11,.14),rgba(245,158,11,.04));border-radius:12px;padding:.7rem .9rem!important;border-left-width:4px!important}
+
+/* Layer toggles -> pill switches */
+#tmControls{gap:.5rem!important;padding:.6rem;border-radius:16px;background:linear-gradient(180deg,rgba(15,38,74,.05),rgba(15,38,74,.015));border:1px solid rgba(100,116,139,.2)}
+#tmControls label{cursor:pointer;gap:.55rem!important;padding:.4rem .85rem .4rem .65rem;border-radius:999px;background:#fff;border:1px solid rgba(100,116,139,.28);font-weight:600;font-size:.78rem;color:#334155;transition:transform .2s,box-shadow .2s,background .3s,border-color .3s,color .3s}
+#tmControls label:hover{transform:translateY(-1px);box-shadow:0 8px 16px -10px rgba(15,38,74,.45)}
+#tmControls label:has(input:checked){background:linear-gradient(135deg,#e8fcfd,#c9f1f4);border-color:#33c9d1;color:#0b5560}
+#tmControls input[type=checkbox]{appearance:none;-webkit-appearance:none;flex:none;width:28px;height:16px;margin:0;border-radius:99px;background:#cbd5e1;position:relative;cursor:pointer;transition:background .3s}
+#tmControls input[type=checkbox]::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .3s cubic-bezier(.65,0,.35,1)}
+#tmControls input[type=checkbox]:checked{background:#1f8489}
+#tmControls input[type=checkbox]:checked::after{transform:translateX(12px)}
+#tmControls label:has(select){padding:.15rem .25rem .15rem .9rem}
+#tmControls select{border:0!important;background-color:transparent!important;box-shadow:none!important;font-weight:700;font-size:.78rem;padding-right:1.6rem}
+
+/* Map frame */
+.rain-card .map-frame:has(#weather-map){position:relative;isolation:isolate;border-radius:18px;overflow:hidden;border:1px solid rgba(15,38,74,.25);box-shadow:0 24px 48px -26px rgba(6,14,28,.75)}
+.map-frame:has(#weather-map)::after{content:"";position:absolute;inset:0;z-index:450;pointer-events:none;border-radius:inherit;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1),inset 0 -50px 70px -50px rgba(6,14,28,.55),inset 0 40px 60px -50px rgba(6,14,28,.35)}
+#weather-map{height:min(72vh,600px)}
+#weather-map.leaflet-container{font-family:var(--font-body)}
+
+/* Leaflet controls -> frosted glass */
+#weather-map .leaflet-bar{border:0;border-radius:12px;overflow:hidden;box-shadow:0 10px 24px -10px rgba(6,14,28,.65)}
+#weather-map .leaflet-bar a{width:34px;height:34px;line-height:34px;background:rgba(255,255,255,.9);color:#0a1830;border-bottom:1px solid rgba(100,116,139,.2);transition:background .2s,color .2s}
+#weather-map .leaflet-bar a:hover{background:#fff;color:#1f8489}
+#weather-map .leaflet-bar a:last-child{border-bottom:0}
+#weather-map .leaflet-control-attribution{background:rgba(6,14,28,.62);color:#cbd5e1;border-radius:10px 0 0 0;font-size:10px;backdrop-filter:blur(6px)}
+#weather-map .leaflet-control-attribution a{color:#7dd3fc}
+#weather-map .leaflet-control-scale-line{background:rgba(6,14,28,.6);color:#e2e8f0;border-color:#e2e8f0;border-radius:0 8px 8px 0;font-size:10px}
+#weather-map .leaflet-popup-content-wrapper{border-radius:14px;box-shadow:0 14px 30px -12px rgba(6,14,28,.6)}
+
+/* Satellite player -> dark control bar */
+#tmPlayer{margin-top:.7rem!important;padding:.6rem .8rem;border-radius:16px;background:linear-gradient(160deg,#10264a,#0b1220);color:#e2e8f0;border:1px solid rgba(255,255,255,.08)}
+#tmPlayer .btn-rain{border-radius:999px;min-width:86px;justify-content:center}
+#tmSlider{-webkit-appearance:none;appearance:none;height:6px;border-radius:99px;background:rgba(255,255,255,.2);outline-offset:6px}
+#tmSlider::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#33c9d1;border:3px solid #fff;box-shadow:0 0 0 4px rgba(51,201,209,.28);transition:transform .15s}
+#tmSlider::-webkit-slider-thumb:hover{transform:scale(1.15)}
+#tmSlider::-moz-range-track{height:6px;border-radius:99px;background:rgba(255,255,255,.2)}
+#tmSlider::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:#33c9d1;border:3px solid #fff}
+#tmFrameTime{font-family:var(--font-mono);font-size:.74rem;padding:.28rem .7rem;border-radius:99px;background:rgba(255,255,255,.1);color:#e2e8f0}
+#tmStatus{padding-left:.3rem}
+@media (prefers-reduced-motion:reduce){#tmControls *,#tmPlayer *{transition-duration:.01ms!important}}

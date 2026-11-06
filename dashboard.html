@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/dashboard.css">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0a1830">
 <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
@@ -17,10 +18,24 @@
 <div id="app-shell-root"></div>
 
 <template id="dashboard-content">
-  <div class="mb-4">
-    <h1 style="font-family:var(--font-display); font-weight:700; font-size:1.6rem; color:var(--canvas-heading); margin-bottom:.25rem;" id="dashGreeting">Good morning</h1>
-    <p style="color:var(--canvas-body); margin:0;">Here's what's happening around your area.</p>
-  </div>
+<div class="db-page db-res">
+  <section class="db-hero">
+    <div class="db-hero-top">
+      <div>
+        <span class="db-kicker"><i class="bi bi-broadcast"></i> Tanauan City · Live overview</span>
+        <h1 id="dashGreeting">Good morning</h1>
+        <p>Here's what's happening around your area.</p>
+      </div>
+      <span class="db-date" id="dbDate"></span>
+    </div>
+    <div class="db-chips">
+      <a class="db-chip hot" href="emergency.html" data-press><i class="bi bi-telephone-fill"></i> Emergency</a>
+      <a class="db-chip" href="report.html" data-press><i class="bi bi-flag"></i> Report incident</a>
+      <a class="db-chip" href="weather.html" data-press><i class="bi bi-cloud-sun"></i> Weather</a>
+      <a class="db-chip" href="flood-landslide.html" data-press><i class="bi bi-water"></i> Flood &amp; landslide</a>
+      <a class="db-chip" href="volcano.html" data-press><i class="bi bi-fire"></i> Taal volcano</a>
+    </div>
+  </section>
 
   <div class="row g-4 mb-4">
     <div class="col-lg-5">
@@ -86,7 +101,7 @@
     </div>
   </div>
 
-  <div class="row g-3 mb-4">
+  <div class="row g-3 mb-4 db-stats">
     <div class="col-6 col-lg-3">
       <div class="rain-card reveal-on-scroll">
         <div class="card-eyebrow"><span>Weather</span><span class="icon-chip tone-cyan" id="statWeatherIcon"><i class="bi bi-cloud-sun dicon" data-dicon="cloud-sun"></i></span></div>
@@ -159,6 +174,7 @@
       </div>
     </div>
   </div>
+</div>
 </template>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -187,6 +203,7 @@
     const hour = new Date().getHours();
     const timeGreeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
     const firstName = (user.name || "there").split(" ")[0];
+    { const d = document.getElementById("dbDate"); if (d) d.innerHTML = '<span class="live-badge"><span class="dot"></span>LIVE</span>' + new Date().toLocaleDateString("en-PH", { weekday: "short", month: "short", day: "numeric" }); }
     document.getElementById("dashGreeting").textContent = `${timeGreeting}, ${firstName}`;
 
     // Weather stat card — fetches live weather directly via /api/weather,
