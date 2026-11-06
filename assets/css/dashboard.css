@@ -25,7 +25,7 @@
 .db-chip i{font-size:.95rem}
 
 /* ---- Stat cards: coloured accent, lift on hover ---- */
-.db-stats .rain-card{overflow:hidden;transition:transform .3s var(--db-ease),box-shadow .3s}
+.db-stats .rain-card{height:100%;overflow:hidden;transition:transform .3s var(--db-ease),box-shadow .3s}
 .db-stats .rain-card:hover{transform:translateY(-4px);box-shadow:0 22px 36px -22px var(--ac,#33c9d1)}
 .db-stats .rain-card::before{height:4px;opacity:1;background:linear-gradient(90deg,var(--ac,#33c9d1),transparent 90%)}
 .db-stats .rain-card::after{content:"";position:absolute;right:-40px;bottom:-60px;width:130px;height:130px;border-radius:50%;background:radial-gradient(circle,var(--ac,#33c9d1),transparent 70%);opacity:.16;pointer-events:none;transition:opacity .4s,transform .4s}
