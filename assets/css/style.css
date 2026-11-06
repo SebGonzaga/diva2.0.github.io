@@ -2616,54 +2616,38 @@ html.page-leaving body:not(:has(#app-shell-root)){
 
 /* =========================================================================
    Page-switch transition (see assets/js/page-transition.js)
-   A navy ripple blooms from the click point, a raindrop falls, and the
-   next page opens outward from the same spot. z-index 800 keeps it BELOW
-   the public navbar (1000), app top bar (900), sidebar (1050) and bottom
-   nav (1030) — navigation is never covered.
+   Deliberately calm: a soft cross-fade over the page content plus one small,
+   low-contrast ripple where you clicked. No large moving shapes, no flashes,
+   no zooming — so repeated page switches don't cause dizziness. The js also
+   skips the effect entirely when someone is switching pages rapidly.
+   z-index 800 keeps it BELOW the public navbar (1000), app top bar (900),
+   sidebar (1050) and bottom nav (1030).
    ========================================================================= */
 .pt-curtain,
 html.pt-enter::before{
   position:fixed; inset:0; z-index:800; pointer-events:none;
-  background:
-    radial-gradient(ellipse at var(--pt-x,50%) var(--pt-y,50%), rgba(51,201,209,.22), transparent 55%),
-    var(--navy-950);
+  background:var(--bg-primary, var(--navy-950));
+  will-change:opacity;
 }
-.pt-curtain{ animation:ptClose .48s cubic-bezier(.65,0,.35,1) forwards; }
-html.pt-enter::before{ content:""; animation:ptOpen .7s cubic-bezier(.65,0,.2,1) .12s forwards; }
+.pt-curtain{ opacity:0; animation:ptFadeIn .22s ease-out forwards; }
+html.pt-enter::before{ content:""; opacity:1; animation:ptFadeOut .32s ease-out forwards; }
 
-@keyframes ptClose{
-  from{ clip-path:circle(0 at var(--pt-x,50%) var(--pt-y,50%)); }
-  to  { clip-path:circle(150vmax at var(--pt-x,50%) var(--pt-y,50%)); }
-}
-@keyframes ptOpen{
-  from{ clip-path:circle(150vmax at var(--pt-x,50%) var(--pt-y,50%)); }
-  to  { clip-path:circle(0 at var(--pt-x,50%) var(--pt-y,50%)); visibility:hidden; }
-}
+@keyframes ptFadeIn { from{ opacity:0; } to{ opacity:1; } }
+@keyframes ptFadeOut{ from{ opacity:1; } to{ opacity:0; visibility:hidden; } }
 
-/* Ripple ring + falling raindrop, drawn on the exit curtain */
+/* One small, soft ripple at the click point (contained, low contrast) */
 .pt-ripple{
-  position:absolute; left:var(--pt-x); top:var(--pt-y);
-  width:20px; height:20px; margin:-10px 0 0 -10px; border-radius:50%;
+  position:fixed; left:var(--pt-x); top:var(--pt-y);
+  width:24px; height:24px; margin:-12px 0 0 -12px; border-radius:50%;
   border:2px solid var(--accent-cyan, #33c9d1);
-  opacity:0; animation:ptRipple .55s ease-out .05s forwards;
+  opacity:0; will-change:transform,opacity;
+  animation:ptRipple .4s ease-out forwards;
 }
 @keyframes ptRipple{
-  0%{ transform:scale(.4); opacity:.9; }
-  100%{ transform:scale(9); opacity:0; }
+  0%{ transform:scale(.5); opacity:.45; }
+  100%{ transform:scale(2.6); opacity:0; }
 }
-.pt-drop{
-  position:absolute; left:50%; top:50%;
-  width:18px; height:26px; margin:-13px 0 0 -9px;
-  background:radial-gradient(circle at 40% 30%, #c9f5f5, #33c9d1 55%, #149b9b);
-  border-radius:50% 50% 50% 50% / 62% 62% 38% 38%;
-  box-shadow:0 0 18px rgba(51,201,209,.7);
-  opacity:0; animation:ptDrop .42s ease-in .1s forwards;
-}
-@keyframes ptDrop{
-  0%{ transform:translateY(-60px) scale(.7); opacity:0; }
-  45%{ opacity:1; }
-  100%{ transform:translateY(0) scale(1); opacity:1; }
-}
+.pt-drop{ display:none; }
 
 @media (prefers-reduced-motion: reduce){
   .pt-curtain, html.pt-enter::before{ display:none; }
