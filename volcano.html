@@ -64,6 +64,8 @@
     </details>
   </div>
 
+  <div class="rain-card mb-4" id="aiDigestVolcano" style="font-size:.85rem;"></div>
+
   <div class="row g-4 mb-4">
     <div class="col-lg-5">
       <div class="rain-card reveal-on-scroll h-100">
@@ -131,6 +133,7 @@
 <script src="assets/js/supabase-client.js"></script>
 <script src="assets/js/rain-auth.js"></script>
 <script src="assets/js/offline-store.js"></script>
+<script src="assets/js/ai-digest-card.js"></script>
 <script src="assets/js/main.js"></script>
 <script type="module">
   await RainAuth.init();
@@ -165,7 +168,16 @@
     const body = $("vsBody"); shownId = null; $("vsDelete").classList.add("d-none");
     const { data, error } = await sb.from("volcano_status").select("*").eq("volcano", "Taal").order("bulletin_issued_at", { ascending: false }).limit(1);
     if (error) { console.warn("volcano_status", error); body.textContent = "Could not load the alert level (the volcano_status table may not be set up yet). Check PHIVOLCS directly."; paintHero(null, "Unavailable", "Check PHIVOLCS directly"); return; }
-    if (!data.length) { body.innerHTML = "No alert level has been entered yet. <b>Check PHIVOLCS directly for the current level.</b>"; paintHero(null, "Not entered yet", "Check PHIVOLCS directly"); return; }
+    if (!data.length) {
+      body.innerHTML = "No alert level has been entered by an administrator yet. <b>Check PHIVOLCS directly for the current level.</b>";
+      try {   // fall back to the level copied by the nightly job (ai_digests.metrics), clearly labelled
+        const r = await sb.from("ai_digests").select("alert_level,metrics,digest_date").eq("kind", "volcano").order("created_at", { ascending: false }).limit(5);
+        const d = (r.data || []).find((x) => (x.metrics && x.metrics.alert_level != null) || x.alert_level != null);
+        const lv = d ? (d.metrics && d.metrics.alert_level != null ? d.metrics.alert_level : d.alert_level) : null;
+        if (lv != null) { paintHero(lv, LEVEL_NAMES[lv] || "", "Auto-copied from bulletin" + (d.metrics && d.metrics.bulletin_date ? " of " + d.metrics.bulletin_date : "")); return; }
+      } catch (e) { console.warn("digest fallback", e); }
+      paintHero(null, "Not entered yet", "Check PHIVOLCS directly"); return;
+    }
     const v = data[0]; shownId = v.id;
     if (RainAuth.isAdmin(RainAuth.getUser())) $("vsDelete").classList.remove("d-none");
     const ageD = (Date.now() - new Date(v.bulletin_issued_at).getTime()) / 864e5, safe = /^https:\/\//.test(v.source_url) ? v.source_url : null;
@@ -251,6 +263,7 @@
     const loc = await loadLocation(); window.__taalLoc = loc; await loadWeather(loc.lat, loc.lng);
   }
   if (user) initVolcanoPage();
+  RainDigest.mount("aiDigestVolcano", "volcano");
 </script>
 </body>
 </html>
