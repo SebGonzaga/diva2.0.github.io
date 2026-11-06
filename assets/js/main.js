@@ -11,6 +11,7 @@ const RAIN_NAV = {
     { section: "Monitor", links: [
       { href: "dashboard.html", icon: "bi-grid-1x2", label: "Dashboard" },
       { href: "weather.html", icon: "bi-cloud-sun", label: "Weather" },
+      { href: "flood-landslide.html", icon: "bi-water", label: "Flood & Landslide" },
       { href: "volcano.html", icon: "bi-fire", label: "Volcano Monitoring" },
       { href: "earthquake.html", icon: "bi-activity", label: "Earthquake" },
     ]},
@@ -28,6 +29,7 @@ const RAIN_NAV = {
     { section: "Monitor", links: [
       { href: "admin-dashboard.html", icon: "bi-grid-1x2", label: "Dashboard" },
       { href: "weather.html", icon: "bi-cloud-sun", label: "Weather" },
+      { href: "flood-landslide.html", icon: "bi-water", label: "Flood & Landslide" },
       { href: "volcano.html", icon: "bi-fire", label: "Volcano Monitoring" },
       { href: "earthquake.html", icon: "bi-activity", label: "Earthquake" },
     ]},

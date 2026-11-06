@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){try{var t=localStorage.getItem("rain_theme")||"dark";document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Flood &amp; Landslide — RAIN</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/flood.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a1830">
+<link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+</head>
+<body>
+<div id="app-shell-root"></div>
+
+<template id="fl-tpl">
+<div class="fl-page">
+  <section class="fl-hero">
+    <div class="fl-hero-row">
+      <div>
+        <span class="fl-kicker"><i class="bi bi-water"></i> Hazard monitoring</span>
+        <h1>Flood &amp; Landslide — Tanauan City</h1>
+        <p>Explore MGB hazard susceptibility flat in 2D, or tilt into 3D terrain. Susceptibility is general, not live flood depth or a forecast.</p>
+        <div class="fl-stats" id="flStats"></div>
+      </div>
+      <div class="fl-seg" id="flSeg" data-mode="2d" role="group" aria-label="Map mode">
+        <span class="fl-thumb"></span>
+        <button type="button" data-m="2d" aria-pressed="true"><i class="bi bi-map"></i> 2D</button>
+        <button type="button" data-m="3d" aria-pressed="false"><i class="bi bi-badge-3d"></i> 3D</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="row g-3 mb-3">
+    <div class="col-xl-8">
+      <div class="fl-stage" id="flStage" data-mode="2d">
+        <div id="flMap"></div>
+        <div class="fl-progress" id="flProg"></div>
+        <div class="fl-dock fl-glass" id="flDock">
+          <button type="button" class="fl-dock-head" id="flDockBtn" aria-expanded="true"><span><i class="bi bi-layers-half"></i> Layers &amp; view</span><i class="bi bi-chevron-up"></i></button>
+          <div class="fl-dock-body">
+            <div class="fl-sub">Basemap</div>
+            <div class="fl-pills" id="flBase"><button type="button" data-b="sat" aria-pressed="true">Satellite</button><button type="button" data-b="osm" aria-pressed="false">Street</button><button type="button" data-b="dark" aria-pressed="false">Dark</button></div>
+            <div class="fl-sub">Hazard &amp; places</div>
+            <div id="flTog" style="display:grid;gap:.55rem"></div>
+            <label>Hazard opacity <input type="range" id="flOp" min="20" max="100" value="60"></label>
+            <div class="fl-3d-only">
+              <div class="fl-sub">3D terrain</div>
+              <label>Vertical exaggeration <b id="flExV">1.5</b>× <input type="range" id="flEx" min="1" max="3" step="0.5" value="1.5"></label>
+              <button type="button" class="fl-btn mt-2" id="flOrbit"><i class="bi bi-arrow-repeat"></i> Cinematic orbit</button>
+            </div>
+          </div>
+        </div>
+        <div class="fl-hint fl-glass" id="flHint">Click the map to check a spot</div>
+        <div class="fl-tip fl-glass" id="flTip"></div>
+        <div class="fl-fail" id="flFail"><div><i class="bi bi-exclamation-triangle" style="font-size:2rem"></i><p class="mt-2 mb-0">The map could not start. It needs WebGL and the map library from the internet. Try another browser or check your connection.</p></div></div>
+      </div>
+    </div>
+    <div class="col-xl-4">
+      <div class="rain-card fl-card mb-3">
+        <b><i class="bi bi-geo-alt-fill"></i> Check a location</b>
+        <p class="text-muted mt-1 mb-2" style="font-size:.78rem">Pick a barangay, click the map, drag the pin, or use your device location. MGB is asked what is mapped at that one point.</p>
+        <select id="flBrgy" class="form-select form-select-sm mb-2" aria-label="Jump to barangay"><option value="">Jump to a barangay…</option></select>
+        <button type="button" class="btn-rain btn-rain-ghost btn-rain-sm" id="flLoc"><i class="bi bi-crosshair"></i> <span>Use my location</span></button>
+        <div id="flPin" class="mt-3" aria-live="polite">No point selected yet.</div>
+      </div>
+      <div class="rain-card fl-card mb-3" id="flLegend"></div>
+      <div class="rain-card fl-card" style="border-left:4px solid #b45309;font-size:.8rem">
+        <b>How to read this map.</b> Susceptibility shows where conditions make flooding or landslides <i>more likely</i> in general. It does not say when or whether an event will happen.
+        Community reports are unverified unless marked. Follow official LGU/CDRRMO, PAGASA and PHIVOLCS advisories.
+      </div>
+    </div>
+  </div>
+
+  <div class="rain-card" style="font-size:.76rem"><b>Sources &amp; limitations.</b> Flood and rain-induced landslide susceptibility come live from the Philippine Geoportal / UlAP hazards server (<code>ulap-hazards.georisk.gov.ph</code>), from Mines and Geosciences Bureau data (flood: July 2018; landslide: 2012, READY Project). Check scale, licence and update status before relying on them.
+    Barangay boundaries are indicative (PSA/NAMRIA via OCHA), not official. Hall pins in grey are barangay centres, not confirmed hall locations. Evacuation-center status is not tracked here; confirm with the CDRRMO.
+    3D terrain: AWS Open Data Terrain Tiles (coarse, tens of metres) and OpenFreeMap buildings (OpenStreetMap data, heights often default). Terrain is exaggerated for visibility; use it for orientation only, not engineering or evacuation decisions.
+    Not Project NOAH data. Satellite &copy; Esri, Maxar, Earthstar Geographics; streets &copy; OpenStreetMap contributors; dark &copy; CARTO.</div>
+</div>
+</template>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/animejs@4.5.0/lib/anime.iife.min.js"></script>
+<script src="assets/js/animations.js"></script>
+<script src="assets/js/icons.js"></script>
+<script src="assets/js/demo-data.js"></script>
+<script src="assets/js/tanauan-boundaries.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/rain-auth.js"></script>
+<script src="assets/js/offline-store.js"></script>
+<script src="assets/js/main.js"></script>
+<script type="module">
+  await RainAuth.init();
+  const user = renderAppShell("flood-landslide.html", { title: "Flood & Landslide" });
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  $("app-content").appendChild($("fl-tpl").content.cloneNode(true));
+  if (!user) throw new Error("not signed in");
+
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const CENTER = [121.1497, 14.0863];                       // approximate city centre, view only
+  const BASE = "https://ulap-hazards.georisk.gov.ph/arcgis/rest/services/MGBPublic/";
+  const HAZ = [{ id: "flood", url: BASE + "Flood/MapServer" }, { id: "slide", url: BASE + "RainInducedLandslide/MapServer" }];
+  const D = window.RAIN_DEMO || {}, B = window.RAIN_BOUNDARIES;
+  const expUrl = (u) => `${u}/export?bbox={bbox-epsg-3857}&bboxSR=3857&imageSR=3857&size=256,256&format=png32&transparent=true&f=image`;
+  const ease = (k) => (k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);
+  const ms = (n) => (reduce ? 0 : n);
+  function tween(a, b, dur, fn, done) {
+    if (!dur) { fn(b); done && done(); return; }
+    const t0 = performance.now();
+    const step = (t) => { const k = Math.min(1, (t - t0) / dur); fn(a + (b - a) * ease(k)); k < 1 ? requestAnimationFrame(step) : done && done(); };
+    requestAnimationFrame(step);
+  }
+
+  // ---------- hero stats (real counts from the app's own data) ----------
+  const stats = [["flStB", (B && B.features.length) || 0, "barangays"], ["flStE", (D.evacuationCenters || []).length, "evacuation centers"], ["flStR", null, "community reports (30 d)"], ["flStH", 2, "MGB hazard layers"]];
+  $("flStats").innerHTML = stats.map(([id, , l]) => `<span class="fl-stat"><b id="${id}">–</b>${l}</span>`).join("");
+  const countUp = (id, n) => tween(0, n, ms(900), (v) => { $(id).textContent = Math.round(v); });
+  stats.forEach(([id, n]) => n != null && countUp(id, n));
+
+  // ---------- map ----------
+  const stage = $("flStage");
+  let map, mode = "2d", exag = 1.5, curExag = 0, orbitId = null, pin = null, qTok = 0;
+  try {
+    map = new maplibregl.Map({
+      container: "flMap", center: CENTER, zoom: 11.6, pitch: 0, bearing: 0, maxPitch: 0, attributionControl: { compact: true },
+      style: { version: 8, sources: {
+        osm: { type: "raster", tileSize: 256, maxzoom: 19, tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"], attribution: "&copy; OpenStreetMap contributors" },
+        dark: { type: "raster", tileSize: 256, maxzoom: 19, tiles: ["https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"], attribution: "&copy; CARTO, &copy; OpenStreetMap contributors" },
+        sat: { type: "raster", tileSize: 256, maxzoom: 19, tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], attribution: "Esri, Maxar, Earthstar Geographics" },
+        dem: { type: "raster-dem", encoding: "terrarium", tileSize: 256, maxzoom: 15, tiles: ["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"], attribution: "Terrain: AWS Terrain Tiles (SRTM and others)" },
+      }, layers: [
+        { id: "osm", type: "raster", source: "osm", layout: { visibility: "none" } },
+        { id: "dark", type: "raster", source: "dark", layout: { visibility: "none" } },
+        { id: "sat", type: "raster", source: "sat" },
+        { id: "hill", type: "hillshade", source: "dem", paint: { "hillshade-exaggeration": 0.35 } },
+      ] },
+    });
+  } catch (e) { console.warn("map", e); $("flFail").style.display = "grid"; throw e; }
+  map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
+  map.addControl(new maplibregl.ScaleControl(), "bottom-left");
+  map.dragRotate.disable(); map.touchZoomRotate.disableRotation();
+  map.on("dataloading", () => $("flProg").classList.add("on"));
+  map.on("idle", () => $("flProg").classList.remove("on"));
+
+  // ---------- layer registry (fade in/out instead of popping) ----------
+  const FADE = { flood: "raster-opacity", slide: "raster-opacity", "vec-fill": "fill-opacity", "vec-line": "line-opacity", "evac-pts": "circle-opacity", "hall-pts": "circle-opacity", reports: "circle-opacity" };
+  const TGT = { flood: .6, slide: .6, "vec-fill": .5, "vec-line": .9, "evac-pts": 1, "hall-pts": 1, reports: 1 };
+  const TOG = [
+    { k: "flood", t: "Flood susceptibility", s: "MGB · 2018", c: "#3b82f6", on: true, ids: ["flood"] },
+    { k: "slide", t: "Landslide susceptibility", s: "MGB · 2012", c: "#f59e0b", ids: ["slide"] },
+    { k: "vec", t: "Zones by class (polygons)", s: "live from MGB", c: "#a78bfa", ids: ["vec-fill", "vec-line"] },
+    { k: "brgy", t: "Barangay boundaries", s: "indicative, not official", c: "#f8fafc", on: true, ids: ["brgy-fill", "brgy-line"] },
+    { k: "evac", t: "Evacuation centers", s: "status not tracked", c: "#16a34a", ids: ["evac-pts"] },
+    { k: "hall", t: "Barangay halls", s: "grey = barangay centre", c: "#94a3b8", ids: ["hall-pts"] },
+    { k: "reports", t: "Community reports", s: "30 days · unverified", c: "#92400e", on: true, ids: ["reports"] },
+  ];
+  const state = {};
+  $("flTog").innerHTML = TOG.map((d) => `<label class="fl-sw"><input type="checkbox" data-k="${d.k}" ${d.on ? "checked" : ""}><span><span class="fl-dot" style="background:${d.c}"></span>${esc(d.t)}<small>${esc(d.s)}</small></span></label>`).join("");
+  function show(k, on) {
+    const d = TOG.find((x) => x.k === k); state[k] = on;
+    d.ids.forEach((id) => {
+      if (!map.getLayer(id)) return; const p = FADE[id];
+      if (on) { map.setLayoutProperty(id, "visibility", "visible"); p && requestAnimationFrame(() => map.setPaintProperty(id, p, TGT[id])); }
+      else { p && map.setPaintProperty(id, p, 0); setTimeout(() => { if (!state[k]) map.setLayoutProperty(id, "visibility", "none"); }, ms(480)); }
+    });
+    if (k === "vec" && on) loadVec();
+  }
+  $("flTog").addEventListener("change", (e) => e.target.dataset.k && show(e.target.dataset.k, e.target.checked));
+  $("flOp").addEventListener("input", (e) => { const v = e.target.value / 100; ["flood", "slide"].forEach((id) => { TGT[id] = v; if (state[id]) map.setPaintProperty(id, "raster-opacity", v); }); });
+  $("flDockBtn").addEventListener("click", () => { const c = $("flDock").classList.toggle("closed"); $("flDockBtn").setAttribute("aria-expanded", String(!c)); });
+
+  // ---------- basemap pills ----------
+  $("flBase").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    ["osm", "dark", "sat"].forEach((id) => map.setLayoutProperty(id, "visibility", id === b.dataset.b ? "visible" : "none"));
+    $("flBase").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+  });
+
+  // ---------- 2D <-> 3D ----------
+  function setTerr(v) { map.setTerrain({ source: "dem", exaggeration: Math.max(v, 0.01) }); curExag = v; }
+  function stopOrbit() { if (orbitId) { cancelAnimationFrame(orbitId); orbitId = null; $("flOrbit").innerHTML = '<i class="bi bi-arrow-repeat"></i> Cinematic orbit'; } }
+  function setMode(m) {
+    mode = m; stage.dataset.mode = m; $("flSeg").dataset.mode = m;
+    $("flSeg").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.m === m)));
+    try { localStorage.setItem("fl_mode", m); history.replaceState(null, "", "#" + m); } catch (e) {}
+    $("flHint").textContent = m === "3d" ? "Right-drag (or two fingers) to tilt & rotate" : "Click the map to check a spot";
+    if (m === "3d") {
+      map.setMaxPitch(80); map.dragRotate.enable(); map.touchZoomRotate.enableRotation();
+      map.setLayoutProperty("bld3d", "visibility", "visible");
+      requestAnimationFrame(() => map.setPaintProperty("bld3d", "fill-extrusion-opacity", 0.85));
+      setTerr(Math.max(curExag, 0.01)); tween(curExag, exag, ms(1300), setTerr);
+      map.easeTo({ pitch: 62, bearing: 20, zoom: Math.max(map.getZoom(), 12.2), duration: ms(1700), easing: ease });
+    } else {
+      stopOrbit(); map.setPaintProperty("bld3d", "fill-extrusion-opacity", 0);
+      map.easeTo({ pitch: 0, bearing: 0, duration: ms(1300), easing: ease });
+      tween(curExag, 0.01, ms(1000), setTerr, () => { if (mode === "2d") { map.setTerrain(null); map.setLayoutProperty("bld3d", "visibility", "none"); } });
+      map.once("moveend", () => { if (mode === "2d") { map.setMaxPitch(0); map.dragRotate.disable(); map.touchZoomRotate.disableRotation(); } });
+    }
+  }
+  $("flSeg").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b && b.dataset.m !== mode) setMode(b.dataset.m); });
+  $("flEx").addEventListener("input", (e) => { exag = +e.target.value; $("flExV").textContent = exag; if (mode === "3d") setTerr(exag); });
+  $("flOrbit").addEventListener("click", () => {
+    if (orbitId) return stopOrbit();
+    $("flOrbit").innerHTML = '<i class="bi bi-pause-fill"></i> Stop orbit';
+    const step = () => { map.setBearing(map.getBearing() + 0.12); orbitId = requestAnimationFrame(step); }; step();
+  });
+  if (reduce) $("flOrbit").style.display = "none";
+  ["mousedown", "touchstart", "wheel"].forEach((ev) => map.on(ev, stopOrbit));
+
+  // ---------- hazard class helpers ----------
+  const PAL = { flood: { v: "#1e3a8a", h: "#2563eb", m: "#60a5fa", l: "#93c5fd" }, slide: { v: "#7f1d1d", h: "#dc2626", m: "#f97316", l: "#eab308" } };
+  const ADV = { flood: { h: "Monitor water levels and prepare for evacuation during heavy rain.", m: "Stay alert to advisories. Keep an emergency bag ready.", l: "Follow local advisories during heavy rain." },
+    slide: { h: "Watch for slope cracks and muddy streams. Prepare to evacuate in prolonged rain.", m: "Avoid steep cuts. Monitor slopes after heavy rain.", l: "Follow local advisories during heavy rain." } };
+  const lvlKey = (t) => { t = String(t || "").toLowerCase(); return /very/.test(t) ? "v" : /high|\bh\b|^3$|debris|accum/.test(t) ? "h" : /mod|\bm\b|^2$/.test(t) ? "m" : /low|\bl\b|^1$/.test(t) ? "l" : null; };
+  const classOf = (a) => {
+    if (!a) return "None mapped (outside susceptible zones)";
+    const keys = Object.keys(a).filter((k) => /susc|haz|class|level|rating|^f?hazard|^lh|^fh|^gridcode|^descript/i.test(k) && a[k] != null && a[k] !== "");
+    return (keys.length ? keys : Object.keys(a).filter((k) => typeof a[k] === "string")).slice(0, 2).map((k) => a[k]).join(" · ") || "Mapped (class not stated)";
+  };
+
+  // ---------- check a location (api/hazard-point -> MGB identify) ----------
+  const SVC = [["Flood", "flood", "Flood susceptibility (MGB 2018)"], ["RainInducedLandslide", "slide", "Landslide susceptibility (MGB 2012)"]];
+  async function checkPoint(lng, lat, note) {
+    const tok = ++qTok;
+    if (!(lat >= 4 && lat <= 21.5 && lng >= 116 && lng <= 127.5)) { $("flPin").textContent = "That point is outside the Philippines, where MGB hazard data applies."; return; }
+    if (!pin) { pin = new maplibregl.Marker({ draggable: true, color: "#ef4444" }).setLngLat([lng, lat]).addTo(map); pin.on("dragend", () => { const p = pin.getLngLat(); checkPoint(p.lng, p.lat); }); }
+    else pin.setLngLat([lng, lat]);
+    $("flPin").innerHTML = '<div class="fl-skel"></div><div class="fl-skel"></div>';
+    const parts = await Promise.all(SVC.map(async ([svc, k, label]) => {
+      try {
+        const r = await fetch(`/api/hazard-point?service=${svc}&lat=${lat}&lng=${lng}`); if (!r.ok) throw new Error(r.status);
+        const j = await r.json();
+        if (!j.count) return `<div class="fl-res"><b>${esc(label)}</b><br>No mapped class returned here. That can mean low/no susceptibility <i>or</i> no coverage; the source does not say which.</div>`;
+        const kv = Object.entries(j.attributes || {}), head = kv.find(([key]) => /susc|class|hazard|level|rating/i.test(key)), lk = lvlKey(head && head[1]);
+        const col = (lk && PAL[k][lk]) || "#64748b", adv = lk && ADV[k][lk === "v" ? "h" : lk];
+        return `<div class="fl-res" style="--c:${col}"><b>${esc(label)}</b><br>${head ? `<span class="fl-chip" style="background:${col}">${esc(head[1])}</span>` : ""}${adv ? `<div class="mt-1">${esc(adv)}</div>` : ""}
+          <small class="text-muted">As returned by MGB: ${kv.map(([a, v]) => esc(a) + " = " + esc(v)).join("; ") || "(no attributes)"}</small></div>`;
+      } catch (e) { return `<div class="fl-res"><b>${esc(label)}</b><br>Could not be checked right now.</div>`; }
+    }));
+    if (tok !== qTok) return;
+    $("flPin").innerHTML = parts.join("") + `<small class="text-muted">General susceptibility, not current conditions. ${lat.toFixed(5)}, ${lng.toFixed(5)}${note ? " · " + esc(note) : ""}</small>`;
+  }
+
+  // ---------- barangays: picker, hover, select ----------
+  const bf = (B && B.features) || [];
+  $("flBrgy").insertAdjacentHTML("beforeend", bf.map((f, i) => ({ n: f.properties.name, i })).sort((a, b) => a.n.localeCompare(b.n)).map((o) => `<option value="${o.i}">${esc(o.n)}</option>`).join(""));
+  const geomBox = (g) => { let a = 1e9, b = 1e9, c = -1e9, d = -1e9; const w = (x) => Array.isArray(x[0]) ? x.forEach(w) : (a = Math.min(a, x[0]), c = Math.max(c, x[0]), b = Math.min(b, x[1]), d = Math.max(d, x[1])); w(g.coordinates); return [[a, b], [c, d]]; };
+  function centroid(g) {   // area-weighted centre of the largest ring; for odd shapes it can sit near an edge
+    let best = null, ba = 0;
+    (g.type === "Polygon" ? [g.coordinates] : g.coordinates).forEach((p) => { const r = p[0]; let a = 0, cx = 0, cy = 0;
+      for (let i = 0; i < r.length - 1; i++) { const f = r[i][0] * r[i + 1][1] - r[i + 1][0] * r[i][1]; a += f; cx += (r[i][0] + r[i + 1][0]) * f; cy += (r[i][1] + r[i + 1][1]) * f; }
+      if (Math.abs(a) > ba) { ba = Math.abs(a); best = [cx / (3 * a), cy / (3 * a)]; } });
+    return best;
+  }
+  let sel = null;
+  function mark(i) { if (sel !== null) map.setFeatureState({ source: "brgy", id: sel }, { s: false }); sel = i; if (i !== null) map.setFeatureState({ source: "brgy", id: i }, { s: true }); $("flBrgy").value = i === null ? "" : i; }
+  $("flBrgy").addEventListener("change", (e) => {
+    if (e.target.value === "") return; const i = +e.target.value, f = bf[i]; mark(i);
+    map.fitBounds(geomBox(f.geometry), { padding: 70, maxZoom: 14.5, duration: ms(1700), pitch: mode === "3d" ? 60 : 0, bearing: mode === "3d" ? 20 : 0, easing: ease });
+    const c = centroid(f.geometry); checkPoint(c[0], c[1], "Barangay " + f.properties.name + ", sampled at its centre point only");
+  });
+
+  // ---------- facilities + popups ----------
+  const facFC = (kind, list) => ({ type: "FeatureCollection", features: list.filter((x) => typeof x.lat === "number" && typeof x.lng === "number").map((x) => ({ type: "Feature", geometry: { type: "Point", coordinates: [x.lng, x.lat] }, properties: { kind, name: x.name, type: x.type || x.hall || "", address: x.address || "", approx: !!x.approx } })) });
+  const popHTML = (p) => `<b>${esc(p.name)}</b><br>${esc(p.type)}${p.address ? "<br>" + esc(p.address) : ""}${p.approx === true || p.approx === "true" ? "<br><i>Approximate: barangay centre, not a confirmed hall location.</i>" : ""}<br><small>Live status is not tracked here. Confirm with the CDRRMO.</small>`;
+
+  // ---------- live MGB polygons ----------
+  const ringArea = (r) => r.reduce((a, p, i) => { const n = r[(i + 1) % r.length]; return a + (n[0] - p[0]) * (n[1] + p[1]); }, 0);
+  const jsonp = (url) => new Promise((res, rej) => { const cb = "cb" + Math.random().toString(36).slice(2), el = document.createElement("script");
+    const done = () => { clearTimeout(t); delete window[cb]; el.remove(); }, t = setTimeout(() => { done(); rej(new Error("timeout")); }, 20000);
+    window[cb] = (d) => { done(); res(d); }; el.onerror = () => { done(); rej(new Error("load")); }; el.src = url + "&callback=" + cb; document.head.appendChild(el); });
+  const arc = async (url) => { try { return await (await fetch(url)).json(); } catch (e) { return jsonp(url); } };
+  let vecLoaded = false;
+  async function loadVec() {
+    if (vecLoaded) return; vecLoaded = true; const feats = []; let ok = 0;
+    for (const h of HAZ) {
+      try {
+        const j = await arc(`${h.url}/0/query?where=1%3D1&geometry=121.04,14.00,121.25,14.17&geometryType=esriGeometryEnvelope&inSR=4326&outSR=4326&spatialRel=esriSpatialRelIntersects&outFields=*&returnGeometry=true&maxAllowableOffset=0.0003&resultRecordCount=2000&f=json`);
+        if (j.error) throw new Error(j.error.message);
+        (j.features || []).forEach((f) => { const polys = []; ((f.geometry && f.geometry.rings) || []).forEach((r) => { if (ringArea(r) > 0) polys.push([r]); else if (polys.length) polys[polys.length - 1].push(r); });
+          if (!polys.length) return; const lab = classOf(f.attributes);
+          feats.push({ type: "Feature", properties: { k: h.id, label: lab, _c: PAL[h.id][lvlKey(lab) || "l"] }, geometry: { type: "MultiPolygon", coordinates: polys } }); });
+        ok++;
+      } catch (e) { console.warn("vector load failed", h.id, e); }
+    }
+    map.getSource("vec").setData({ type: "FeatureCollection", features: feats }); if (!ok) vecLoaded = false;
+  }
+
+  // ---------- community reports ----------
+  async function loadReports() {
+    try {
+      const since = new Date(Date.now() - 30 * 864e5).toISOString();
+      const { data, error } = await sb.from("incidents").select("category,area,description,status,created_at,lat,lng").in("category", ["Flooding", "Landslide"]).neq("status", "dismissed").gte("created_at", since).not("lat", "is", null).not("lng", "is", null).limit(500);
+      if (error) throw error;
+      const feats = (data || []).filter((r) => r.lat >= 4 && r.lat <= 21.5 && r.lng >= 116 && r.lng <= 127.5).map((r) => ({ type: "Feature", geometry: { type: "Point", coordinates: [r.lng, r.lat] },
+        properties: { category: r.category, area: r.area, status: r.status, when: new Date(r.created_at).toLocaleString(), description: (r.description || "").slice(0, 200) } }));
+      map.getSource("reports").setData({ type: "FeatureCollection", features: feats }); countUp("flStR", feats.length);
+    } catch (e) { console.warn("reports", e); $("flStR").textContent = "n/a"; }
+  }
+
+  // ---------- legend ----------
+  const ramp = (p) => `<span class="fl-ramp" style="background:linear-gradient(90deg,${p.l},${p.m},${p.h},${p.v})"></span>`;
+  $("flLegend").innerHTML = `<b>Legend</b>
+    <div class="fl-leg"><span style="width:62px">Flood</span>${ramp(PAL.flood)}<small>low → very high</small></div>
+    <div class="fl-leg"><span style="width:62px">Landslide</span>${ramp(PAL.slide)}<small>low → high</small></div>
+    <div class="text-muted mb-2" style="font-size:.72rem">Ramps apply to the polygon layer. The image overlays use the colours drawn by the MGB service.</div>
+    <div class="fl-leg"><span class="fl-dot" style="background:#16a34a"></span>Evacuation center <span class="fl-dot ms-2" style="background:#94a3b8"></span>Barangay hall <span class="fl-dot ms-2" style="background:#2563eb"></span>Flood report <span class="fl-dot ms-2" style="background:#92400e"></span>Landslide report</div>
+    <div class="mt-2" style="font-size:.75rem"><b>MGB flood classes:</b> Low ≤0.5 m · Moderate 0.5–1 m · High 1–2 m · Very High &gt;2 m (depth).<br><b>Landslide:</b> Low / Moderate / High; high areas have active or recent landslides and tension cracks.</div>`;
+
+  // ---------- load ----------
+  const tip = $("flTip");
+  map.on("load", () => {
+    map.addSource("ofm", { type: "vector", url: "https://tiles.openfreemap.org/planet" });
+    map.addLayer({ id: "bld3d", type: "fill-extrusion", source: "ofm", "source-layer": "building", minzoom: 14, layout: { visibility: "none" },
+      paint: { "fill-extrusion-color": "#cfc6bb", "fill-extrusion-opacity": 0, "fill-extrusion-opacity-transition": { duration: ms(800) }, "fill-extrusion-height": ["coalesce", ["get", "render_height"], 5], "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0] } });
+    HAZ.forEach((h) => { map.addSource(h.id, { type: "raster", tileSize: 256, minzoom: 8, tiles: [expUrl(h.url)], attribution: "Hazard data: MGB via Philippine Geoportal/UlAP" });
+      map.addLayer({ id: h.id, type: "raster", source: h.id, layout: { visibility: "none" }, paint: { "raster-opacity": 0, "raster-fade-duration": 300 } }, "bld3d"); });
+    map.addSource("vec", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+    map.addLayer({ id: "vec-fill", type: "fill", source: "vec", layout: { visibility: "none" }, paint: { "fill-color": ["get", "_c"], "fill-opacity": 0 } });
+    map.addLayer({ id: "vec-line", type: "line", source: "vec", layout: { visibility: "none" }, paint: { "line-color": ["get", "_c"], "line-width": 1, "line-opacity": 0 } });
+    if (B) {
+      map.addSource("brgy", { type: "geojson", data: B, generateId: true });
+      map.addLayer({ id: "brgy-fill", type: "fill", source: "brgy", layout: { visibility: "none" }, paint: { "fill-color": "#ffffff", "fill-opacity": ["case", ["boolean", ["feature-state", "s"], false], 0.16, ["boolean", ["feature-state", "h"], false], 0.24, 0.01] } });
+      map.addLayer({ id: "brgy-line", type: "line", source: "brgy", layout: { visibility: "none" }, paint: { "line-color": "#f8fafc", "line-width": ["case", ["boolean", ["feature-state", "s"], false], 3, 1.2], "line-dasharray": [2, 1] } });
+      let hov = null;
+      map.on("mousemove", "brgy-fill", (e) => { const f = e.features[0]; if (hov !== null && hov !== f.id) map.setFeatureState({ source: "brgy", id: hov }, { h: false });
+        hov = f.id; map.setFeatureState({ source: "brgy", id: hov }, { h: true }); tip.textContent = "Brgy. " + f.properties.name; tip.style.left = e.point.x + "px"; tip.style.top = e.point.y + "px"; tip.classList.add("on"); });
+      map.on("mouseleave", "brgy-fill", () => { if (hov !== null) map.setFeatureState({ source: "brgy", id: hov }, { h: false }); hov = null; tip.classList.remove("on"); });
+    }
+    map.addSource("evac", { type: "geojson", data: facFC("evac", D.evacuationCenters || []) });
+    map.addLayer({ id: "evac-pts", type: "circle", source: "evac", layout: { visibility: "none" }, paint: { "circle-radius": 7, "circle-color": "#16a34a", "circle-stroke-color": "#fff", "circle-stroke-width": 2, "circle-opacity": 0, "circle-pitch-alignment": "map" } });
+    map.addSource("hall", { type: "geojson", data: facFC("hall", D.barangays || []) });
+    map.addLayer({ id: "hall-pts", type: "circle", source: "hall", layout: { visibility: "none" }, paint: { "circle-radius": 6, "circle-color": ["case", ["==", ["get", "approx"], true], "#94a3b8", "#475569"], "circle-stroke-color": "#fff", "circle-stroke-width": 2, "circle-opacity": 0, "circle-pitch-alignment": "map" } });
+    map.addSource("reports", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+    map.addLayer({ id: "reports", type: "circle", source: "reports", layout: { visibility: "none" }, paint: { "circle-radius": 8, "circle-stroke-color": "#fff", "circle-stroke-width": 2, "circle-opacity": 0, "circle-pitch-alignment": "map", "circle-color": ["match", ["get", "category"], "Flooding", "#2563eb", "#92400e"] } });
+    Object.keys(FADE).forEach((id) => map.setPaintProperty(id, FADE[id] + "-transition", { duration: ms(450) }));
+    [["evac-pts", popHTML], ["hall-pts", popHTML], ["reports", (p) => `<b>${esc(p.category)}</b> · ${p.status === "pending" ? "Unverified report" : "Reviewed by admin"}<br>${esc(p.area)}<br><small>${esc(p.when)}</small><br>${esc(p.description)}`]].forEach(([id, fn]) => {
+      map.on("click", id, (e) => new maplibregl.Popup({ offset: 10 }).setLngLat(e.features[0].geometry.coordinates).setHTML(fn(e.features[0].properties)).addTo(map));
+      map.on("mouseenter", id, () => { map.getCanvas().style.cursor = "pointer"; }); map.on("mouseleave", id, () => { map.getCanvas().style.cursor = ""; });
+    });
+    TOG.forEach((d) => { if (d.on) show(d.k, true); });
+    loadReports();
+    if ((location.hash === "#3d" || (!location.hash && localStorage.getItem("fl_mode") === "3d"))) setTimeout(() => setMode("3d"), ms(400));
+  });
+  map.on("click", (e) => {
+    const pts = ["evac-pts", "hall-pts", "reports"].filter((id) => map.getLayer(id) && map.getLayoutProperty(id, "visibility") === "visible");
+    if (pts.length && map.queryRenderedFeatures(e.point, { layers: pts }).length) return;
+    if (map.getLayer("brgy-fill") && map.getLayoutProperty("brgy-fill", "visibility") === "visible") { const b = map.queryRenderedFeatures(e.point, { layers: ["brgy-fill"] })[0]; mark(b ? b.id : null); }
+    checkPoint(+e.lngLat.lng.toFixed(5), +e.lngLat.lat.toFixed(5));
+  });
+  $("flLoc").addEventListener("click", () => {
+    if (!navigator.geolocation) { $("flPin").textContent = "Location is not supported on this device."; return; }
+    $("flPin").textContent = "Finding your location…";
+    navigator.geolocation.getCurrentPosition((p) => {
+      const la = +p.coords.latitude.toFixed(5), lo = +p.coords.longitude.toFixed(5);
+      map.flyTo({ center: [lo, la], zoom: Math.max(map.getZoom(), 14), duration: ms(1800) }); checkPoint(lo, la, "your location (±" + Math.round(p.coords.accuracy) + " m)");
+    }, (err) => { $("flPin").textContent = err.code === 1 ? "Location permission denied. Allow location access in your browser and try again." : "Could not get your location. Try again outdoors or with Wi-Fi on."; }, { enableHighAccuracy: true, timeout: 10000 });
+  });
+</script>
+</body>
+</html>
