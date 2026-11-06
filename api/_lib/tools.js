@@ -49,13 +49,24 @@ function owmKey() {
 }
 
 async function geocode(place, signal) {
-  const q = safeTerm(place, 80);
-  if (!q) return null;
+  // safeTerm() strips commas, so "Alaminos, Laguna" used to become the query
+  // "Alaminos Laguna,PH" -- which OpenWeather's geocoder answers with [] (it
+  // only understands "name,country"). Split the raw text into a place name and
+  // an optional province hint ourselves, search by name only, then use the
+  // hint (or distance to the app's default centre) to pick between towns that
+  // share a name.
+  const raw = String(place ?? '').split(',').map((p) => safeTerm(p, 60)).filter(Boolean);
+  const name = raw[0];
+  if (!name) return null;
+  const hint = (raw[1] || '').toLowerCase();
   const key = owmKey();
-  const list = await cached(`geo:${q.toLowerCase()}`, 24 * 60 * MIN, () =>
-    fetchJson(`${OWM}/geo/1.0/direct?q=${encodeURIComponent(q + ',PH')}&limit=1&appid=${key}`, { signal }));
-  const g = Array.isArray(list) ? list[0] : null;
-  if (!g) return null;
+  const list = await cached(`geo2:${name.toLowerCase()}`, 24 * 60 * MIN, () =>
+    fetchJson(`${OWM}/geo/1.0/direct?q=${encodeURIComponent(name + ',PH')}&limit=5&appid=${key}`, { signal }));
+  const hits = (Array.isArray(list) ? list : []).filter((g) => !g.country || g.country === 'PH');
+  if (!hits.length) return null;
+  let g = hint ? hits.find((h) => `${h.state || ''} ${h.name || ''}`.toLowerCase().includes(hint)) : null;
+  if (!g) g = [...hits].sort((a, b) =>
+    haversineKm(DEFAULT_LOC.lat, DEFAULT_LOC.lng, a.lat, a.lon) - haversineKm(DEFAULT_LOC.lat, DEFAULT_LOC.lng, b.lat, b.lon))[0];
   return { lat: g.lat, lng: g.lon, label: [g.name, g.state].filter(Boolean).join(', ') };
 }
 

@@ -68,7 +68,16 @@
   function loadHistory() {
     try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch (e) { return []; }
   }
-  function saveHistory(history) { localStorage.setItem(STORAGE_KEY, JSON.stringify(history)); }
+  const MAX_SAVED_MESSAGES = 60;
+  function saveHistory(history) {
+    if (history.length > MAX_SAVED_MESSAGES) history.splice(0, history.length - MAX_SAVED_MESSAGES);
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(history)); } catch (e) { /* storage full/blocked: chat still works, just isn't saved */ }
+  }
+  // Offline-fallback replies are saved as HTML cards; send the model plain text, not markup.
+  function plainForModel(m) {
+    if (m.format !== "html") return m;
+    return { ...m, message: String(m.message || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim() };
+  }
 
   const TOPICS = {
     en: [
@@ -164,7 +173,7 @@
   // it's just enough for the kind of formatting Gemini tends to use here,
   // not a general-purpose markdown parser.
   function escapeHtml(s) {
-    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   }
   function renderMarkdown(text) {
     const escaped = escapeHtml(text);
@@ -439,7 +448,7 @@
       // RainChatAPI.sendFull() (assets/js/main.js) is the shared client for
       // /api/chat. `reply` stays raw markdown (saved to history and sent back
       // to Gemini as context); displayReply is the rendered HTML.
-      const out = await RainChatAPI.sendFull(text, { lang: currentLang, history: history.slice(0, -1) });
+      const out = await RainChatAPI.sendFull(text, { lang: currentLang, history: history.slice(0, -1).map(plainForModel) });
       reply = out.reply;
       sources = out.sources;
       displayReply = renderMarkdown(reply);
