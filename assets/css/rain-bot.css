@@ -1,0 +1,195 @@
+/* =========================================================================
+   RAIN-bot — the animated mascot that lives above the chat input.
+   Layers (outer → inner), each owns ONE kind of motion so they never fight:
+     .rb-bot     walking (translateX)
+     .rb-hopper  jumping (translateY)
+     .rb-flip    facing direction (scaleX)
+     .rb-bob     breathing / waddle / spin / dance / sway
+     svg         eyes, arms, feet, antenna
+   JS only toggles classes: .is-walking, .act-*, .think-*  (see rain-bot.js)
+   ========================================================================= */
+.rb-strip{
+  --rb-size:56px;
+  position:relative; flex:0 0 auto; height:calc(var(--rb-size) + 10px);
+  overflow:visible; pointer-events:none; z-index:4;
+  background:linear-gradient(180deg, transparent, rgba(51,201,209,.06));
+  border-top:1px dashed rgba(51,201,209,.22);
+}
+.rb-bot{
+  position:absolute; left:0; bottom:4px; width:var(--rb-size); height:var(--rb-size);
+  pointer-events:auto; cursor:pointer; will-change:transform;
+  -webkit-tap-highlight-color:transparent; user-select:none; outline:none;
+}
+.rb-bot:focus-visible{outline:2px solid var(--accent-cyan); outline-offset:3px; border-radius:14px;}
+.rb-hopper,.rb-flip,.rb-bob{width:100%; height:100%; transform-origin:50% 100%;}
+.rb-bob svg{width:100%; height:100%; overflow:visible; display:block;}
+.rb-shadow{
+  position:absolute; left:18%; right:18%; bottom:-3px; height:6px; border-radius:50%;
+  background:rgba(6,14,28,.28); filter:blur(2px); pointer-events:none;
+}
+.rb-bot svg *{transform-box:fill-box;}
+
+/* ---- parts ---- */
+.rb-eyes{transform-origin:50% 50%; animation:rb-blink 5s infinite;}
+.rb-eye{fill:#33c9d1; filter:drop-shadow(0 0 2px rgba(51,201,209,.9));}
+.rb-arm{transform-origin:50% 8%; transition:transform .25s ease;}
+.rb-foot{transform-origin:50% 50%;}
+.rb-ant-ball{fill:#33c9d1; filter:drop-shadow(0 0 3px rgba(51,201,209,.95)); animation:rb-glow 2.4s ease-in-out infinite;}
+.rb-chest{fill:#33c9d1; animation:rb-glow 1.8s ease-in-out infinite;}
+.rb-ant{transform-origin:50% 100%;}
+
+/* ---- idle breathing ---- */
+.rb-bob{animation:rb-breathe 2.6s ease-in-out infinite;}
+@keyframes rb-breathe{0%,100%{transform:scaleY(1)} 50%{transform:scaleY(1.025)}}
+@keyframes rb-blink{0%,92%,100%{transform:scaleY(1)} 95%{transform:scaleY(.08)}}
+@keyframes rb-glow{0%,100%{opacity:1} 50%{opacity:.45}}
+
+/* ---- walking ---- */
+.is-walking .rb-bob{animation:rb-waddle .42s ease-in-out infinite;}
+.is-walking .rb-foot.l{animation:rb-step .42s ease-in-out infinite;}
+.is-walking .rb-foot.r{animation:rb-step .42s ease-in-out infinite .21s;}
+.is-walking .rb-arm.l{animation:rb-swing .42s ease-in-out infinite;}
+.is-walking .rb-arm.r{animation:rb-swing .42s ease-in-out infinite reverse;}
+.is-running .rb-bob,.is-running .rb-foot,.is-running .rb-arm{animation-duration:.26s !important;}
+.is-running .rb-foot.r{animation-delay:.13s !important;}
+@keyframes rb-waddle{0%,100%{transform:rotate(-4deg) translateY(0)} 50%{transform:rotate(4deg) translateY(-3px)}}
+@keyframes rb-step{0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)}}
+@keyframes rb-swing{0%,100%{transform:rotate(18deg)} 50%{transform:rotate(-18deg)}}
+
+/* ---- idle actions ---- */
+/* wave */
+.act-wave .rb-arm.r{animation:rb-wave .5s ease-in-out infinite; transform:rotate(-150deg);}
+@keyframes rb-wave{0%,100%{transform:rotate(-150deg)} 50%{transform:rotate(-120deg)}}
+
+/* hop (twice) */
+.act-hop .rb-hopper{animation:rb-hop .55s cubic-bezier(.3,.7,.4,1) 2;}
+.act-hop .rb-arm.l{transform:rotate(35deg);} .act-hop .rb-arm.r{transform:rotate(-35deg);}
+@keyframes rb-hop{0%,100%{transform:translateY(0) scale(1.08,.9)} 20%{transform:translateY(0) scale(.94,1.08)} 50%{transform:translateY(-24px) scale(.96,1.06)} 80%{transform:translateY(0) scale(1.08,.9)}}
+
+/* spin */
+.act-spin .rb-bob{animation:rb-spin .9s ease-in-out 1;}
+@keyframes rb-spin{from{transform:perspective(260px) rotateY(0)} to{transform:perspective(260px) rotateY(720deg)}}
+
+/* dance */
+.act-dance .rb-bob{animation:rb-dance .5s ease-in-out infinite;}
+.act-dance .rb-arm.l{animation:rb-armup-l .5s ease-in-out infinite;}
+.act-dance .rb-arm.r{animation:rb-armup-r .5s ease-in-out infinite;}
+.act-dance .rb-ant{animation:rb-ant-wag .25s ease-in-out infinite alternate;}
+@keyframes rb-dance{0%,100%{transform:rotate(-7deg) translateY(0)} 50%{transform:rotate(7deg) translateY(-5px)}}
+@keyframes rb-armup-l{0%,100%{transform:rotate(150deg)} 50%{transform:rotate(40deg)}}
+@keyframes rb-armup-r{0%,100%{transform:rotate(-40deg)} 50%{transform:rotate(-150deg)}}
+@keyframes rb-ant-wag{from{transform:rotate(-14deg)} to{transform:rotate(14deg)}}
+
+/* look around */
+.act-look .rb-eyes{animation:rb-look 2.2s ease-in-out 1;}
+@keyframes rb-look{0%{transform:translateX(0)} 20%,40%{transform:translateX(-4px)} 60%,80%{transform:translateX(4px)} 100%{transform:translateX(0)}}
+
+/* stretch */
+.act-stretch .rb-bob{animation:rb-stretch 1.3s ease-in-out 1;}
+.act-stretch .rb-arm.l{transform:rotate(165deg);} .act-stretch .rb-arm.r{transform:rotate(-165deg);}
+@keyframes rb-stretch{0%,100%{transform:scale(1,1)} 40%,60%{transform:scale(.92,1.14)}}
+
+/* antenna zap */
+.act-zap .rb-ant-ball{animation:rb-zap .18s linear 6; r:4.5;}
+@keyframes rb-zap{0%,100%{fill:#33c9d1} 50%{fill:#fff6a8}}
+
+/* sleep */
+.act-sleep .rb-eyes{animation:none; transform:scaleY(.1);}
+.act-sleep .rb-bob{animation:rb-snooze 3s ease-in-out infinite; transform-origin:50% 100%;}
+.act-sleep .rb-ant-ball{animation:none; opacity:.25;}
+.act-sleep .rb-arm.l{transform:rotate(8deg);} .act-sleep .rb-arm.r{transform:rotate(-8deg);}
+@keyframes rb-snooze{0%,100%{transform:rotate(5deg) scaleY(1)} 50%{transform:rotate(7deg) scaleY(.97)}}
+.rb-zzz{position:absolute; left:62%; top:-6px; display:none; font:700 .7rem var(--font-mono, monospace); color:var(--accent-cyan); pointer-events:none;}
+.act-sleep .rb-zzz{display:block;}
+.rb-zzz i{position:absolute; font-style:normal; opacity:0; animation:rb-z 2.4s ease-in infinite;}
+.rb-zzz i:nth-child(2){animation-delay:.8s; font-size:.85em;}
+.rb-zzz i:nth-child(3){animation-delay:1.6s; font-size:1.1em;}
+@keyframes rb-z{0%{opacity:0; transform:translate(0,8px)} 25%{opacity:1} 100%{opacity:0; transform:translate(10px,-18px)}}
+
+/* giggle (when poked) */
+.act-giggle .rb-bob{animation:rb-giggle .12s linear 8;}
+@keyframes rb-giggle{0%,100%{transform:translateX(-1.5px) rotate(-3deg)} 50%{transform:translateX(1.5px) rotate(3deg)}}
+.rb-blush{opacity:.55; transition:opacity .2s;} .act-giggle .rb-blush,.act-cheer .rb-blush{opacity:1;}
+
+/* cheer (reply arrived) */
+.act-cheer .rb-hopper{animation:rb-hop .5s cubic-bezier(.3,.7,.4,1) 3;}
+.act-cheer .rb-arm.l{transform:rotate(155deg);} .act-cheer .rb-arm.r{transform:rotate(-155deg);}
+
+/* oops (request failed) */
+.act-oops .rb-bob{animation:rb-shake .12s linear 8;}
+.act-oops .rb-eye{fill:#ffab6b;}
+@keyframes rb-shake{0%,100%{transform:translateX(-2px)} 50%{transform:translateX(2px)}}
+
+/* ---- thinking (while the AI is generating) ---- */
+.is-thinking .rb-ant-ball{animation:rb-glow .5s ease-in-out infinite;}
+.is-thinking .rb-chest{animation:rb-glow .6s ease-in-out infinite;}
+
+/* typing on an invisible keyboard */
+.think-type .rb-arm.l{animation:rb-tap .22s ease-in-out infinite;}
+.think-type .rb-arm.r{animation:rb-tap .22s ease-in-out infinite .11s;}
+.think-type .rb-eyes{animation:none; transform:scaleY(.75);}
+@keyframes rb-tap{0%,100%{transform:rotate(22deg)} 50%{transform:rotate(8deg)}}
+.think-type .rb-arm.r{--flip:1;}
+.think-type .rb-arm.r{animation-name:rb-tap-r;}
+@keyframes rb-tap-r{0%,100%{transform:rotate(-22deg)} 50%{transform:rotate(-8deg)}}
+
+/* scanning with its eyes */
+.think-scan .rb-eyes{animation:rb-scan 1.1s ease-in-out infinite;}
+.think-scan .rb-ant{animation:rb-ant-wag .3s ease-in-out infinite alternate;}
+@keyframes rb-scan{0%,100%{transform:translateX(-4px)} 50%{transform:translateX(4px)}}
+
+/* spinning cog above its head */
+.rb-cog{
+  position:absolute; left:50%; top:-18px; width:16px; height:16px; margin-left:-8px; display:none; pointer-events:none;
+  border:3px dotted var(--accent-cyan); border-radius:50%; box-sizing:border-box;
+}
+.rb-cog::after{content:""; position:absolute; inset:3px; border-radius:50%; background:var(--accent-cyan); opacity:.55;}
+.think-cog .rb-cog{display:block; animation:rb-spincog 1.4s linear infinite;}
+@keyframes rb-spincog{to{transform:rotate(360deg)}}
+.think-cog .rb-bob{animation:rb-ponder 1.6s ease-in-out infinite;}
+.think-cog .rb-arm.r{transform:rotate(-155deg) translateY(2px);}
+@keyframes rb-ponder{0%,100%{transform:rotate(-3deg)} 50%{transform:rotate(3deg)}}
+
+/* floating "…" dots */
+.rb-dots{position:absolute; left:50%; top:-14px; transform:translateX(-50%); display:none; gap:3px; pointer-events:none;}
+.is-thinking .rb-dots{display:flex;}
+.rb-dots b{width:5px; height:5px; border-radius:50%; background:var(--accent-cyan); animation:rb-dot 1s ease-in-out infinite;}
+.rb-dots b:nth-child(2){animation-delay:.15s;} .rb-dots b:nth-child(3){animation-delay:.3s;}
+@keyframes rb-dot{0%,80%,100%{transform:translateY(0); opacity:.5} 40%{transform:translateY(-5px); opacity:1}}
+.think-cog .rb-dots{display:none;}
+
+/* ---- speech bubble ---- */
+.rb-say{
+  position:absolute; bottom:calc(100% + 10px); left:50%; transform:translate(-50%,6px) scale(.9);
+  max-width:200px; width:max-content; padding:.28rem .65rem; border-radius:12px;
+  background:#fff; color:#0a1830; border:1px solid rgba(51,201,209,.55);
+  box-shadow:0 6px 16px -8px rgba(6,14,28,.5);
+  font:600 .72rem/1.25 var(--font-body, sans-serif); text-align:center; white-space:nowrap;
+  opacity:0; pointer-events:none; transition:opacity .2s ease, transform .2s ease; z-index:5;
+}
+.rb-say::after{
+  content:""; position:absolute; left:50%; bottom:-5px; width:8px; height:8px; margin-left:-4px;
+  background:#fff; border-right:1px solid rgba(51,201,209,.55); border-bottom:1px solid rgba(51,201,209,.55);
+  transform:rotate(45deg);
+}
+.rb-say.show{opacity:1; transform:translate(-50%,0) scale(1);}
+
+/* sparkles / hearts burst */
+.rb-spark{
+  position:absolute; left:50%; top:30%; font-size:.8rem; line-height:1; pointer-events:none; color:var(--accent-cyan);
+  animation:rb-burst .9s ease-out forwards;
+}
+@keyframes rb-burst{
+  from{opacity:1; transform:translate(-50%,-50%) scale(.6)}
+  to{opacity:0; transform:translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.2)}
+}
+
+/* ---- small screens / short landscape ---- */
+@media (max-width:575.98px){ .rb-strip{--rb-size:46px;} .rb-say{font-size:.68rem; max-width:170px;} }
+@media (max-height:480px) and (orientation:landscape){ .rb-strip{display:none;} }
+
+/* ---- reduced motion: robot stays put, no loops; bubbles still talk ---- */
+@media (prefers-reduced-motion:reduce){
+  .rb-bot *, .rb-bot{animation:none !important; transition:none !important;}
+  .rb-spark{display:none;}
+}
