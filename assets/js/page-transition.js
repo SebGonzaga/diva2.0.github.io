@@ -20,6 +20,14 @@
   var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   if (reduce) return;
 
+  // Pages without the app shell use the light "surface" background; app
+  // pages use the navy/theme background. The curtain matches the page it
+  // covers so there is never a white (or off-colour) flash.
+  function bgFor(pathname) {
+    var pub = /(^|\/)(index\.html|login\.html|register\.html|offline\.html)?$/.test(pathname);
+    return pub ? "var(--surface)" : "var(--bg-primary)";
+  }
+
   /* ---------- ENTRY: open the curtain on the new page ---------- */
   try {
     var saved = sessionStorage.getItem(KEY);
@@ -29,6 +37,7 @@
       if (Date.now() - o.t < 4000) {
         root.style.setProperty("--pt-x", o.x + "px");
         root.style.setProperty("--pt-y", o.y + "px");
+        root.style.setProperty("--pt-bg", bgFor(location.pathname));
         root.classList.add("pt-enter");
         // Remove the class once the animation is done (fallback timer too)
         setTimeout(function () { root.classList.remove("pt-enter"); }, 600);
@@ -76,6 +85,7 @@
     if (tooFast()) { location.href = href; return; }
     var c = document.createElement("div");
     c.className = "pt-curtain";
+    c.style.setProperty("--pt-bg", bgFor(location.pathname));
     c.setAttribute("aria-hidden", "true");
     c.style.setProperty("--pt-x", x + "px");
     c.style.setProperty("--pt-y", y + "px");

@@ -2503,17 +2503,10 @@ a.src-chip:active{transform:scale(.96);}
    app shell (landing, login, register) get a plain fade. */
 @keyframes pageIn{ from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;} }
 @keyframes pageFade{ from{opacity:0;} to{opacity:1;} }
-.app-content{animation:pageIn .28s ease-out both;}
-body:not(:has(#app-shell-root)){animation:pageFade .22s ease-out both;}
+/* (entrance fades removed — replaced by the curtain in "Page-switch transition" below; fading the body itself exposed the white browser canvas) */
 
 /* Leaving: set by main.js just before navigating. */
-html.page-leaving .app-content{
-  opacity:0; transform:translateY(-6px);
-  transition:opacity .14s ease-in, transform .14s ease-in;
-}
-html.page-leaving body:not(:has(#app-shell-root)){
-  opacity:0; transition:opacity .14s ease-in;
-}
+
 
 @media (prefers-reduced-motion: reduce){
   .app-content, body:not(:has(#app-shell-root)){animation:none;}
@@ -2626,7 +2619,7 @@ html.page-leaving body:not(:has(#app-shell-root)){
 .pt-curtain,
 html.pt-enter::before{
   position:fixed; inset:0; z-index:800; pointer-events:none;
-  background:var(--bg-primary, var(--navy-950));
+  background:var(--pt-bg, var(--bg-primary, var(--navy-950)));
   will-change:opacity;
 }
 .pt-curtain{ opacity:0; animation:ptFadeIn .22s ease-out forwards; }
