@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/volcano.css">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0a1830">
 <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
@@ -17,25 +18,50 @@
 <div id="app-shell-root"></div>
 
 <template id="volcano-content">
-  <div class="rain-card reveal-on-scroll mb-4">
-    <div class="card-eyebrow"><span>Taal Volcano</span><span class="demo-data-tag" style="background:var(--accent-cyan); color:#fff;">LIVE</span></div>
-    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
-      <div class="d-flex align-items-start gap-2">
-        <i class="bi bi-fire fs-2 dicon-in-view bi-anim" style="color:var(--status-warning); cursor:pointer;" title="Tap to see it erupt"></i>
-        <div>
-          <h3 class="card-num" id="tvName" style="font-size:1.6rem;">Taal Volcano</h3>
-          <div class="text-muted-rain" style="font-size:.88rem;" id="tvLocation">Talisay / San Nicolas, Batangas, Philippines</div>
+<div class="vo-page">
+  <section class="vo-hero reveal-on-scroll" id="voHero">
+    <div id="voEmbers"></div>
+    <div class="vo-hero-row">
+      <div>
+        <span class="vo-kicker"><i class="bi bi-fire"></i> Volcano monitoring</span>
+        <h1>Taal Volcano</h1>
+        <div class="vo-sub">Talisay / San Nicolas, Batangas, Philippines</div>
+        <div class="vo-chips">
+          <span class="vo-chip"><span>Coordinates</span><b id="tvCoords">—</b></span>
+          <span class="vo-chip"><span>Elevation</span><b id="tvElev">—</b></span>
+          <span class="vo-chip"><span>GVP #</span><b>273070</b></span>
+          <span class="vo-chip"><span>Aviation</span><i class="vo-av" id="tvAvDot"></i><b id="tvColor">—</b></span>
         </div>
+        <div class="vo-sub mt-3" style="font-size:.76rem" id="tvSourceLine">Loading live data from USGS VolcView…</div>
       </div>
-      <span class="status-badge status-caution" id="tvAlertBadge"><span class="dot pulse-dot"></span>Alert Level —</span>
+      <div class="text-center">
+        <div class="vo-gauge" id="voGauge" role="img" aria-label="PHIVOLCS alert level">
+          <svg viewBox="0 0 120 120"><circle class="bg" cx="60" cy="60" r="54"/><circle class="fg" id="voArc" cx="60" cy="60" r="54"/></svg>
+          <div class="vo-gauge-in"><small>Alert level</small><b id="voLvl">–</b></div>
+        </div>
+        <div class="vo-lvl-name" id="voLvlName">Not entered yet</div>
+        <div class="vo-sub" style="font-size:.72rem" id="voAsOf">PHIVOLCS bulletin</div>
+      </div>
     </div>
-    <div class="row g-2 mt-2" style="font-size:.85rem;">
-      <div class="col-6 col-md-3"><span class="text-muted-rain">Coordinates</span><div style="font-weight:600;" id="tvCoords">—</div></div>
-      <div class="col-6 col-md-3"><span class="text-muted-rain">Elevation</span><div style="font-weight:600;" id="tvElev">—</div></div>
-      <div class="col-6 col-md-3"><span class="text-muted-rain">GVP volcano #</span><div style="font-weight:600;" id="tvVnum">273070</div></div>
-      <div class="col-6 col-md-3"><span class="text-muted-rain">Aviation color</span><div style="font-weight:600;" id="tvColor">—</div></div>
-    </div>
-    <div class="data-source-line" id="tvSourceLine"><i class="bi bi-broadcast dicon" data-dicon="broadcast"></i> Loading live data from USGS VolcView…</div>
+  </section>
+
+  <div class="rain-card reveal-on-scroll mb-4" id="vsCard">
+    <div class="card-eyebrow"><span>Official PHIVOLCS bulletin (copied by RAIN administrators)</span><span class="demo-data-tag" style="background:#0f766e">OFFICIAL SOURCE · HUMAN-ENTERED</span></div>
+    <div class="vo-ladder" id="voLadder"></div>
+    <div id="vsBody" style="font-size:.87rem;">Loading…</div>
+    <div class="text-muted-rain mt-2" style="font-size:.78rem;">PHIVOLCS does not offer a public data feed this app can read, so an administrator copies the current alert level here. The official PHIVOLCS bulletin and instructions always take priority over this page.</div>
+    <div class="data-source-line"><i class="bi bi-box-arrow-up-right dicon" data-dicon="box-arrow-up-right"></i> <a href="https://www.phivolcs.dost.gov.ph/" target="_blank" rel="noopener">Check the current advisory at phivolcs.dost.gov.ph &rarr;</a></div>
+    <details class="vo-admin mt-3 d-none" id="vsAdmin">
+      <summary><i class="bi bi-chevron-right"></i> Admin: enter the current PHIVOLCS bulletin</summary>
+      <form id="vsForm" class="row g-2 mt-2" style="font-size:.82rem;" autocomplete="off">
+        <div class="col-6 col-md-3"><label class="form-label mb-0">Alert level (0-5) *</label><input type="number" min="0" max="5" step="1" class="form-control form-control-sm" id="vsLevel" required></div>
+        <div class="col-6 col-md-4"><label class="form-label mb-0">Bulletin issued (as printed) *</label><input type="datetime-local" class="form-control form-control-sm" id="vsIssued" required></div>
+        <div class="col-12 col-md-5"><label class="form-label mb-0">Bulletin link (https) *</label><input type="url" class="form-control form-control-sm" id="vsUrl" required maxlength="500" placeholder="https://www.phivolcs.dost.gov.ph/..."></div>
+        <div class="col-12"><label class="form-label mb-0">Headline (as printed)</label><input class="form-control form-control-sm" id="vsHead" maxlength="200"></div>
+        <div class="col-12"><label class="form-label mb-0">Short summary</label><textarea class="form-control form-control-sm" id="vsSum" rows="2" maxlength="2000"></textarea></div>
+        <div class="col-12 d-flex gap-2 align-items-center"><button class="btn-rain btn-rain-primary btn-rain-sm" type="submit">Publish</button><button class="btn-rain btn-rain-ghost btn-rain-sm d-none" type="button" id="vsDelete">Delete shown entry</button><span id="vsMsg" class="text-muted"></span></div>
+      </form>
+    </details>
   </div>
 
   <div class="row g-4 mb-4">
@@ -45,12 +71,7 @@
         <div id="wxLoading" style="padding:.25rem 0;">
           <span class="skeleton d-block mb-3" style="width:50%; height:2.2rem;"></span>
           <span class="skeleton d-block mb-3" style="width:60%; height:16px;"></span>
-          <div class="row g-2">
-            <div class="col-6"><span class="skeleton d-block" style="height:32px;"></span></div>
-            <div class="col-6"><span class="skeleton d-block" style="height:32px;"></span></div>
-            <div class="col-6 mt-2"><span class="skeleton d-block" style="height:32px;"></span></div>
-            <div class="col-6 mt-2"><span class="skeleton d-block" style="height:32px;"></span></div>
-          </div>
+          <div class="row g-2"><div class="col-6"><span class="skeleton d-block" style="height:32px;"></span></div><div class="col-6"><span class="skeleton d-block" style="height:32px;"></span></div></div>
         </div>
         <div id="wxError" class="error-state d-none" style="padding:1.5rem 0;">
           <div class="glyph"><i class="bi bi-exclamation-octagon dicon" data-dicon="exclamation-octagon"></i></div>
@@ -58,10 +79,15 @@
           <button class="btn-rain btn-rain-ghost btn-rain-sm mt-3" id="wxRetry">Retry</button>
         </div>
         <div id="wxBody" class="d-none">
-          <h3 class="card-num" id="wTemp" style="font-size:2.6rem;">—</h3>
-          <div class="d-flex align-items-center gap-2 mb-3">
-            <i class="bi bi-cloud-sun fs-3 dicon" style="color:var(--accent-cyan);" id="wIcon" data-dicon="cloud-sun"></i>
-            <span id="wCondition" style="font-weight:600; color:var(--navy-950);">—</span>
+          <div class="d-flex justify-content-between align-items-center gap-2">
+            <div>
+              <h3 class="card-num" id="wTemp" style="font-size:2.6rem;">—</h3>
+              <div class="d-flex align-items-center gap-2 mb-3"><i class="bi bi-cloud-sun fs-3" style="color:var(--accent-cyan);" id="wIcon"></i><span id="wCondition" style="font-weight:600; color:var(--navy-950);">—</span></div>
+            </div>
+            <div class="vo-compass" title="Direction the wind is blowing toward">
+              <svg viewBox="0 0 100 100"><circle class="ring" cx="50" cy="50" r="40"/><text x="50" y="12">N</text><text x="91" y="53">E</text><text x="50" y="94">S</text><text x="9" y="53">W</text>
+                <g class="vo-arrow" id="wArrow"><path d="M50 22 L58 50 L50 45 L42 50 Z" fill="#f97316"/><path d="M50 78 L50 45" stroke="#94a3b8" stroke-width="2" stroke-linecap="round"/></g></svg>
+            </div>
           </div>
           <div class="row g-2" style="font-size:.85rem;">
             <div class="col-6"><span class="text-muted-rain">Feels like</span><div style="font-weight:600;" id="wFeels">—</div></div>
@@ -69,34 +95,17 @@
             <div class="col-6"><span class="text-muted-rain">Wind</span><div style="font-weight:600;" id="wWind">—</div></div>
             <div class="col-6"><span class="text-muted-rain">Visibility</span><div style="font-weight:600;" id="wVisibility">—</div></div>
           </div>
-          <p class="text-muted-rain mt-2" style="font-size:.78rem;">Wind direction is useful context for likely ash/gas plume drift, but isn't a hazard forecast — always follow official PHIVOLCS advisories.</p>
-          <div class="data-source-line" id="wxSourceLine"><i class="bi bi-clock-history dicon" data-dicon="clock-history"></i> Source: OpenWeatherMap</div>
+          <p class="text-muted-rain mt-2" style="font-size:.78rem;">The arrow points where the wind is blowing toward. That is context for possible ash/gas drift, not a hazard forecast. Always follow official PHIVOLCS advisories.</p>
+          <div class="data-source-line" id="wxSourceLine"><i class="bi bi-clock-history"></i> Source: OpenWeatherMap</div>
         </div>
       </div>
     </div>
     <div class="col-lg-7">
       <div class="rain-card reveal-on-scroll h-100">
         <div class="card-eyebrow"><span>Location Map</span><span class="demo-data-tag" style="background:var(--accent-cyan); color:#fff;">LIVE</span></div>
-        <div class="map-frame"><div id="volcano-map"></div></div>
+        <div class="vo-map"><div id="volcano-map" style="height:100%"></div></div>
       </div>
     </div>
-  </div>
-
-  <div class="rain-card reveal-on-scroll mb-4">
-    <div class="card-eyebrow"><span>Alert Level Reference</span><span class="demo-data-tag">REFERENCE, NOT LIVE</span></div>
-    <p style="font-size:.87rem; color:var(--ink-600);">
-      Taal's official 0–5 Alert Level is issued by PHIVOLCS, which doesn't publish a public API — so this app can't pull it live.
-      The last publicly known level is shown below for context only. <strong>Always check PHIVOLCS directly for the current advisory
-      before making any decisions.</strong>
-    </p>
-    <div class="d-flex align-items-center gap-3">
-      <div class="level-chip status-caution" style="width:2.5rem;height:2.5rem;display:flex;align-items:center;justify-content:center;font-weight:700;border-radius:50%;">1</div>
-      <div>
-        <div style="font-weight:700; color:var(--navy-950);">Low-Level Unrest</div>
-        <div style="font-size:.82rem; color:var(--ink-600);">Sudden steam-driven (phreatic) or minor phreatomagmatic eruptions, volcanic gas expulsions, and ashfall can occur without further warning. The entire Taal Volcano Island is a Permanent Danger Zone.</div>
-      </div>
-    </div>
-    <div class="data-source-line"><i class="bi bi-box-arrow-up-right dicon" data-dicon="box-arrow-up-right"></i> <a href="https://www.phivolcs.dost.gov.ph/" target="_blank" rel="noopener">Check the current advisory at phivolcs.dost.gov.ph &rarr;</a></div>
   </div>
 
   <div class="rain-card reveal-on-scroll">
@@ -107,8 +116,9 @@
       record of powerful, sometimes deadly, eruptions. Because the caldera sits so close to the surrounding lake and its
       vents are shallow, it's especially prone to abrupt phreatic and phreatomagmatic explosions.
     </p>
-    <div class="data-source-line"><i class="bi bi-box-arrow-up-right dicon" data-dicon="box-arrow-up-right"></i> <a id="tvGvpLink" href="https://volcano.si.edu/volcano.cfm?vn=273070" target="_blank" rel="noopener">View Taal's full profile and latest activity reports on the Smithsonian GVP site &rarr;</a></div>
+    <div class="data-source-line"><i class="bi bi-box-arrow-up-right dicon" data-dicon="box-arrow-up-right"></i> <a id="tvGvpLink" href="https://volcano.si.edu/volcano.cfm?vn=273070" target="_blank" rel="noopener">View Taal's full profile and latest activity report (Smithsonian GVP) &rarr;</a></div>
   </div>
+</div>
 </template>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -124,143 +134,122 @@
 <script src="assets/js/main.js"></script>
 <script type="module">
   await RainAuth.init();
-  // CARTO Basemaps API key — required since CARTO deprecated anonymous
-  // keyless raster tile access (tiles otherwise render stamped "API KEY
-  // REQUIRED"). Like a Mapbox access token, this is meant to ship in
-  // client-side code and isn't a secret that needs server-side hiding.
+  // CARTO Basemaps API key (meant to ship in client code, like a Mapbox token).
   const CARTO_API_KEY = "cb1_3qde_1_313d908e961a073e7e5de450";
   const user = renderAppShell("volcano.html", { title: "Taal Volcano" });
-
-  // Taal's official Smithsonian GVP volcano number, used against the USGS
-  // VolcView worldwide-volcanoes API (no key required).
+  const $ = (id) => document.getElementById(id);
   const TAAL_VNUM = "273070";
-  // Fallback coordinates if the live location fetch fails.
   const TAAL_FALLBACK = { lat: 14.0021, lng: 120.9932, elevM: 311 };
+  const AVIATION = { GREEN: ["Green (normal)", "#22c55e"], YELLOW: ["Yellow (advisory)", "#eab308"], ORANGE: ["Orange (watch)", "#f97316"], RED: ["Red (warning)", "#ef4444"] };
+  const ICON_MAP = { "01d": "bi-sun", "01n": "bi-moon-stars", "02d": "bi-cloud-sun", "02n": "bi-cloud-moon", "03d": "bi-cloud", "03n": "bi-cloud", "04d": "bi-clouds", "04n": "bi-clouds", "09d": "bi-cloud-drizzle", "09n": "bi-cloud-drizzle", "10d": "bi-cloud-rain", "10n": "bi-cloud-rain", "11d": "bi-cloud-lightning", "11n": "bi-cloud-lightning", "13d": "bi-snow", "13n": "bi-snow", "50d": "bi-cloud-haze", "50n": "bi-cloud-haze" };
+  const compass = (deg) => ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"][Math.round(deg / 22.5) % 16];
+  const esc = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-  const AVIATION_COLOR_META = {
-    GREEN: "Green (normal)",
-    YELLOW: "Yellow (advisory)",
-    ORANGE: "Orange (watch)",
-    RED: "Red (warning)",
-  };
+  // PHIVOLCS 0-5 scale (names as in RAINtanauan). Colours are display only.
+  const LEVEL_NAMES = { 0: "Normal", 1: "Low-level unrest", 2: "Moderate level of unrest", 3: "Magmatic unrest", 4: "Hazardous eruption imminent", 5: "Hazardous eruption in progress" };
+  const LV_COL = ["#22c55e", "#eab308", "#f59e0b", "#f97316", "#ef4444", "#b91c1c"];
+  const fmtPHT = (t) => new Date(t).toLocaleString("en-PH", { timeZone: "Asia/Manila", month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }) + " PHT";
+  const ago = (t) => { const m = Math.max(0, Math.round((Date.now() - new Date(t)) / 6e4)); return m < 60 ? m + " min ago" : m < 2880 ? Math.round(m / 60) + " h ago" : Math.floor(m / 1440) + " days ago"; };
 
-  const ICON_MAP = {
-    "01d": "bi-sun", "01n": "bi-moon-stars",
-    "02d": "bi-cloud-sun", "02n": "bi-cloud-moon",
-    "03d": "bi-cloud", "03n": "bi-cloud",
-    "04d": "bi-clouds", "04n": "bi-clouds",
-    "09d": "bi-cloud-drizzle", "09n": "bi-cloud-drizzle",
-    "10d": "bi-cloud-rain", "10n": "bi-cloud-rain",
-    "11d": "bi-cloud-lightning", "11n": "bi-cloud-lightning",
-    "13d": "bi-snow", "13n": "bi-snow",
-    "50d": "bi-cloud-haze", "50n": "bi-cloud-haze",
-  };
-
-  function compassFromDegrees(deg) {
-    const dirs = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
-    return dirs[Math.round(deg / 22.5) % 16];
+  function paintHero(lvl, name, asOf) {
+    const col = lvl == null ? "#64748b" : LV_COL[lvl];
+    $("voHero").style.setProperty("--vo-c", col);
+    $("voLvl").textContent = lvl == null ? "–" : lvl; $("voLvlName").textContent = name; $("voAsOf").textContent = asOf;
+    setTimeout(() => { $("voArc").style.strokeDashoffset = 339.3 * (1 - (lvl == null ? 0 : Math.max(lvl, 0.15) / 5)); }, 120);
+    document.querySelectorAll(".vo-step").forEach((s) => s.classList.toggle("on", lvl != null && +s.dataset.l === lvl));
   }
 
-  async function fetchTaalLocation() {
-    const res = await fetch("https://volcview.wr.usgs.gov/vv-api/volcanoApi/wwvolcanoes");
-    if (!res.ok) throw new Error("VolcView request failed: " + res.status);
-    const all = await res.json();
-    const taal = all.find((x) => String(x.vnum) === TAAL_VNUM);
-    if (!taal) throw new Error("Taal not found in VolcView response");
-    return taal;
+  // ---------- PHIVOLCS bulletin (admin-entered, supabase/009_volcano_status.sql) ----------
+  let shownId = null;
+  async function loadBulletin() {
+    const body = $("vsBody"); shownId = null; $("vsDelete").classList.add("d-none");
+    const { data, error } = await sb.from("volcano_status").select("*").eq("volcano", "Taal").order("bulletin_issued_at", { ascending: false }).limit(1);
+    if (error) { console.warn("volcano_status", error); body.textContent = "Could not load the alert level (the volcano_status table may not be set up yet). Check PHIVOLCS directly."; paintHero(null, "Unavailable", "Check PHIVOLCS directly"); return; }
+    if (!data.length) { body.innerHTML = "No alert level has been entered yet. <b>Check PHIVOLCS directly for the current level.</b>"; paintHero(null, "Not entered yet", "Check PHIVOLCS directly"); return; }
+    const v = data[0]; shownId = v.id;
+    if (RainAuth.isAdmin(RainAuth.getUser())) $("vsDelete").classList.remove("d-none");
+    const ageD = (Date.now() - new Date(v.bulletin_issued_at).getTime()) / 864e5, safe = /^https:\/\//.test(v.source_url) ? v.source_url : null;
+    paintHero(v.alert_level, LEVEL_NAMES[v.alert_level] || "", "Bulletin " + ago(v.bulletin_issued_at));
+    body.innerHTML = (ageD > 3 ? `<div class="vo-stale"><i class="bi bi-hourglass-split"></i><span>This bulletin is ${Math.floor(ageD)} days old. PHIVOLCS may have issued a newer one; check the official site.</span></div>` : "") +
+      `<div class="d-flex flex-wrap align-items-center gap-2 mb-1"><span class="vo-asof"><i class="bi bi-clock"></i> Issued ${esc(fmtPHT(v.bulletin_issued_at))}</span><span class="vo-asof">Level ${esc(v.alert_level)} · ${esc(LEVEL_NAMES[v.alert_level] || "")}</span></div>` +
+      (v.headline ? `<div class="vo-head mt-2">${esc(v.headline)}</div>` : "") + (v.summary ? `<p class="mt-1 mb-2">${esc(v.summary)}</p>` : "") +
+      `<div style="font-size:.78rem;">` + (safe ? `<a href="${esc(safe)}" target="_blank" rel="noopener noreferrer">Open the PHIVOLCS bulletin &rarr;</a>` : "No valid source link") + ` &middot; Level names follow PHIVOLCS' 0&ndash;5 scale.</div>`;
+  }
+  function initAdminForm() {
+    if (!RainAuth.isAdmin(RainAuth.getUser())) return;
+    $("vsAdmin").classList.remove("d-none");
+    const f = $("vsForm"), msg = $("vsMsg"), g = (id) => $(id).value.trim();
+    f.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const issued = new Date($("vsIssued").value), lvl = Number(g("vsLevel"));
+      if (!Number.isInteger(lvl) || lvl < 0 || lvl > 5 || isNaN(issued)) { msg.textContent = "Check the level (0-5) and issue time."; return; }
+      if (!/^https:\/\//.test(g("vsUrl"))) { msg.textContent = "Link must start with https://"; return; }
+      const { data: au } = await sb.auth.getUser();
+      const { error } = await sb.from("volcano_status").insert({ created_by: au && au.user ? au.user.id : null, volcano: "Taal", alert_level: lvl, bulletin_issued_at: issued.toISOString(), headline: g("vsHead") || null, summary: g("vsSum") || null, source_url: g("vsUrl") });
+      if (error) { console.error(error); msg.textContent = "Could not save: " + error.message; return; }
+      msg.textContent = "Published."; f.reset(); loadBulletin();
+    });
+    $("vsDelete").addEventListener("click", async () => {
+      if (!shownId || !confirm("Delete the alert-level entry currently shown?")) return;
+      const { error } = await sb.from("volcano_status").delete().eq("id", shownId);
+      if (error) { rainToast("Could not delete", "bi-exclamation-triangle"); return; }
+      loadBulletin();
+    });
   }
 
+  // ---------- location (USGS VolcView) + map ----------
   async function loadLocation() {
     let loc, live = true;
     try {
-      loc = await fetchTaalLocation();
-    } catch (err) {
-      console.warn("Live Taal location fetch failed, using fallback coordinates.", err);
-      loc = TAAL_FALLBACK;
-      live = false;
-    }
-
-    document.getElementById("tvCoords").textContent = `${loc.lat.toFixed(4)}, ${loc.lng.toFixed(4)}`;
-    document.getElementById("tvElev").textContent = `${loc.elevM} m`;
-    document.getElementById("tvColor").textContent = loc.color ? (AVIATION_COLOR_META[loc.color] || loc.color) : "None on file";
+      const res = await fetch("https://volcview.wr.usgs.gov/vv-api/volcanoApi/wwvolcanoes"); if (!res.ok) throw new Error(res.status);
+      loc = (await res.json()).find((x) => String(x.vnum) === TAAL_VNUM); if (!loc) throw new Error("Taal not found");
+    } catch (err) { console.warn("Live Taal location fetch failed, using fallback.", err); loc = TAAL_FALLBACK; live = false; }
+    $("tvCoords").textContent = `${loc.lat.toFixed(4)}, ${loc.lng.toFixed(4)}`; $("tvElev").textContent = `${loc.elevM} m`;
+    const av = loc.color && AVIATION[String(loc.color).toUpperCase()];
+    $("tvColor").textContent = av ? av[0] : loc.color || "None on file"; $("voHero").style.setProperty("--av", av ? av[1] : "#64748b"); $("tvAvDot").style.setProperty("--vo-c", av ? av[1] : "#64748b");
     if (live) RainOffline.save("taalLocation", loc);
-    const savedLoc = RainOffline.load("taalLocation");
-    document.getElementById("tvSourceLine").innerHTML = live
-      ? `<i class="bi bi-broadcast dicon" data-dicon="broadcast"></i> Live from USGS VolcView (worldwide volcanoes API), fetched just now.`
-      : `<i class="bi bi-exclamation-triangle dicon" data-dicon="exclamation-triangle"></i> USGS VolcView was unreachable — showing ${savedLoc ? `coordinates saved ${RainOffline.timeAgo(savedLoc.savedAt)}` : "fallback coordinates"} instead.`;
-
-    const map = L.map("volcano-map").setView([loc.lat, loc.lng], 12);
-    L.tileLayer(`https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=${CARTO_API_KEY}`, { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>', maxZoom: 20 }).addTo(map);
-    L.marker([loc.lat, loc.lng], { icon: rainPinIcon("alert", "bi-fire") }).addTo(map).bindPopup("<strong>Taal Volcano</strong><br>Volcano Island, Lake Taal").openPopup();
+    const saved = RainOffline.load("taalLocation");
+    $("tvSourceLine").innerHTML = live ? "Live from USGS VolcView (worldwide volcanoes API), fetched just now." : `USGS VolcView was unreachable — showing ${saved ? "coordinates saved " + RainOffline.timeAgo(saved.savedAt) : "fallback coordinates"} instead.`;
+    const map = L.map("volcano-map", { scrollWheelZoom: false }).setView([loc.lat, loc.lng], 12);
+    const street = L.tileLayer(`https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=${CARTO_API_KEY}`, { attribution: '&copy; OpenStreetMap contributors &copy; CARTO', maxZoom: 19 }).addTo(map);
+    const sat = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { attribution: "Tiles &copy; Esri, Maxar, Earthstar Geographics", maxZoom: 19 });
+    L.control.layers({ Street: street, Satellite: sat }, null, { position: "topright" }).addTo(map);
+    L.marker([loc.lat, loc.lng], { icon: L.divIcon({ className: "", html: '<div class="vo-pin"><i class="bi bi-fire"></i></div>', iconSize: [34, 34], iconAnchor: [17, 17] }) }).addTo(map).bindPopup("<strong>Taal Volcano</strong><br>Volcano Island, Lake Taal");
     setTimeout(() => map.invalidateSize(), 200);
-
     return loc;
   }
 
+  // ---------- weather ----------
+  function showWx(w) {
+    $("wTemp").textContent = `${w.tempC}°C`; $("wCondition").textContent = w.condition.replace(/\b\w/g, (c) => c.toUpperCase()); $("wIcon").className = `bi ${w.icon || "bi-cloud"} fs-3`;
+    $("wFeels").textContent = `${w.feelsC}°C`; $("wHumidity").textContent = `${w.humidity}%`; $("wWind").textContent = `${w.windKmh} km/h ${w.windDir || ""}`.trim();
+    $("wVisibility").textContent = w.visibilityKm != null ? `${w.visibilityKm} km` : "—";
+    $("wxLoading").classList.add("d-none"); $("wxError").classList.add("d-none"); $("wxBody").classList.remove("d-none");
+    if (w.deg != null) setTimeout(() => { $("wArrow").style.transform = `rotate(${(w.deg + 180) % 360}deg)`; }, 150);   // arrow = direction wind blows TOWARD
+  }
   async function loadWeather(lat, lng) {
-    document.getElementById("wxLoading").classList.remove("d-none");
-    document.getElementById("wxBody").classList.add("d-none");
-    document.getElementById("wxError").classList.add("d-none");
+    $("wxLoading").classList.remove("d-none"); $("wxBody").classList.add("d-none"); $("wxError").classList.add("d-none");
     try {
-      const res = await fetch(`/api/weather?lat=${lat}&lng=${lng}`);
-      if (!res.ok) throw new Error("OpenWeatherMap request failed: " + res.status);
-      const current = await res.json();
-
-      document.getElementById("wTemp").textContent = `${Math.round(current.main.temp)}°C`;
-      document.getElementById("wCondition").textContent = current.weather[0].description.replace(/\b\w/g, (c) => c.toUpperCase());
-      document.getElementById("wIcon").className = `bi ${ICON_MAP[current.weather[0].icon] || "bi-cloud"} fs-3`;
-      document.getElementById("wFeels").textContent = `${Math.round(current.main.feels_like)}°C`;
-      document.getElementById("wHumidity").textContent = `${current.main.humidity}%`;
-      const windKmh = Math.round(current.wind.speed * 3.6);
-      const windDir = current.wind.deg != null ? compassFromDegrees(current.wind.deg) : "";
-      document.getElementById("wWind").textContent = `${windKmh} km/h ${windDir}`.trim();
-      document.getElementById("wVisibility").textContent = current.visibility != null ? `${(current.visibility / 1000).toFixed(1)} km` : "—";
-      document.getElementById("wxSourceLine").innerHTML = `<i class="bi bi-clock-history"></i> Updated ${new Date(current.dt * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · Source: OpenWeatherMap`;
-
-      document.getElementById("wxLoading").classList.add("d-none");
-      document.getElementById("wxBody").classList.remove("d-none");
-      RainOffline.save("taalWeather", {
-        tempC: Math.round(current.main.temp), condition: current.weather[0].description,
-        feelsC: Math.round(current.main.feels_like), humidity: current.main.humidity,
-        windKmh, windDir, visibilityKm: current.visibility != null ? (current.visibility / 1000).toFixed(1) : null,
-      });
+      const res = await fetch(`/api/weather?lat=${lat}&lng=${lng}`); if (!res.ok) throw new Error(res.status);
+      const c = await res.json(), windKmh = Math.round(c.wind.speed * 3.6);
+      const w = { tempC: Math.round(c.main.temp), condition: c.weather[0].description, icon: ICON_MAP[c.weather[0].icon], feelsC: Math.round(c.main.feels_like), humidity: c.main.humidity, windKmh, deg: c.wind.deg, windDir: c.wind.deg != null ? compass(c.wind.deg) : "", visibilityKm: c.visibility != null ? (c.visibility / 1000).toFixed(1) : null };
+      showWx(w); $("wxSourceLine").innerHTML = `<i class="bi bi-clock-history"></i> Updated ${new Date(c.dt * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · Source: OpenWeatherMap`;
+      RainOffline.save("taalWeather", w);
     } catch (err) {
-      console.error(err);
-      const cached = RainOffline.load("taalWeather");
-      if (cached && !RainOffline.isOnline()) {
-        const w = cached.data;
-        document.getElementById("wTemp").textContent = `${w.tempC}°C`;
-        document.getElementById("wCondition").textContent = w.condition.replace(/\b\w/g, (c) => c.toUpperCase());
-        document.getElementById("wIcon").className = "bi bi-cloud fs-3";
-        document.getElementById("wFeels").textContent = `${w.feelsC}°C`;
-        document.getElementById("wHumidity").textContent = `${w.humidity}%`;
-        document.getElementById("wWind").textContent = `${w.windKmh} km/h ${w.windDir || ""}`.trim();
-        document.getElementById("wVisibility").textContent = w.visibilityKm != null ? `${w.visibilityKm} km` : "—";
-        document.getElementById("wxSourceLine").innerHTML = `<span class="cached-data-tag"><i class="bi bi-cloud-slash"></i> Saved data</span> Offline — showing reading saved ${RainOffline.timeAgo(cached.savedAt)}.`;
-        document.getElementById("wxLoading").classList.add("d-none");
-        document.getElementById("wxBody").classList.remove("d-none");
-      } else {
-        document.getElementById("wxLoading").classList.add("d-none");
-        document.getElementById("wxError").classList.remove("d-none");
-      }
+      console.error(err); const cached = RainOffline.load("taalWeather");
+      if (cached && !RainOffline.isOnline()) { showWx(cached.data); $("wxSourceLine").innerHTML = `<span class="cached-data-tag"><i class="bi bi-cloud-slash"></i> Saved data</span> Offline — showing reading saved ${RainOffline.timeAgo(cached.savedAt)}.`; }
+      else { $("wxLoading").classList.add("d-none"); $("wxError").classList.remove("d-none"); }
     }
   }
 
   async function initVolcanoPage() {
-    document.getElementById("app-content").appendChild(document.getElementById("volcano-content").content.cloneNode(true));
-
-    document.getElementById("wxRetry").addEventListener("click", () => {
-      const loc = window.__taalLoc || TAAL_FALLBACK;
-      loadWeather(loc.lat, loc.lng);
-    });
-
-    initializeAnimations();
-
-    const loc = await loadLocation();
-    window.__taalLoc = loc;
-    await loadWeather(loc.lat, loc.lng);
+    $("app-content").appendChild($("volcano-content").content.cloneNode(true));
+    $("voEmbers").innerHTML = Array.from({ length: 16 }, () => `<i class="vo-ember" style="--x:${(Math.random() * 100).toFixed(1)}%;--s:${(2 + Math.random() * 4).toFixed(1)}px;--d:${(5 + Math.random() * 6).toFixed(1)}s;--t:${(Math.random() * 6).toFixed(1)}s;--dx:${(Math.random() * 90 - 45).toFixed(0)}px"></i>`).join("");
+    $("voLadder").innerHTML = Object.entries(LEVEL_NAMES).map(([l, n]) => `<div class="vo-step" data-l="${l}" style="--sc:${LV_COL[l]}"><b>${l}</b>${esc(n)}</div>`).join("");
+    $("wxRetry").addEventListener("click", () => { const loc = window.__taalLoc || TAAL_FALLBACK; loadWeather(loc.lat, loc.lng); });
+    initializeAnimations(); initAdminForm(); loadBulletin();
+    const loc = await loadLocation(); window.__taalLoc = loc; await loadWeather(loc.lat, loc.lng);
   }
-
   if (user) initVolcanoPage();
 </script>
 </body>

@@ -1,0 +1,54 @@
+/* RAIN — volcano.css : styles for volcano.html only. Scoped under .vo-* */
+.vo-page{--vo-ease:cubic-bezier(.65,0,.35,1);--vo-line:rgba(255,255,255,.14);--vo-c:#64748b}
+/* ---- Hero: a crater glow with drifting embers ---- */
+.vo-hero{position:relative;overflow:hidden;isolation:isolate;border-radius:var(--radius-md,16px);padding:1.6rem;color:#fff;margin-bottom:1.25rem;
+  background:radial-gradient(90% 120% at 85% 120%,rgba(249,115,22,.55),transparent 60%),radial-gradient(70% 90% at 10% -10%,rgba(239,68,68,.22),transparent 55%),linear-gradient(165deg,#1a1020,#070b16 75%);
+  border:1px solid rgba(249,115,22,.35);box-shadow:0 26px 52px -28px rgba(0,0,0,.8)}
+.vo-hero::after{content:"";position:absolute;left:0;right:0;bottom:0;height:46%;z-index:-1;opacity:.9;background:linear-gradient(to top,rgba(249,115,22,.28),transparent);animation:vo-breathe 5s ease-in-out infinite}
+@keyframes vo-breathe{50%{opacity:.45}}
+.vo-ember{position:absolute;bottom:-12px;left:var(--x);width:var(--s);height:var(--s);border-radius:50%;z-index:-1;background:#fdba74;box-shadow:0 0 10px 2px rgba(251,146,60,.8);opacity:0;animation:vo-rise var(--d) linear var(--t) infinite}
+@keyframes vo-rise{0%{transform:translate(0,0);opacity:0}12%{opacity:.9}100%{transform:translate(var(--dx),-380px);opacity:0}}
+.vo-hero-row{display:flex;flex-wrap:wrap;gap:1.5rem;justify-content:space-between;align-items:center}
+.vo-kicker{font-family:var(--font-mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:#fdba74}
+.vo-hero h1{font-family:var(--font-display);font-weight:700;font-size:clamp(1.7rem,4vw,2.5rem);margin:.3rem 0 .2rem;color:#fff}
+.vo-sub{color:rgba(255,255,255,.75);font-size:.9rem}
+.vo-chips{display:flex;flex-wrap:wrap;gap:.45rem;margin-top:1rem}
+.vo-chip{padding:.35rem .75rem;border-radius:999px;font-size:.76rem;background:rgba(255,255,255,.09);border:1px solid var(--vo-line);backdrop-filter:blur(6px)}
+.vo-chip span{opacity:.6;margin-right:.35rem}
+.vo-av{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:.35rem;background:var(--vo-c);box-shadow:0 0 8px var(--vo-c)}
+/* ---- Alert gauge ---- */
+.vo-gauge{position:relative;width:176px;height:176px;flex:none;text-align:center}
+.vo-gauge svg{width:100%;height:100%;transform:rotate(-90deg)}
+.vo-gauge circle{fill:none;stroke-width:9;stroke-linecap:round}
+.vo-gauge .bg{stroke:rgba(255,255,255,.12)}
+.vo-gauge .fg{stroke:var(--vo-c);stroke-dasharray:339.3;stroke-dashoffset:339.3;transition:stroke-dashoffset 1.6s var(--vo-ease),stroke .6s;filter:drop-shadow(0 0 8px var(--vo-c))}
+.vo-gauge-in{position:absolute;inset:0;display:grid;place-content:center}
+.vo-gauge small{font-family:var(--font-mono);font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;opacity:.65}
+.vo-gauge b{font-family:var(--font-display);font-size:3.3rem;line-height:1;color:var(--vo-c);text-shadow:0 0 22px var(--vo-c)}
+.vo-lvl-name{margin-top:.5rem;font-weight:700;font-size:.85rem}
+/* ---- Alert ladder ---- */
+.vo-ladder{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin:.2rem 0 1rem}
+.vo-step{border-radius:10px;padding:.5rem .4rem;text-align:center;background:rgba(148,163,184,.14);border:1px solid transparent;font-size:.68rem;line-height:1.15;opacity:.55;transition:all .5s var(--vo-ease)}
+.vo-step b{display:block;font-family:var(--font-display);font-size:1.15rem}
+.vo-step.on{opacity:1;transform:translateY(-4px) scale(1.04);color:#fff;background:var(--sc);box-shadow:0 12px 22px -10px var(--sc)}
+@media (max-width:575px){.vo-ladder{grid-template-columns:repeat(3,1fr)}.vo-gauge{margin:0 auto}}
+/* ---- Bulletin ---- */
+.vo-stale{display:flex;gap:.5rem;align-items:flex-start;padding:.6rem .8rem;border-radius:10px;background:rgba(245,158,11,.16);border-left:4px solid #f59e0b;color:#92400e;font-weight:600;font-size:.82rem;margin-bottom:.7rem}
+.vo-head{font-family:var(--font-display);font-weight:700;font-size:1.05rem;color:var(--navy-950)}
+.vo-asof{display:inline-flex;gap:.4rem;align-items:center;font-size:.78rem;padding:.2rem .65rem;border-radius:99px;background:rgba(148,163,184,.2)}
+.vo-admin summary{cursor:pointer;font-weight:700;font-size:.84rem;list-style:none}
+.vo-admin summary::-webkit-details-marker{display:none}
+.vo-admin[open] summary i{transform:rotate(90deg)}
+.vo-admin summary i{display:inline-block;transition:transform .3s}
+/* ---- Wind compass ---- */
+.vo-compass{position:relative;width:118px;height:118px;flex:none}
+.vo-compass svg{width:100%;height:100%}
+.vo-compass .ring{fill:none;stroke:rgba(100,116,139,.35);stroke-width:1.5}
+.vo-compass text{font:700 9px var(--font-mono);fill:#64748b;text-anchor:middle}
+.vo-arrow{transform-origin:50px 50px;transform:rotate(0deg);transition:transform 1.6s var(--vo-ease)}
+/* ---- Map pin ---- */
+.vo-pin{position:relative;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#fff;background:linear-gradient(145deg,#f97316,#dc2626);border:2px solid #fff;box-shadow:0 6px 16px rgba(220,38,38,.5)}
+.vo-pin::after{content:"";position:absolute;inset:-2px;border-radius:50%;border:2px solid #f97316;animation:vo-ping 2s ease-out infinite}
+@keyframes vo-ping{to{transform:scale(2.3);opacity:0}}
+.vo-map{height:340px;border-radius:12px;overflow:hidden}
+@media (prefers-reduced-motion:reduce){.vo-ember,.vo-hero::after,.vo-pin::after{animation:none}.vo-page *{transition-duration:.01ms!important}}

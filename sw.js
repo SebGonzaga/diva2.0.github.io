@@ -62,6 +62,7 @@ const STATIC_ASSETS = [
   "./assets/js/tanauan-boundaries.js",
   "./assets/css/emergency.css",
   "./assets/css/flood.css",
+  "./assets/css/volcano.css",
   "./assets/js/weather-timely.js",
   "./assets/js/rain-indices.js",
   "./assets/js/rain-auth.js",
