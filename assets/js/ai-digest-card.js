@@ -117,5 +117,6 @@ window.RainDigest = (function () {
     let tries = 0;
     const t = setInterval(() => { const el = document.getElementById(id); if (el) { clearInterval(t); render(el, kind); } else if (++tries > 40) clearInterval(t); }, 250);
   }
-  return { mount };
+  function reload(id, kind) { const el = document.getElementById(id); if (el) render(el, kind); } // re-draw after an admin manual refresh
+  return { mount, reload };
 })();
