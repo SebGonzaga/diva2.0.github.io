@@ -64,6 +64,8 @@
     </details>
   </div>
 
+  <div class="d-none mb-2" id="digestAdminBar"><div class="d-flex gap-2 align-items-center flex-wrap"><button class="btn-rain btn-rain-ghost btn-rain-sm" type="button" id="digestRefreshBtn"><i class="bi bi-arrow-clockwise"></i> Refresh bulletin data now</button><span id="digestRefreshMsg" class="text-muted" style="font-size:.78rem;" role="status"></span></div></div>
+
   <div class="rain-card mb-4" id="aiDigestVolcano" style="font-size:.85rem;"></div>
 
   <div class="row g-4 mb-4">
@@ -254,12 +256,33 @@
     }
   }
 
+  // ---------- Admin-only manual refresh of the nightly bulletin digest (POST /api/daily-digest?kind=volcano; the server re-checks the admin role) ----------
+  function initDigestRefresh() {
+    if (!RainAuth.isAdmin(RainAuth.getUser())) return;
+    $("digestAdminBar").classList.remove("d-none");
+    const btn = $("digestRefreshBtn"), msg = $("digestRefreshMsg");
+    btn.addEventListener("click", async () => {
+      btn.disabled = true; msg.textContent = "Checking PHIVOLCS…";
+      try {
+        const { data } = await sb.auth.getSession();
+        const token = data && data.session && data.session.access_token;
+        if (!token) throw new Error("please log in again");
+        const r = await fetch("/api/daily-digest?kind=volcano", { method: "POST", headers: { Authorization: "Bearer " + token }, signal: AbortSignal.timeout(65000) });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(j.error || "HTTP " + r.status);
+        msg.textContent = (j.results && j.results.volcano) || "Done";
+        RainDigest.reload("aiDigestVolcano", "volcano");
+      } catch (e) { msg.textContent = "Refresh failed: " + (e.name === "TimeoutError" ? "timed out" : e.message); }
+      finally { btn.disabled = false; }
+    });
+  }
+
   async function initVolcanoPage() {
     $("app-content").appendChild($("volcano-content").content.cloneNode(true));
     $("voEmbers").innerHTML = Array.from({ length: 16 }, () => `<i class="vo-ember" style="--x:${(Math.random() * 100).toFixed(1)}%;--s:${(2 + Math.random() * 4).toFixed(1)}px;--d:${(5 + Math.random() * 6).toFixed(1)}s;--t:${(Math.random() * 6).toFixed(1)}s;--dx:${(Math.random() * 90 - 45).toFixed(0)}px"></i>`).join("");
     $("voLadder").innerHTML = Object.entries(LEVEL_NAMES).map(([l, n]) => `<div class="vo-step" data-l="${l}" style="--sc:${LV_COL[l]}"><b>${l}</b>${esc(n)}</div>`).join("");
     $("wxRetry").addEventListener("click", () => { const loc = window.__taalLoc || TAAL_FALLBACK; loadWeather(loc.lat, loc.lng); });
-    initializeAnimations(); initAdminForm(); loadBulletin();
+    initializeAnimations(); initAdminForm(); initDigestRefresh(); loadBulletin();
     const loc = await loadLocation(); window.__taalLoc = loc; await loadWeather(loc.lat, loc.lng);
   }
   if (user) initVolcanoPage();
