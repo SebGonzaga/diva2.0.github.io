@@ -4,6 +4,8 @@
 //      DIGEST_VOLCANO_URL and/or DIGEST_HEAT_URL (exact public https pages to read; a kind is skipped when its URL is unset;
 //      for volcano it may be the PHIVOLCS bulletin LIST page: the newest Taal bulletin linked there is then read instead),
 //      GEMINI_MODEL (optional), GEMINI_IMAGE_MODEL (optional, default gemini-2.5-flash-image), DIGEST_IMAGES=off to skip pictures.
+// Manual refresh: a signed-in ADMIN can POST /api/daily-digest?kind=volcano (volcano.html refresh button) with their Supabase session token as the Bearer.
+//      A manual run re-reads the bulletin, skips the AI calls when it is unchanged, and never replaces a good row with a failed one.
 // Pictures: after a summary is saved with status 'ok', one AI illustration is generated from that summary, uploaded to the public
 //      Supabase Storage bucket 'digest-images' (migration 011) and linked in ai_digests.image_url. Best effort: a failure never hides the text.
 import { htmlToText, extractAlertLevel, SYSTEM_PROMPT, buildPrompt, parseModelJson, numbersSupported, sha256Hex, phtDate, buildImagePrompt, extractImage, findLatestBulletinUrl, parseTaalBulletin } from './_lib/digest.js';
@@ -18,6 +20,19 @@ async function getPage(url) {
 }
 
 const sbHeaders = () => ({ apikey: process.env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}` });
+
+/** True when this Supabase session token belongs to a user whose profiles.role is 'admin' (checked server-side, never trusted from the browser). */
+async function isAdminToken(token) {
+  try {
+    const u = await fetch(`${process.env.SUPABASE_URL}/auth/v1/user`, { headers: { apikey: process.env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(5000) });
+    if (!u.ok) return false;
+    const id = (await u.json())?.id;
+    if (!id) return false;
+    const p = await fetch(`${process.env.SUPABASE_URL}/rest/v1/profiles?select=role&id=eq.${encodeURIComponent(id)}`, { headers: sbHeaders(), signal: AbortSignal.timeout(5000) });
+    if (!p.ok) return false;
+    return (await p.json())?.[0]?.role === 'admin';
+  } catch { return false; }
+}
 
 async function summarize(kind, text) {
   const model = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
@@ -66,13 +81,14 @@ async function imageStep(kind, date, summary) {
   catch (e) { console.error('digest image error:', kind, e.message); return 'image failed: ' + e.message; }
 }
 
-async function runOne(kind, url, date) {
-  const have = await fetch(`${process.env.SUPABASE_URL}/rest/v1/ai_digests?select=status,image_url,summary,metrics&kind=eq.${kind}&digest_date=eq.${date}`, { headers: sbHeaders() }).then((r) => (r.ok ? r.json() : [])).catch(() => []);
-  if (have[0] && have[0].status === 'ok' && !(kind === 'volcano' && have[0].metrics == null)) { // cron can fire twice; never overwrite a good row or re-spend AI calls (a volcano row still missing the official numbers is rebuilt)
+async function runOne(kind, url, date, force = false) {
+  const have = await fetch(`${process.env.SUPABASE_URL}/rest/v1/ai_digests?select=status,image_url,summary,metrics,source_sha256,created_at&kind=eq.${kind}&digest_date=eq.${date}`, { headers: sbHeaders() }).then((r) => (r.ok ? r.json() : [])).catch(() => []);
+  if (force && have[0] && Date.now() - new Date(have[0].created_at).getTime() < 60000) return 'just refreshed; wait a minute and try again';
+  if (!force && have[0] && have[0].status === 'ok' && !(kind === 'volcano' && have[0].metrics == null)) { // cron can fire twice; never overwrite a good row or re-spend AI calls (a volcano row still missing the official numbers is rebuilt)
     if (have[0].image_url || !imagesOn() || !have[0].summary) return 'already done today';
     return 'summary already done; ' + (await imageStep(kind, date, have[0].summary)); // only the picture is missing: retry just that
   }
-  const row = { kind, digest_date: date, source_url: url, status: 'source_unreachable', alert_level: null, summary: null, source_fetched_at: null, source_sha256: null, model: null };
+  const row = { kind, digest_date: date, created_at: new Date().toISOString(), source_url: url, status: 'source_unreachable', alert_level: null, summary: null, source_fetched_at: null, source_sha256: null, model: null };
   try {
     let html = await getPage(url);
     if (kind === 'volcano') { // list page? follow its newest Taal bulletin (same host only)
@@ -85,6 +101,7 @@ async function runOne(kind, url, date) {
     if (text.length < 200) { row.status = 'source_unparsed'; }
     else {
       row.source_sha256 = sha256Hex(text);
+      if (force && have[0] && have[0].status === 'ok' && have[0].source_sha256 === row.source_sha256 && have[0].metrics != null) return 'already up to date (no newer bulletin than the one shown)';
       if (kind === 'volcano') row.alert_level = extractAlertLevel(text);
       row.status = 'ai_failed';
       try {
@@ -94,6 +111,7 @@ async function runOne(kind, url, date) {
       } catch (e) { console.error('digest AI error:', kind, e.message); }
     }
   } catch (e) { console.error('digest source error:', kind, e.message); }
+  if (force && have[0] && have[0].status === 'ok' && row.status !== 'ok') return 'refresh failed (' + row.status + '); kept the data already shown'; // a manual retry must never replace good data with a failure
   const post = (r) => fetch(`${process.env.SUPABASE_URL}/rest/v1/ai_digests?on_conflict=kind,digest_date`, {
     method: 'POST', headers: { ...sbHeaders(), 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify(r),
   });
@@ -110,16 +128,24 @@ async function runOne(kind, url, date) {
 
 export default async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  const secret = process.env.CRON_SECRET;
-  if (!secret || req.headers.authorization !== `Bearer ${secret}`) return res.status(401).json({ error: 'Unauthorized' });
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.DIGEST_GEMINI_API_KEY) return res.status(500).json({ error: 'Server misconfigured' });
+  const secret = process.env.CRON_SECRET;
+  const bearer = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+  const isCron = !!secret && bearer === secret;
+  let manual = false;
+  if (!isCron) { // not the scheduler: only a signed-in administrator may trigger a run
+    if (!bearer) return res.status(401).json({ error: 'Unauthorized' });
+    if (!(await isAdminToken(bearer))) return res.status(403).json({ error: 'Administrators only' });
+    manual = true;
+  }
+  const only = manual ? 'volcano' : null; // the button refreshes the volcano card only
   const date = phtDate();
   const out = {};
-  await Promise.all(KINDS.map(async ([kind, envName]) => {
+  await Promise.all(KINDS.filter(([kind]) => !only || kind === only).map(async ([kind, envName]) => {
     const url = process.env[envName];
     if (!url) { out[kind] = 'skipped (' + envName + ' not set)'; return; }
     if (!/^https:\/\//.test(url)) { out[kind] = 'skipped (URL must be https)'; return; }
-    out[kind] = await runOne(kind, url, date);
+    out[kind] = await runOne(kind, url, date, manual);
   }));
   return res.status(200).json({ date, results: out });
 }
