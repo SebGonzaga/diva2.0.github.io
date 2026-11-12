@@ -79,7 +79,7 @@
           <span><span class="em-dot center"></span> Evacuation center</span>
           <span><span class="em-dot school"></span> School</span>
           <span><span class="exact"></span> Confirmed hall pin</span>
-          <span><span class="approx"></span> Approximate (barangay centre, not a confirmed hall)</span>
+          <span id="legendApprox"><span class="approx"></span> Approximate (barangay centre, not a confirmed hall)</span>
         </div>
         <div class="em-sv" id="svPanel" hidden>
           <div class="em-sv-head">
@@ -139,7 +139,8 @@
 
   const CONTACTS = RAIN_DEMO.emergencyContacts || [];
   const CENTERS = RAIN_DEMO.evacuationCenters || [];   // shelters, schools
-  const HALLS = RAIN_DEMO.barangays || [];             // 48 barangay halls (some approximate)
+  const HALLS = RAIN_DEMO.barangays || [];
+  { const la = document.getElementById("legendApprox"); if (la && !HALLS.some((h) => h.approx)) la.hidden = true; } // hide the legend entry once every hall is confirmed             // 48 barangay halls (some approximate)
   const BOUNDS = window.RAIN_BOUNDARIES || { features: [] };
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const telHref = (n) => "tel:" + String(n).replace(/[^\d+]/g, "");

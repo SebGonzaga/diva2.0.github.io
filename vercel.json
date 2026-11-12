@@ -6,6 +6,10 @@
     },
     "api/daily-digest.js": {
       "maxDuration": 60
+    },
+    "api/incident-update.js": {
+      "maxDuration": 30,
+      "includeFiles": "assets/js/demo-data.js"
     }
   },
   "headers": [

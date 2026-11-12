@@ -81,7 +81,10 @@ export default async function handler(req, res) {
       await notifyResidentsOfAlert(record);
     } else if (table === 'incidents' && type === 'INSERT') {
       await notifyAdminsOfIncident(record);
-    } else if (table === 'incidents' && type === 'UPDATE' && old_record && record.status !== old_record.status) {
+    } else if (table === 'incidents' && type === 'UPDATE' && old_record && record.status !== old_record.status
+               && !['resolved', 'pending'].includes(record.status)) {
+      // 'resolved' and 'pending' are emailed by /api/incident-update (proof photo /
+      // safety info), so skip them here or the resident would get two emails.
       await notifyReporterOfStatusChange(record);
     }
     // Anything else that matches no branch above is a no-op, not an error --
