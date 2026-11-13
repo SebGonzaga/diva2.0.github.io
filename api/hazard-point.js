@@ -1,19 +1,20 @@
 // /api/hazard-point.js
-// Server-side proxy: asks the MGB hazard services (Philippine Geoportal / UlAP) what is mapped at ONE point.
+// Server-side proxy: asks the MGB hazard services (controlmap.mgb.gov.ph) what is mapped at ONE point.
 // Usage: /api/hazard-point?service=Flood|RainInducedLandslide&lat=14.08&lng=121.15
 // Returns { service, count, attributes } where attributes are exactly what MGB returned (not interpreted).
-const ALLOWED = { Flood: true, RainInducedLandslide: true };
-const BASE = 'https://ulap-hazards.georisk.gov.ph/arcgis/rest/services/MGBPublic/';
+const BASE = 'https://controlmap.mgb.gov.ph/arcgis/rest/services/GeospatialDataInventory/';
+// public service names the page uses -> MGB MapServer folder names (the old UlAP server now demands a token)
+const SERVICES = { Flood: 'GDI_Detailed_Flood_Susceptibility', RainInducedLandslide: 'GDI_Detailed_Rain_induced_Landslide_Susceptibility' };
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
   const { service } = req.query;
   const lat = Number(req.query.lat), lng = Number(req.query.lng);
-  if (!ALLOWED[service]) return res.status(400).json({ error: 'Unknown service' });
+  if (!Object.prototype.hasOwnProperty.call(SERVICES, service)) return res.status(400).json({ error: 'Unknown service' });
   if (!(lat >= 4 && lat <= 21.5 && lng >= 116 && lng <= 127.5)) return res.status(400).json({ error: 'Point outside the Philippines' });
 
   const d = 0.01;
-  const url = `${BASE}${service}/MapServer/identify?geometry=${lng},${lat}&geometryType=esriGeometryPoint&sr=4326&layers=all&tolerance=1` +
+  const url = `${BASE}${SERVICES[service]}/MapServer/identify?geometry=${lng},${lat}&geometryType=esriGeometryPoint&sr=4326&layers=all&tolerance=1` +
     `&mapExtent=${lng - d},${lat - d},${lng + d},${lat + d}&imageDisplay=400,400,96&returnGeometry=false&f=json`;
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), 8000);

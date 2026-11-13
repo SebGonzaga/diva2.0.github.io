@@ -11,13 +11,14 @@ Basemaps: Carto Voyager (default), Esri World Imagery (satellite; attribution sh
 Marker clustering for facility points: done (Leaflet.markercluster 1.5.3 from unpkg; falls back to plain markers if it fails to load). Traffic: not done (no source verified).
 
 ## Hazard services used by flood-landslide.html (live, not stored here)
-- Flood susceptibility: https://ulap-hazards.georisk.gov.ph/arcgis/rest/services/MGBPublic/Flood/MapServer (MGB, data as of July 2018 per metadata; WGS84 service, requested in EPSG:3857)
-- Rain-induced landslide: https://ulap-hazards.georisk.gov.ph/arcgis/rest/services/MGBPublic/RainInducedLandslide/MapServer (MGB 2012, READY Project)
+- Flood susceptibility: https://controlmap.mgb.gov.ph/arcgis/rest/services/GeospatialDataInventory/GDI_Detailed_Flood_Susceptibility/MapServer (MGB; class field `FloodSusc`: VHF/HF/MF/LF)
+- Rain-induced landslide: https://controlmap.mgb.gov.ph/arcgis/rest/services/GeospatialDataInventory/GDI_Detailed_Rain_induced_Landslide_Susceptibility/MapServer (MGB; class field `LndslideSusc`: VHL/HL/ML/LL/DF)
+- The previous server (ulap-hazards.georisk.gov.ph/.../MGBPublic) began answering "Token Required" (error 499), so the app moved to the MGB server above. Map images are fetched through api/mgb-tile.js.
 - Unverified: scale, license/terms, update cadence, whether the server allows hotlinking from your domain. Not tested from the build sandbox (no network access to this host).
 - 3D terrain (flood-landslide-3d.html): AWS Open Data Terrain Tiles, Terrarium encoding, https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png (global; built from SRTM and other sources; coarse). Rendered with MapLibre GL JS 4.7.1.
 - NOT USED: a third-party Hugging Face copy of "Project NOAH" PMTiles (Siesta-22/project-noah-hazard-maps). Unofficial; provenance, license and currency unverified. Official NOAH data must come from UP Resilience Institute / DOST.
 - 3D buildings: OpenFreeMap vector tiles (https://tiles.openfreemap.org/planet, free, no key; attribution "OpenFreeMap (c) OpenMapTiles, data from OpenStreetMap"). Heights from OSM, default 5 m when absent.
-- Point lookup: api/hazard-point.js calls the MGB MapServer `identify` operation. Response field names were NOT verified; the UI shows attributes exactly as returned.
+- Point lookup: api/hazard-point.js calls the MGB MapServer `identify` operation. Class fields are `FloodSusc` / `LndslideSusc` (codes translated to labels in the UI).
 
 ## Research findings: public sources for the four facility layers (checked Oct 2026; downloads NOT tested from the build sandbox)
 | Layer | Best public source | Status / limits |

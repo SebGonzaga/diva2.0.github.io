@@ -55,6 +55,7 @@
             </div>
           </div>
         </div>
+        <div class="fl-glass" id="flMgbDown" style="display:none;position:absolute;left:12px;right:12px;top:12px;z-index:5;padding:.6rem .8rem;border-left:4px solid #f59e0b;font-size:.8rem;color:#fff"><b><i class="bi bi-exclamation-triangle"></i> MGB hazard data unavailable.</b> The MGB hazard server is not returning flood and landslide layers right now, so the colored highlights and location checks cannot load. This is a problem with the data source, not your device. Barangay boundaries, evacuation centers and community reports still work. Please check with the CDRRMO for hazard information.</div>
         <div class="fl-hint fl-glass" id="flHint">Click the map to check a spot</div>
         <div class="fl-tip fl-glass" id="flTip"></div>
         <div class="fl-fail" id="flFail"><div><i class="bi bi-exclamation-triangle" style="font-size:2rem"></i><p class="mt-2 mb-0">The map could not start. It needs WebGL and the map library from the internet. Try another browser or check your connection.</p></div></div>
@@ -76,7 +77,7 @@
     </div>
   </div>
 
-  <div class="rain-card" style="font-size:.76rem"><b>Sources &amp; limitations.</b> Flood and rain-induced landslide susceptibility come live from the Philippine Geoportal / UlAP hazards server (<code>ulap-hazards.georisk.gov.ph</code>), from Mines and Geosciences Bureau data (flood: July 2018; landslide: 2012, READY Project). Check scale, licence and update status before relying on them.
+  <div class="rain-card" style="font-size:.76rem"><b>Sources &amp; limitations.</b> Flood and rain-induced landslide susceptibility come live from the Mines and Geosciences Bureau (MGB) <i>Detailed Flood Susceptibility</i> and <i>Detailed Rain-induced Landslide Susceptibility</i> services (<code>controlmap.mgb.gov.ph</code>). Check scale, licence and update status before relying on them.
     Barangay boundaries are indicative (PSA/NAMRIA via OCHA), not official. Hall pins in grey are barangay centres, not confirmed hall locations. Evacuation-center status is not tracked here; confirm with the CDRRMO.
     3D terrain: AWS Open Data Terrain Tiles (coarse, tens of metres) and OpenFreeMap buildings (OpenStreetMap data, heights often default). Terrain is exaggerated for visibility; use it for orientation only, not engineering or evacuation decisions.
     Not Project NOAH data. Satellite &copy; Esri, Maxar, Earthstar Geographics; streets &copy; OpenStreetMap contributors; dark &copy; CARTO.</div>
@@ -105,10 +106,11 @@
 
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const CENTER = [121.1497, 14.0863];                       // approximate city centre, view only
-  const BASE = "https://ulap-hazards.georisk.gov.ph/arcgis/rest/services/MGBPublic/";
-  const HAZ = [{ id: "flood", url: BASE + "Flood/MapServer" }, { id: "slide", url: BASE + "RainInducedLandslide/MapServer" }];
+  const BASE = "https://controlmap.mgb.gov.ph/arcgis/rest/services/GeospatialDataInventory/";
+  const HAZ = [{ id: "flood", url: BASE + "GDI_Detailed_Flood_Susceptibility/MapServer" }, { id: "slide", url: BASE + "GDI_Detailed_Rain_induced_Landslide_Susceptibility/MapServer" }];
   const D = window.RAIN_DEMO || {}, B = window.RAIN_BOUNDARIES;
-  const expUrl = (u) => `${u}/export?bbox={bbox-epsg-3857}&bboxSR=3857&imageSR=3857&size=256,256&format=png32&transparent=true&f=image`;
+  // tiles go through our own /api/mgb-tile proxy (no CORS issues, edge-cached)
+  const tileUrl = (id) => `${location.origin}/api/mgb-tile?svc=${id}&bbox={bbox-epsg-3857}`;
   const ease = (k) => (k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);
   const ms = (n) => (reduce ? 0 : n);
   function tween(a, b, dur, fn, done) {
@@ -153,8 +155,8 @@
   const FADE = { flood: "raster-opacity", slide: "raster-opacity", "vec-fill": "fill-opacity", "vec-line": "line-opacity", "evac-pts": "circle-opacity", "hall-pts": "circle-opacity", reports: "circle-opacity" };
   const TGT = { flood: .6, slide: .6, "vec-fill": .5, "vec-line": .9, "evac-pts": 1, "hall-pts": 1, reports: 1 };
   const TOG = [
-    { k: "flood", t: "Flood susceptibility", s: "MGB · 2018", c: "#3b82f6", on: true, ids: ["flood"] },
-    { k: "slide", t: "Landslide susceptibility", s: "MGB · 2012", c: "#f59e0b", ids: ["slide"] },
+    { k: "flood", t: "Flood susceptibility", s: "MGB · detailed", c: "#3b82f6", on: true, ids: ["flood"] },
+    { k: "slide", t: "Landslide susceptibility", s: "MGB · detailed", c: "#f59e0b", ids: ["slide"] },
     { k: "vec", t: "Zones by class (polygons)", s: "live from MGB", c: "#a78bfa", ids: ["vec-fill", "vec-line"] },
     { k: "brgy", t: "Barangay boundaries", s: "indicative, not official", c: "#f8fafc", on: true, ids: ["brgy-fill", "brgy-line"] },
     { k: "evac", t: "Evacuation centers", s: "status not tracked", c: "#16a34a", ids: ["evac-pts"] },
@@ -218,15 +220,18 @@
   const PAL = { flood: { v: "#1e3a8a", h: "#2563eb", m: "#60a5fa", l: "#93c5fd" }, slide: { v: "#7f1d1d", h: "#dc2626", m: "#f97316", l: "#eab308" } };
   const ADV = { flood: { h: "Monitor water levels and prepare for evacuation during heavy rain.", m: "Stay alert to advisories. Keep an emergency bag ready.", l: "Follow local advisories during heavy rain." },
     slide: { h: "Watch for slope cracks and muddy streams. Prepare to evacuate in prolonged rain.", m: "Avoid steep cuts. Monitor slopes after heavy rain.", l: "Follow local advisories during heavy rain." } };
-  const lvlKey = (t) => { t = String(t || "").toLowerCase(); return /very/.test(t) ? "v" : /high|\bh\b|^3$|debris|accum/.test(t) ? "h" : /mod|\bm\b|^2$/.test(t) ? "m" : /low|\bl\b|^1$/.test(t) ? "l" : null; };
+  // MGB codes: flood VHF/HF/MF/LF, landslide VHL/HL/ML/LL, DF = debris-flow path
+  const CODE = { VHF: ["v", "Very High"], HF: ["h", "High"], MF: ["m", "Moderate"], LF: ["l", "Low"], VHL: ["v", "Very High"], HL: ["h", "High"], ML: ["m", "Moderate"], LL: ["l", "Low"], DF: ["h", "Debris flow path / accumulation zone"] };
+  const lab = (v) => { const c = CODE[String(v == null ? "" : v).trim().toUpperCase()]; return c ? c[1] : v; };
+  const lvlKey = (t) => { const c = CODE[String(t == null ? "" : t).trim().toUpperCase()]; if (c) return c[0]; t = String(t || "").toLowerCase(); return /very/.test(t) ? "v" : /high|\bh\b|^3$|debris|accum/.test(t) ? "h" : /mod|\bm\b|^2$/.test(t) ? "m" : /low|\bl\b|^1$/.test(t) ? "l" : null; };
   const classOf = (a) => {
     if (!a) return "None mapped (outside susceptible zones)";
     const keys = Object.keys(a).filter((k) => /susc|haz|class|level|rating|^f?hazard|^lh|^fh|^gridcode|^descript/i.test(k) && a[k] != null && a[k] !== "");
-    return (keys.length ? keys : Object.keys(a).filter((k) => typeof a[k] === "string")).slice(0, 2).map((k) => a[k]).join(" · ") || "Mapped (class not stated)";
+    return (keys.length ? keys : Object.keys(a).filter((k) => typeof a[k] === "string")).slice(0, 2).map((k) => lab(a[k])).join(" · ") || "Mapped (class not stated)";
   };
 
   // ---------- check a location (api/hazard-point -> MGB identify) ----------
-  const SVC = [["Flood", "flood", "Flood susceptibility (MGB 2018)"], ["RainInducedLandslide", "slide", "Landslide susceptibility (MGB 2012)"]];
+  const SVC = [["Flood", "flood", "Flood susceptibility (MGB)"], ["RainInducedLandslide", "slide", "Landslide susceptibility (MGB)"]];
   async function checkPoint(lng, lat, note) {
     const tok = ++qTok;
     if (!(lat >= 4 && lat <= 21.5 && lng >= 116 && lng <= 127.5)) { $("flPin").textContent = "That point is outside the Philippines, where MGB hazard data applies."; return; }
@@ -240,9 +245,9 @@
         if (!j.count) return `<div class="fl-res"><b>${esc(label)}</b><br>No mapped class returned here. That can mean low/no susceptibility <i>or</i> no coverage; the source does not say which.</div>`;
         const kv = Object.entries(j.attributes || {}), head = kv.find(([key]) => /susc|class|hazard|level|rating/i.test(key)), lk = lvlKey(head && head[1]);
         const col = (lk && PAL[k][lk]) || "#64748b", adv = lk && ADV[k][lk === "v" ? "h" : lk];
-        return `<div class="fl-res" style="--c:${col}"><b>${esc(label)}</b><br>${head ? `<span class="fl-chip" style="background:${col}">${esc(head[1])}</span>` : ""}${adv ? `<div class="mt-1">${esc(adv)}</div>` : ""}
+        return `<div class="fl-res" style="--c:${col}"><b>${esc(label)}</b><br>${head ? `<span class="fl-chip" style="background:${col}">${esc(lab(head[1]))}</span>` : ""}${adv ? `<div class="mt-1">${esc(adv)}</div>` : ""}
           <small class="text-muted">As returned by MGB: ${kv.map(([a, v]) => esc(a) + " = " + esc(v)).join("; ") || "(no attributes)"}</small></div>`;
-      } catch (e) { return `<div class="fl-res"><b>${esc(label)}</b><br>Could not be checked right now.</div>`; }
+      } catch (e) { mgbDown("hazard-point failed"); return `<div class="fl-res"><b>${esc(label)}</b><br>Could not be checked: the MGB hazard server is not responding. Confirm with the CDRRMO.</div>`; }
     }));
     if (tok !== qTok) return;
     $("flPin").innerHTML = parts.join("") + `<small class="text-muted">General susceptibility, not current conditions. ${lat.toFixed(5)}, ${lng.toFixed(5)}${note ? " · " + esc(note) : ""}</small>`;
@@ -290,7 +295,7 @@
         ok++;
       } catch (e) { console.warn("vector load failed", h.id, e); }
     }
-    map.getSource("vec").setData({ type: "FeatureCollection", features: feats }); if (!ok) vecLoaded = false;
+    map.getSource("vec").setData({ type: "FeatureCollection", features: feats }); if (!ok) { vecLoaded = false; mgbDown("polygon query failed"); }
   }
 
   // ---------- community reports ----------
@@ -312,7 +317,18 @@
     <div class="fl-leg"><span style="width:62px">Landslide</span>${ramp(PAL.slide)}<small>low → high</small></div>
     <div class="text-muted mb-2" style="font-size:.72rem">Ramps apply to the polygon layer. The image overlays use the colours drawn by the MGB service.</div>
     <div class="fl-leg"><span class="fl-dot" style="background:#16a34a"></span>Evacuation center <span class="fl-dot ms-2" style="background:#94a3b8"></span>Barangay hall <span class="fl-dot ms-2" style="background:#2563eb"></span>Flood report <span class="fl-dot ms-2" style="background:#92400e"></span>Landslide report</div>
-    <div class="mt-2" style="font-size:.75rem"><b>MGB flood classes:</b> Low ≤0.5 m · Moderate 0.5–1 m · High 1–2 m · Very High &gt;2 m (depth).<br><b>Landslide:</b> Low / Moderate / High; high areas have active or recent landslides and tension cracks.</div>`;
+    <div class="mt-2" style="font-size:.75rem"><b>MGB flood classes:</b> Low · Moderate · High · Very High susceptibility to flooding.<br><b>Landslide:</b> Low · Moderate · High · Very High, plus debris-flow paths / possible accumulation zones.</div>`;
+
+  // ---------- MGB availability probe ----------
+  // The UlAP server may answer with {error:{code:499,"Token Required"}} or be
+  // unreachable; both make every hazard overlay silently blank. Tell the user.
+  function mgbDown(why) { console.warn("MGB hazard server unavailable:", why); const n = $("flMgbDown"); if (n) n.style.display = "block"; }
+  (async () => {
+    try {
+      const j = await arc(HAZ[0].url + "?f=json");
+      if (!j || j.error || !j.layers) mgbDown(j && j.error ? j.error.message || j.error.code : "no layer list");
+    } catch (e) { mgbDown(e && e.message); }
+  })();
 
   // ---------- load ----------
   const tip = $("flTip");
@@ -320,7 +336,7 @@
     map.addSource("ofm", { type: "vector", url: "https://tiles.openfreemap.org/planet" });
     map.addLayer({ id: "bld3d", type: "fill-extrusion", source: "ofm", "source-layer": "building", minzoom: 14, layout: { visibility: "none" },
       paint: { "fill-extrusion-color": "#cfc6bb", "fill-extrusion-opacity": 0, "fill-extrusion-opacity-transition": { duration: ms(800) }, "fill-extrusion-height": ["coalesce", ["get", "render_height"], 5], "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0] } });
-    HAZ.forEach((h) => { map.addSource(h.id, { type: "raster", tileSize: 256, minzoom: 8, tiles: [expUrl(h.url)], attribution: "Hazard data: MGB via Philippine Geoportal/UlAP" });
+    HAZ.forEach((h) => { map.addSource(h.id, { type: "raster", tileSize: 256, minzoom: 8, tiles: [tileUrl(h.id)], attribution: "Hazard data: Mines and Geosciences Bureau (MGB)" });
       map.addLayer({ id: h.id, type: "raster", source: h.id, layout: { visibility: "none" }, paint: { "raster-opacity": 0, "raster-fade-duration": 300 } }, "bld3d"); });
     map.addSource("vec", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
     map.addLayer({ id: "vec-fill", type: "fill", source: "vec", layout: { visibility: "none" }, paint: { "fill-color": ["get", "_c"], "fill-opacity": 0 } });
