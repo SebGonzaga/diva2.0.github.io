@@ -416,7 +416,7 @@
       // inside the map code below) because Community Risk needs it too.
       const { data: dbIncidents, error: incidentsFetchError } = await sb
         .from("incidents")
-        .select("*, profiles(full_name)")
+        .select("*, profiles!reporter_id(full_name)")
         .not("lat", "is", null)
         .not("lng", "is", null);
       if (incidentsFetchError) console.error("Fetch incidents error:", incidentsFetchError);
