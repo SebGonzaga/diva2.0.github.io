@@ -184,6 +184,10 @@
     });
 
     const modalEl = document.getElementById("statusModal");
+    // .app-content is its own stacking context (position:relative; z-index:1),
+    // which traps a modal inside it BELOW Bootstrap's backdrop (on <body>), so
+    // nothing in the modal was clickable. Move it to <body> before use.
+    document.body.appendChild(modalEl);
     const modal = new bootstrap.Modal(modalEl);
     const $ = (id) => document.getElementById(id);
     let pendingAction = null; // { incident, status: "resolved" | "pending" }
