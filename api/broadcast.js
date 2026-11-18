@@ -163,11 +163,20 @@ export default async function handler(req, res) {
 
     // 2) SMS: one gateway request per distinct text (people who share a weather cell,
     //    evacuation center and incident count get the identical message).
+    // Send one text group at a time with a short pause. Sending them all at once
+    // makes the phone's SMS app send a burst, which triggers iOS's "large number
+    // of messages" prompt and fails the rest. Stop before the function's time limit
+    // and report what was not sent, so it can be resent.
     let smsAccepted = 0;
+    let smsSkippedGroups = 0;
+    const SMS_PAUSE_MS = 2000;
+    const SMS_TIME_BUDGET_MS = 45000;
+    const smsStart = Date.now();
     const groups = groupByText(smsItems);
-    for (let i = 0; i < groups.length; i += 4) {
-      const results = await Promise.all(groups.slice(i, i + 4).map((g) => sendSms(g.members.map((m) => m.phone), g.text)));
-      smsAccepted += results.reduce((a, b) => a + b, 0);
+    for (let i = 0; i < groups.length; i++) {
+      if (Date.now() - smsStart > SMS_TIME_BUDGET_MS) { smsSkippedGroups = groups.length - i; break; }
+      smsAccepted += await sendSms(groups[i].members.map((m) => m.phone), groups[i].text);
+      if (i < groups.length - 1) await new Promise((r) => setTimeout(r, SMS_PAUSE_MS));
     }
 
     await supabaseInsert('broadcast_log', {
@@ -175,7 +184,7 @@ export default async function handler(req, res) {
       preview: (items.find((i) => i.id === adminId) || items[0]).text.slice(0, 600),
     });
 
-    return res.status(200).json({ ok: true, recipients: items.length, smsRecipients: smsItems.length, smsAccepted, inApp });
+    return res.status(200).json({ ok: true, recipients: items.length, smsRecipients: smsItems.length, smsAccepted, smsSkippedGroups, inApp });
   } catch (err) {
     console.error('broadcast error:', err);
     return res.status(500).json({ error: 'Something went wrong sending the update: ' + String(err?.message || err).slice(0, 300) });
