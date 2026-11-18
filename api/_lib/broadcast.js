@@ -116,7 +116,9 @@ export function buildShortSms({ now = Date.now(), area, weather, flood, volcano,
   const MAX = 160;
   const e = (emoji, text) => (emojis ? `${emoji} ${text}` : text);
   const head = e('🌧', `Hi neighbor! RAIN update ${phDate(now)}${area ? ` - ${String(area).split(',')[0].trim()}` : ''}.`);
-  const tail = ` Details: ${SITE_URL}`;
+  // No link in the text: carriers filter texts with web addresses, so the daily update
+  // points people to the app by name instead. The full details are in the bell notification.
+  const tail = ' Open the RAIN app for details.';
   const sections = [];
   const temp = Number(weather?.tempC);
   const desc = String(weather?.desc || '').toLowerCase();
