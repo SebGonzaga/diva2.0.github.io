@@ -229,13 +229,14 @@
             <span class="status-badge status-caution"><span class="dot"></span>Under review</span>
           </div>
           <div style="font-size:.84rem; margin:.2rem 0;">${escapeHtml((r.description || "").slice(0, 140))}${(r.description || "").length > 140 ? "…" : ""}</div>
+          ${r.photo_url ? `<a href="${escapeHtml(r.photo_url)}" target="_blank" rel="noopener"><img src="${escapeHtml(r.photo_url)}" alt="Photo of the reported ${escapeHtml((r.category || "incident").toLowerCase())}" loading="lazy" style="width:100%; max-width:260px; max-height:160px; object-fit:cover; border-radius:10px; margin:.35rem 0; display:block;"></a>` : ""}
           <div class="data-source-line"><i class="bi bi-geo-alt"></i> ${escapeHtml(placeText(r))} · ${new Date(r.created_at).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</div>
         </div>
       </div>`).join("");
   }
 
   async function loadReviewed() {
-    const { data, error } = await sb.from("incidents").select("id, category, description, area, lat, lng, created_at").eq("status", "verified").order("created_at", { ascending: false }).limit(200);
+    const { data, error } = await sb.from("incidents").select("id, category, description, area, lat, lng, created_at, photo_url").eq("status", "verified").order("created_at", { ascending: false }).limit(200);
     if (error) { console.error("Fetch reviewed incidents error:", error); return; }
     reviewedRows = data || [];
     paintReviewed();

@@ -45,10 +45,10 @@ test('buildSmsText includes every section and the evacuation link', () => {
     alerts: [{ title: 'Typhoon Advisory', severity: 'warning' }], alertCount: 1, incidentsNear: 2, incidentsTotal: 5,
     center: { name: 'Darasa Court', lat: 14.0672, lng: 121.1531, km: 1.234 }, note: 'Bring ID.',
   });
-  for (const part of ['RAIN Daily Safety Update', 'Light rain, 27C', 'Flood risk (est.): Low', 'Alert Level 1', 'strongest M4.1 Mindoro', 'Typhoon Advisory (warning)', '2 reviewed within 10km', 'Darasa Court (1.2km)', 'destination=14.0672,121.1531', 'Bring ID.']) {
+  for (const part of ['RAIN Daily Safety Update', 'Light rain, 27°C', 'Flood risk (est.): Low', 'Alert Level 1', 'strongest M4.1 Mindoro', 'Typhoon Advisory (warning)', '2 reviewed within 10km', 'Darasa Court (1.2km)', 'destination=14.0672,121.1531', 'Bring ID.']) {
     assert.ok(t.includes(part), `missing: ${part}`);
   }
-  assert.ok(!/[^\x00-\x7F]/.test(t), 'SMS text should be plain ASCII (cheaper segments)');
+  assert.ok(t.includes('\n\n'), 'sections should be separated by paragraph breaks');
 });
 
 test('buildSmsText degrades honestly when data is missing', () => {

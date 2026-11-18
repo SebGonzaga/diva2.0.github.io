@@ -131,7 +131,7 @@ export default async function handler(req, res) {
       const center = nearestEvacCenter(p.loc, centers);
       const incidentsNear = incidentRows.filter((i) => i.lat != null && i.lng != null && haversineKm(p.loc.lat, p.loc.lng, i.lat, i.lng) <= NEAR_INCIDENT_KM).length;
       const text = buildSmsText({
-        weather: cell.weather, flood: cell.flood, volcano, quake,
+        area: p.barangay, weather: cell.weather, flood: cell.flood, volcano, quake,
         alerts, alertCount: alertRows.length,
         incidentsNear, incidentsTotal: incidentRows.length,
         center, note,
@@ -157,7 +157,7 @@ export default async function handler(req, res) {
     // 1) In-app bell notification for EVERYONE (with or without a phone number).
     const inApp = await insertNotifications(items.map((i) => ({
       user_id: i.id, kind: 'broadcast', title: 'Daily safety update',
-      body: i.text.replace(/^RAIN Daily Safety Update[^\n]*\n/, '').replace(/\s*https?:\/\/\S+/g, '').replace(/\nStay safe\. Check the web for details:$/, '').trim(),
+      body: i.text.replace(/^👋[^\n]*\n📅[^\n]*\n(📍[^\n]*\n)?\n*/, '').replace(/\s*https?:\/\/\S+/g, '').replace(/\n*💛 Stay safe[^\n]*$/, '').trim(),
       link: i.role === 'admin' ? 'admin-dashboard.html' : 'emergency.html',
     })));
 
