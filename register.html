@@ -141,6 +141,12 @@
   // validity depends on that field too.
   passEl.addEventListener("input", () => { if (confirmEl.value) confirmValidation.revalidate(); });
 
+  // Exact GPS reading kept alongside the chosen city (see RainAuth.register). Dropped again
+  // if the resident then picks a different city by hand, so it can never contradict the dropdown.
+  let savedCoords = null;
+  const currentCityValue = () => (cityEl.value === TaalPlaces.OTHER_VALUE ? cityOtherEl.value.trim() : cityEl.value);
+  cityEl.addEventListener("change", () => { if (savedCoords && savedCoords.city !== currentCityValue()) savedCoords = null; });
+
   // "Use my current location" — matches the browser's geolocation reading
   // to the closest place in TaalPlaces.PLACES. No external geocoding API
   // is used, so this stays free and works without any additional API key.
@@ -158,6 +164,7 @@
           return;
         }
         if (match.distanceKm <= 40) {
+          savedCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude, city: match.place.name };
           cityEl.value = match.place.name;
           cityOtherEl.classList.add("d-none");
           locationStatusEl.textContent = `Detected: ${match.place.name} (~${match.distanceKm.toFixed(1)} km away)`;
@@ -204,7 +211,7 @@
     // supabase/schema.sql) auto-creates the matching profiles row with
     // role = 'resident'. Admin accounts are promoted manually in Supabase.
     submitBtn.disabled = true;
-    const created = await RainAuth.register({ name: username, email, phone, password: pass, city });
+    const created = await RainAuth.register({ name: username, email, phone, password: pass, city, lat: savedCoords && savedCoords.city === city ? savedCoords.lat : null, lng: savedCoords && savedCoords.city === city ? savedCoords.lng : null });
     submitBtn.disabled = false;
 
     if (!created || created.error) {

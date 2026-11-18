@@ -123,3 +123,40 @@ they already insert/update the rows that trigger these webhooks.
 > past that, revisit a proper transactional provider (Brevo, SendGrid, or
 > AWS SES) — ask Claude to swap it back in; the webhook/trigger logic in
 > this file won't need to change, only `sendEmail`/`sendEmailBatch`.
+
+---
+
+## Notification bar, reviewed incidents, safety broadcast, date filters (new)
+
+**Run once in the Supabase SQL Editor:** `supabase/014_notifications_and_locations.sql`
+(creates `notifications`, adds `profiles.lat/lng`, `broadcast_log`, and turns on Realtime
+for `notifications` + `incidents`).
+
+**Notification bar** — the bell in the top bar (residents and admins) reads the
+`notifications` table. Rows are created only by the server, so no new webhooks are needed:
+the three you already have (alerts INSERT, incidents INSERT, incidents UPDATE) now also
+write bell notifications and send SMS.
+
+| Event | Bell | SMS |
+|---|---|---|
+| Admin publishes an alert | everyone | everyone with a phone |
+| Resident submits an incident | admins | — (email, as before) |
+| Admin marks an incident **Reviewed** (under review) | every resident | every resident with a phone (reporter gets their own wording) |
+| Admin marks an incident **Resolved** | reporter + every other resident | reporter only |
+
+**Report Incident page** — new "Reviewed incidents" list (status `verified`). A resolved
+incident leaves this list, and the dashboard's Live Situation Map (which now shows *only*
+reviewed incidents), live via Realtime.
+
+**Daily safety update** — admin dashboard → "Send daily safety update" (preview first).
+`api/broadcast.js` texts + notifies everyone: weather, flood-risk *estimate* (from forecast
+rainfall — not an official bulletin), Taal level (latest `volcano_status` / nightly digest),
+USGS quakes in the past 24 h, active alerts, reviewed incidents within 10 km, and the
+nearest evacuation center with a Google Maps directions link. Location = saved GPS
+coordinates (`profiles.lat/lng`, saved when "Use my current location" is used on
+register/profile) else the centre of the saved city. Needs `OPENWEATHER_API_KEY`,
+`SMS_GATEWAY_LOGIN`, `SMS_GATEWAY_PASSWORD`, `SUPABASE_SERVICE_ROLE_KEY` in Vercel.
+A second send within 10 minutes asks for confirmation.
+
+**Date filters** — Today / 7 / 30 / 90 days / All time chips on Alerts, Admin Alerts,
+Admin Incidents and the Reviewed incidents list (`rainRangeFilter` in `assets/js/main.js`).

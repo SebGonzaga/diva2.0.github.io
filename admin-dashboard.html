@@ -28,7 +28,8 @@
       <span class="db-date"><span class="live-badge"><span class="dot pulse-dot"></span>LIVE</span> <span id="adminUpdated">Updated just now</span></span>
     </div>
     <div class="db-chips">
-      <a class="db-chip hot" href="admin-alerts.html" data-press><i class="bi bi-bell-fill"></i> Publish alert</a>
+      <button type="button" class="db-chip hot" id="broadcastChipBtn" data-press><i class="bi bi-megaphone-fill"></i> Send safety update</button>
+      <a class="db-chip" href="admin-alerts.html" data-press><i class="bi bi-bell-fill"></i> Publish alert</a>
       <a class="db-chip" href="admin-incidents.html" data-press><i class="bi bi-flag"></i> Incident reports</a>
       <a class="db-chip" href="volcano.html" data-press><i class="bi bi-fire"></i> Volcano bulletin</a>
       <a class="db-chip" href="admin-analytics.html" data-press><i class="bi bi-bar-chart"></i> Analytics</a>
@@ -78,6 +79,12 @@
     </div>
   </div>
 
+  <div class="rain-card reveal-on-scroll mt-4" id="broadcastCard">
+    <div class="card-eyebrow"><span>Daily safety update</span><span class="icon-chip tone-cyan"><i class="bi bi-megaphone"></i></span></div>
+    <p class="cell-muted mb-3" style="font-size:.88rem;">One tap sends every resident and admin an SMS and a bell notification with today's weather, flood-risk estimate, Taal status, recent earthquakes, active alerts, reviewed incidents near them, and their <strong>nearest evacuation center</strong> (from the location saved on their profile) with a directions link.</p>
+    <button type="button" class="btn-rain btn-rain-primary" id="broadcastBtn" data-press><i class="bi bi-megaphone-fill"></i> Send daily safety update</button>
+  </div>
+
   <div class="rain-card reveal-on-scroll mt-4">
     <div class="card-eyebrow"><span>Quick actions</span></div>
     <div class="d-flex flex-wrap gap-2">
@@ -85,6 +92,35 @@
       <a href="admin-incidents.html" class="btn-rain btn-rain-ghost btn-rain-sm" data-press><i class="bi bi-flag dicon" data-dicon="flag"></i> Review incident reports</a>
       <a href="admin-users.html" class="btn-rain btn-rain-ghost btn-rain-sm" data-press><i class="bi bi-people dicon" data-dicon="people"></i> Manage users</a>
       <a href="admin-analytics.html" class="btn-rain btn-rain-ghost btn-rain-sm" data-press><i class="bi bi-bar-chart dicon" data-dicon="bar-chart"></i> View analytics</a>
+    </div>
+  </div>
+
+  <div class="modal fade modal-rain" id="broadcastModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-megaphone-fill"></i> Send daily safety update</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div id="bcLoading" class="cell-muted"><span class="spinner-border spinner-border-sm"></span> Gathering today's weather, volcano, earthquake, alert and incident data…</div>
+          <div id="bcPreview" class="d-none">
+            <div class="d-flex flex-wrap gap-2 mb-3" id="bcStats"></div>
+            <label class="form-label">Preview (your own copy — each person gets their own nearest evacuation center)</label>
+            <pre id="bcSample" style="white-space:pre-wrap; font-size:.8rem; padding:.75rem; border-radius:10px; background:rgba(51,201,209,.08); border:1px solid var(--surface-line,#e2e8f0); max-height:260px; overflow:auto;"></pre>
+            <label class="form-label" for="bcNote">Extra note (optional, max 160 characters)</label>
+            <input type="text" class="form-control mb-2" id="bcNote" maxlength="160" placeholder="e.g. Classes suspended tomorrow.">
+            <div class="cell-muted" style="font-size:.78rem;" id="bcWarn"></div>
+          </div>
+          <div id="bcDone" class="d-none"></div>
+          <div class="text-danger small mt-2 d-none" id="bcError"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-rain btn-rain-ghost btn-rain-sm" data-bs-dismiss="modal" id="bcCancel">Cancel</button>
+          <button type="button" class="btn-rain btn-rain-ghost btn-rain-sm d-none" id="bcRefresh"><i class="bi bi-arrow-repeat"></i> Refresh preview</button>
+          <button type="button" class="btn-rain btn-rain-primary btn-rain-sm" id="bcSend" disabled><i class="bi bi-send-fill"></i> Send to everyone</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -195,6 +231,90 @@
       type: "bar",
       data: { labels: chatBuckets.map((b) => b.label), datasets: [{ label: "Conversations", data: chatBuckets.map((b) => b.count), backgroundColor:"#2c5581", borderRadius:6 }] },
       options: { plugins: { legend: { display:false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } },
+    });
+
+    // ---------------------------------------------------------------------
+    // Daily safety update: preview first (dryRun), then send. The server (/api/broadcast)
+    // re-checks that the caller is an admin; this button is only the front door.
+    // ---------------------------------------------------------------------
+    const bcModalEl = document.getElementById("broadcastModal");
+    const bcModal = new bootstrap.Modal(bcModalEl);
+    const $bc = (id) => document.getElementById(id);
+    const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+    async function callBroadcast(body) {
+      const { data: { session } } = await sb.auth.getSession();
+      const res = await fetch("/api/broadcast", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + (session ? session.access_token : "") },
+        body: JSON.stringify(body),
+      });
+      const out = await res.json().catch(() => ({}));
+      return { ok: res.ok, status: res.status, out };
+    }
+    function bcError(msg) { const e = $bc("bcError"); e.textContent = msg || ""; e.classList.toggle("d-none", !msg); }
+
+    async function loadPreview() {
+      bcError("");
+      $bc("bcLoading").classList.remove("d-none");
+      $bc("bcPreview").classList.add("d-none");
+      $bc("bcDone").classList.add("d-none");
+      $bc("bcSend").disabled = true;
+      $bc("bcSend").classList.remove("d-none");
+      $bc("bcRefresh").classList.add("d-none");
+      try {
+        const { ok, out } = await callBroadcast({ dryRun: true });
+        if (!ok) throw new Error(out.error || "Could not build the preview");
+        $bc("bcStats").innerHTML = [
+          [out.recipients, "people (bell)"], [out.smsRecipients, "with a phone (SMS)"], [out.hazards.activeAlerts, "active alerts"], [out.hazards.reviewedIncidents, "reviewed incidents"],
+        ].map(([n, l]) => `<span class="status-badge status-caution"><strong>${esc(n)}</strong>&nbsp;${esc(l)}</span>`).join("");
+        $bc("bcSample").textContent = out.sample;
+        const warns = [];
+        if (!out.smsConfigured) warns.push("SMS gateway isn't configured on the server (SMS_GATEWAY_LOGIN / SMS_GATEWAY_PASSWORD) — only bell notifications will be delivered.");
+        if (!out.weatherConfigured) warns.push("OPENWEATHER_API_KEY isn't set — the weather and flood lines will say unavailable.");
+        if (out.hazards.taalLevel == null) warns.push("No Taal bulletin is on file yet, so that line points people to PHIVOLCS.");
+        warns.push("SMS texts of this length are billed by your carrier as 3–5 segments each.");
+        $bc("bcWarn").innerHTML = warns.map((w) => "• " + esc(w)).join("<br>");
+        $bc("bcPreview").classList.remove("d-none");
+        $bc("bcSend").disabled = out.recipients === 0;
+      } catch (err) {
+        bcError(err.message);
+        $bc("bcRefresh").classList.remove("d-none");
+      } finally {
+        $bc("bcLoading").classList.add("d-none");
+      }
+    }
+
+    function openBroadcast() { $bc("bcNote").value = ""; bcModal.show(); loadPreview(); }
+    $bc("broadcastBtn").addEventListener("click", openBroadcast);
+    $bc("broadcastChipBtn").addEventListener("click", openBroadcast);
+    $bc("bcRefresh").addEventListener("click", loadPreview);
+
+    $bc("bcSend").addEventListener("click", async () => {
+      const btn = $bc("bcSend");
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Sending…';
+      bcError("");
+      try {
+        let r = await callBroadcast({ dryRun: false, note: $bc("bcNote").value.trim() });
+        if (r.status === 429 && confirm("A safety update was already sent in the last 10 minutes. Send another one anyway?")) {
+          r = await callBroadcast({ dryRun: false, force: true, note: $bc("bcNote").value.trim() });
+        }
+        if (!r.ok) throw new Error(r.out.error || "Sending failed");
+        $bc("bcPreview").classList.add("d-none");
+        $bc("bcSend").classList.add("d-none");
+        $bc("bcCancel").textContent = "Close";
+        const o = r.out;
+        $bc("bcDone").innerHTML = `<div class="alert-banner level-info" style="opacity:1;"><i class="bi bi-check-circle icon"></i><div><strong>Safety update sent</strong>
+          <div style="font-size:.85rem;">${esc(o.inApp ?? 0)} bell notification${o.inApp === 1 ? "" : "s"} delivered · SMS accepted for ${esc(o.smsAccepted ?? 0)} of ${esc(o.smsRecipients ?? 0)} phone number${o.smsRecipients === 1 ? "" : "s"}.</div></div></div>`;
+        $bc("bcDone").classList.remove("d-none");
+        rainToast("Daily safety update sent", "bi-megaphone-fill");
+      } catch (err) {
+        bcError(err.message);
+        btn.disabled = false;
+      } finally {
+        btn.innerHTML = '<i class="bi bi-send-fill"></i> Send to everyone';
+      }
     });
   }
 </script>

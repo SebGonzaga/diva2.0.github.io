@@ -10,6 +10,14 @@
     "api/incident-update.js": {
       "maxDuration": 30,
       "includeFiles": "assets/js/demo-data.js"
+    },
+    "api/broadcast.js": {
+      "maxDuration": 60,
+      "includeFiles": "assets/js/{demo-data,taal-places}.js"
+    },
+    "api/notifications.js": {
+      "maxDuration": 30,
+      "includeFiles": "assets/js/{demo-data,taal-places}.js"
     }
   },
   "headers": [

@@ -464,6 +464,12 @@ function renderAppShell(activePage, opts) {
         </div>
         <div class="d-flex align-items-center gap-2">
           <span class="eyebrow d-none d-md-inline-flex">Live monitoring</span>
+          <div class="notif-wrap" id="notifWrap">
+            <button type="button" class="notif-bell-btn" id="notifBellBtn" aria-label="Notifications" aria-haspopup="true" aria-expanded="false">
+              <i class="bi bi-bell-fill"></i><span class="notif-badge d-none" id="notifBadge">0</span>
+            </button>
+            <div class="notif-panel" id="notifPanel" role="dialog" aria-label="Notifications"></div>
+          </div>
           <button type="button" class="theme-toggle-btn" id="themeToggleBtn" aria-label="Switch between light and dark mode">
             <i class="bi bi-sun-fill icon-sun"></i><i class="bi bi-moon-stars-fill icon-moon"></i>
           </button>
@@ -548,6 +554,9 @@ function renderAppShell(activePage, opts) {
   window.addEventListener("online", updateOnlineStatus);
   window.addEventListener("offline", updateOnlineStatus);
   updateOnlineStatus();
+
+  // Notification bar (bell) -- same component for residents and admins.
+  if (window.RainNotifications) RainNotifications.mount(user);
 
   // Voice command feature removed (Web Speech API's speechSynthesis isn't
   // supported in the Median-wrapped Android WebView app; see git history
@@ -751,3 +760,189 @@ document.addEventListener("DOMContentLoaded", () => {
   initLoadingEffect();
   initPageTransitions();
 });
+
+
+/* =========================================================================
+   Notification bar (bell in the top bar) — residents and admins.
+   Rows live in the `notifications` table (supabase/014_*.sql) and are created
+   by the server (api/notifications.js, api/broadcast.js). The browser only
+   reads them and marks them read (RLS: a user sees/updates only their own).
+   New rows arrive live over Supabase Realtime; a 60 s poll is the safety net
+   if Realtime isn't enabled on the project.
+   ========================================================================= */
+window.RainNotifications = (function () {
+  const ICONS = {
+    alert: "bi-exclamation-triangle-fill", incident_new: "bi-flag-fill", incident_reviewed: "bi-search",
+    incident_resolved: "bi-check-circle-fill", broadcast: "bi-megaphone-fill", info: "bi-info-circle-fill",
+  };
+  const TONES = { alert: "warn", incident_new: "warn", incident_reviewed: "info", incident_resolved: "ok", broadcast: "info", info: "info" };
+  let items = [];
+  let userId = null;
+  let els = {};
+
+  const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  function timeAgo(iso) {
+    const diff = Math.max(0, Date.now() - new Date(iso).getTime());
+    const m = Math.round(diff / 60000);
+    if (m < 1) return "just now";
+    if (m < 60) return m + " min ago";
+    const h = Math.round(m / 60);
+    if (h < 24) return h + " h ago";
+    const d = Math.round(h / 24);
+    return d < 30 ? d + " d ago" : new Date(iso).toLocaleDateString([], { month: "short", day: "numeric" });
+  }
+
+  const unreadCount = () => items.filter((n) => !n.read_at).length;
+
+  function paintBadge() {
+    const n = unreadCount();
+    els.badge.textContent = n > 99 ? "99+" : String(n);
+    els.badge.classList.toggle("d-none", n === 0);
+    els.bell.setAttribute("aria-label", n ? `Notifications, ${n} unread` : "Notifications");
+  }
+
+  function paintPanel() {
+    const n = unreadCount();
+    const list = items.length
+      ? items.map((it) => `
+        <button type="button" class="notif-item ${it.read_at ? "" : "unread"}" data-id="${esc(it.id)}">
+          <span class="notif-ico tone-${TONES[it.kind] || "info"}"><i class="bi ${ICONS[it.kind] || ICONS.info}"></i></span>
+          <span class="notif-text">
+            <span class="notif-title">${esc(it.title)}</span>
+            ${it.body ? `<span class="notif-body">${esc(it.body)}</span>` : ""}
+            <span class="notif-time">${timeAgo(it.created_at)}</span>
+          </span>
+          ${it.read_at ? "" : '<span class="notif-dot" aria-hidden="true"></span>'}
+        </button>`).join("")
+      : `<div class="notif-empty"><i class="bi bi-bell-slash"></i><div>You're all caught up.</div><small>Alerts, incident updates and daily safety updates will show up here.</small></div>`;
+    els.panel.innerHTML = `
+      <div class="notif-head">
+        <strong>Notifications</strong>
+        <button type="button" class="notif-markall" id="notifMarkAll" ${n ? "" : "disabled"}>Mark all read</button>
+      </div>
+      <div class="notif-list">${list}</div>`;
+  }
+
+  function repaint() { paintBadge(); if (els.panel.classList.contains("open")) paintPanel(); }
+
+  async function load() {
+    const { data, error } = await sb.from("notifications").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(40);
+    if (error) { console.warn("Notifications unavailable (has supabase/014 been run?):", error.message); return false; }
+    items = data || [];
+    repaint();
+    return true;
+  }
+
+  async function markRead(ids) {
+    const unread = items.filter((n) => ids.includes(n.id) && !n.read_at);
+    if (!unread.length) return;
+    const now = new Date().toISOString();
+    unread.forEach((n) => { n.read_at = now; });
+    repaint();
+    const { error } = await sb.from("notifications").update({ read_at: now }).in("id", unread.map((n) => n.id));
+    if (error) console.error("Mark notifications read error:", error);
+  }
+
+  function setOpen(open) {
+    els.panel.classList.toggle("open", open);
+    els.bell.setAttribute("aria-expanded", String(open));
+    if (open) paintPanel();
+  }
+
+  function onIncoming(row) {
+    if (!row || items.some((n) => n.id === row.id)) return;
+    items.unshift(row);
+    items = items.slice(0, 40);
+    repaint();
+    if (typeof rainToast === "function") rainToast(esc(row.title), ICONS[row.kind] || "bi-bell");
+    if (window.RainAnim && window.anime && !(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)) {
+      anime.animate(els.bell, { rotate: [0, -14, 12, -8, 6, 0], duration: 700, easing: "easeOutQuad" });
+    }
+  }
+
+  async function mount(user) {
+    if (!user || !user.id || typeof sb === "undefined") return;
+    els = { wrap: document.getElementById("notifWrap"), bell: document.getElementById("notifBellBtn"), badge: document.getElementById("notifBadge"), panel: document.getElementById("notifPanel") };
+    if (!els.wrap) return;
+    userId = user.id;
+
+    els.bell.addEventListener("click", (e) => { e.stopPropagation(); setOpen(!els.panel.classList.contains("open")); });
+    document.addEventListener("click", (e) => { if (!els.wrap.contains(e.target)) setOpen(false); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") setOpen(false); });
+    els.panel.addEventListener("click", (e) => {
+      if (e.target.closest("#notifMarkAll")) { markRead(items.map((n) => n.id)); return; }
+      const btn = e.target.closest(".notif-item");
+      if (!btn) return;
+      const it = items.find((n) => n.id === btn.dataset.id);
+      if (!it) return;
+      markRead([it.id]);
+      if (it.link) {
+        const here = location.pathname.split("/").pop() || "index.html";
+        const [page, hash] = it.link.split("#");
+        if (page === here) { setOpen(false); if (hash) location.hash = hash; } else location.href = it.link;
+      }
+    });
+
+    const ok = await load();
+    if (!ok) { els.wrap.classList.add("notif-offline"); return; }
+
+    try {
+      sb.channel("notif-" + userId)
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` }, (p) => onIncoming(p.new))
+        .subscribe();
+    } catch (err) { console.warn("Realtime notifications unavailable, polling instead:", err); }
+    // Safety net + keeps the "5 min ago" labels fresh.
+    setInterval(() => { if (document.visibilityState === "visible") load(); }, 60000);
+  }
+
+  return { mount, reload: load };
+})();
+
+/* =========================================================================
+   Date-range filter chips ("Today / 7 days / 30 days / 90 days / All time").
+   Shared by Alerts, Admin Alerts, Admin Incidents and the Report Incident
+   page so they all slice time the same way.
+     const range = rainRangeFilter(hostEl, { initial: "all", onChange: (key) => ... });
+     range.matches(isoString)  -> true if that timestamp falls inside the range
+   ========================================================================= */
+const RAIN_RANGES = [
+  { key: "1", label: "Today", days: 1 },
+  { key: "7", label: "Past 7 days", days: 7 },
+  { key: "30", label: "Past 30 days", days: 30 },
+  { key: "90", label: "Past 90 days", days: 90 },
+  { key: "all", label: "All time", days: null },
+];
+
+function rainRangeCutoff(key) {
+  const r = RAIN_RANGES.find((x) => x.key === key);
+  if (!r || !r.days) return null;
+  if (r.days === 1) { const d = new Date(); d.setHours(0, 0, 0, 0); return d; } // "Today" = since local midnight
+  return new Date(Date.now() - r.days * 24 * 3600 * 1000);
+}
+
+function rainRangeFilter(host, opts) {
+  opts = opts || {};
+  let current = opts.initial || "all";
+  host.classList.add("range-chips");
+  host.setAttribute("role", "group");
+  host.setAttribute("aria-label", "Filter by date");
+  host.innerHTML = `<span class="range-label"><i class="bi bi-calendar3"></i> Period</span>` +
+    RAIN_RANGES.map((r) => `<button type="button" data-range="${r.key}" class="${r.key === current ? "active" : ""}" aria-pressed="${r.key === current}">${r.label}</button>`).join("");
+  host.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-range]");
+    if (!b || b.dataset.range === current) return;
+    current = b.dataset.range;
+    host.querySelectorAll("[data-range]").forEach((x) => { const on = x.dataset.range === current; x.classList.toggle("active", on); x.setAttribute("aria-pressed", String(on)); });
+    if (opts.onChange) opts.onChange(current);
+  });
+  return {
+    get: () => current,
+    matches(ts) {
+      const cutoff = rainRangeCutoff(current);
+      if (!cutoff) return true;
+      const t = new Date(ts).getTime();
+      return Number.isFinite(t) && t >= cutoff.getTime();
+    },
+  };
+}

@@ -10,10 +10,18 @@
 // Admin and reporter notifications still go out as email via Nodemailer/SMTP,
 // since those go to a handful of known people rather than the whole town.
 //
-// Handles three triggers, dispatched by table + event:
-//   1. INSERT on alerts     -> SMS every resident with a phone number on file
-//   2. INSERT on incidents  -> email every admin
-//   3. UPDATE on incidents  -> email the reporter, only when status changed
+// Handles these triggers, dispatched by table + event. Every one also drops a row in
+// the `notifications` table, which is what the bell in the app's top bar shows
+// (run supabase/014_notifications_and_locations.sql first):
+//   1. INSERT on alerts      -> SMS every resident/admin with a phone + bell for everyone
+//   2. INSERT on incidents   -> email every admin + bell for admins
+//   3. UPDATE on incidents, status -> 'verified' (Reviewed / "under review", now visible on the
+//                              Report Incident page + map): SMS + bell to every resident;
+//                              the reporter gets their own message (SMS + bell + email)
+//   4. UPDATE on incidents, status -> 'resolved': SMS + bell to the reporter, bell to every other
+//                              resident (the incident has left the map). The proof-photo email
+//                              is still sent by /api/incident-update.
+//   5. Any other status change -> email the reporter, as before
 //
 // Required Vercel environment variables:
 //   SMS_GATEWAY_LOGIN          - username shown in the SMS Gateway app's
@@ -48,6 +56,8 @@
 //                                 build links inside the emails
 
 import nodemailer from 'nodemailer';
+import { supabaseSelect, insertNotifications, sendSms, loadEvacuationCenters } from './_lib/notify.js';
+import { nearestEvacCenter } from './_lib/broadcast.js';
 
 let transporter; // reused across warm invocations instead of reconnecting every call
 
@@ -81,11 +91,12 @@ export default async function handler(req, res) {
       await notifyResidentsOfAlert(record);
     } else if (table === 'incidents' && type === 'INSERT') {
       await notifyAdminsOfIncident(record);
-    } else if (table === 'incidents' && type === 'UPDATE' && old_record && record.status !== old_record.status
-               && !['resolved', 'pending'].includes(record.status)) {
+    } else if (table === 'incidents' && type === 'UPDATE' && old_record && record.status !== old_record.status) {
+      if (record.status === 'verified') await notifyIncidentUnderReview(record);
+      else if (record.status === 'resolved') await notifyIncidentResolved(record);
       // 'resolved' and 'pending' are emailed by /api/incident-update (proof photo /
       // safety info), so skip them here or the resident would get two emails.
-      await notifyReporterOfStatusChange(record);
+      if (!['resolved', 'pending'].includes(record.status)) await notifyReporterOfStatusChange(record);
     }
     // Anything else that matches no branch above is a no-op, not an error --
     // e.g. an incident UPDATE that didn't touch status.
@@ -94,23 +105,6 @@ export default async function handler(req, res) {
     console.error('notifications.js error:', err);
     return res.status(500).json({ error: 'Failed to process notification' });
   }
-}
-
-// ---------------------------------------------------------------------
-// Supabase REST helper (service role key -- bypasses RLS, server-only)
-// ---------------------------------------------------------------------
-async function supabaseSelect(pathAndQuery) {
-  const res = await fetch(`${process.env.SUPABASE_URL}/rest/v1/${pathAndQuery}`, {
-    headers: {
-      apikey: process.env.SUPABASE_SERVICE_ROLE_KEY,
-      Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
-    },
-  });
-  if (!res.ok) {
-    console.error('Supabase REST error:', await res.text());
-    return [];
-  }
-  return res.json();
 }
 
 // ---------------------------------------------------------------------
@@ -125,70 +119,41 @@ async function sendEmail({ to, subject, html }) {
 }
 
 async function sendEmailBatch(emails) {
-  // Nodemailer/SMTP has no native batch endpoint like Resend did, so send
-  // each message individually. At resident-list scale (tens to low hundreds)
-  // this is well within Gmail's ~500/day sending limit. Sent one at a time
-  // (not Promise.all) so a slow/failed send can't spike memory or trip
-  // Gmail's rate limiting from a burst of simultaneous connections.
+  // Nodemailer/SMTP has no native batch endpoint, so send each message
+  // individually, one at a time, so a slow/failed send can't spike memory or
+  // trip Gmail's rate limiting from a burst of simultaneous connections.
   for (const email of emails) {
     await sendEmail(email);
   }
 }
 
 // ---------------------------------------------------------------------
-// SMS Gateway for Android° helpers (Cloud Server mode)
-// Docs: https://docs.sms-gate.app/  --  the phone itself is the sender;
-// this just calls the cloud relay, which pushes the send down to the phone.
+// Small shared helpers
 // ---------------------------------------------------------------------
-const SMS_GATEWAY_URL = process.env.SMS_GATEWAY_URL || 'https://api.sms-gate.app/3rdparty/v1/message';
-const SMS_BATCH_SIZE = 50; // keep each request modest rather than sending hundreds of numbers at once
+const appLink = (page) => `${process.env.APP_URL || ''}/${page}`;
+const COORD_RE = /^\s*-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?\s*$/;
 
-function getSmsAuthHeader() {
-  const creds = `${process.env.SMS_GATEWAY_LOGIN}:${process.env.SMS_GATEWAY_PASSWORD}`;
-  return 'Basic ' + Buffer.from(creds).toString('base64');
+/** Report "area" is often just "14.08312, 121.14977" (GPS). Turn that into
+ *  something a resident can recognise: the barangay of the nearest evacuation center. */
+function placeLabel(incident) {
+  const area = String(incident.area || '').trim();
+  if (area && !COORD_RE.test(area) && !/^(detecting|permission denied|location unavailable)/i.test(area)) return area;
+  const lat = Number(incident.lat), lng = Number(incident.lng);
+  if (incident.lat != null && incident.lng != null && Number.isFinite(lat) && Number.isFinite(lng)) {
+    const c = nearestEvacCenter({ lat, lng }, loadEvacuationCenters());
+    if (c?.address) return `near ${String(c.address).replace(/^Brgy\.?\s*/i, 'Brgy. ')}`;
+  }
+  return 'location not provided';
 }
 
-// Sends one message to many numbers in a single gateway request (true
-// one-to-many -- the gateway/phone handles fanning it out), chunked so a
-// single request never carries an unreasonable number of recipients.
-async function sendSmsBroadcast(phoneNumbers, text) {
-  if (!phoneNumbers.length) return;
-  if (!process.env.SMS_GATEWAY_LOGIN || !process.env.SMS_GATEWAY_PASSWORD) {
-    console.error('SMS not sent: SMS_GATEWAY_LOGIN/SMS_GATEWAY_PASSWORD are not set.');
-    return;
-  }
-
-  for (let i = 0; i < phoneNumbers.length; i += SMS_BATCH_SIZE) {
-    const chunk = phoneNumbers.slice(i, i + SMS_BATCH_SIZE);
-    try {
-      const res = await fetch(SMS_GATEWAY_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: getSmsAuthHeader(),
-        },
-        body: JSON.stringify({
-          textMessage: { text },
-          phoneNumbers: chunk,
-          withDeliveryReport: false, // set true if you later add a webhook to track delivery status
-        }),
-      });
-      if (!res.ok) {
-        console.error('SMS gateway error:', res.status, await res.text());
-      }
-    } catch (err) {
-      console.error('SMS send error:', err.message);
-    }
-  }
-}
+const residentIds = async () => (await supabaseSelect('profiles?select=id,phone&role=eq.resident&limit=5000'));
 
 // ---------------------------------------------------------------------
-// 1. Alert broadcasts
+// 1. Alert broadcasts (SMS + bell)
 // ---------------------------------------------------------------------
 async function notifyResidentsOfAlert(alert) {
-  const rows = await supabaseSelect('profiles?select=phone&phone=not.is.null');
-  const phoneNumbers = [...new Set(rows.map((r) => r.phone).filter(Boolean))];
-  if (!phoneNumbers.length) return;
+  const rows = await supabaseSelect('profiles?select=id,phone,role&limit=5000');
+  if (!rows.length) return;
 
   const severityLabel = (alert.severity || '').toUpperCase();
   // Plain text, not HTML -- this is SMS. Kept short since carriers split
@@ -200,14 +165,31 @@ async function notifyResidentsOfAlert(alert) {
     'Open the RAIN app for full details.',
   ].filter(Boolean).join('\n');
 
-  await sendSmsBroadcast(phoneNumbers, text);
+  await insertNotifications(rows.map((r) => ({
+    user_id: r.id, kind: 'alert',
+    title: `${severityLabel ? severityLabel + ': ' : ''}${alert.title || 'New alert issued'}`,
+    body: [alert.area ? `Area: ${alert.area}` : null, alert.message].filter(Boolean).join(' — '),
+    link: r.role === 'admin' ? 'admin-alerts.html' : 'alerts.html',
+    related_id: alert.id,
+  })));
+
+  await sendSms(rows.map((r) => r.phone).filter(Boolean), text);
 }
 
 // ---------------------------------------------------------------------
-// 2. New incident report -> admins
+// 2. New incident report -> admins (email + bell)
 // ---------------------------------------------------------------------
 async function notifyAdminsOfIncident(incident) {
-  const rows = await supabaseSelect('profiles?select=email&role=eq.admin&email=not.is.null');
+  const rows = await supabaseSelect('profiles?select=id,email&role=eq.admin');
+  if (!rows.length) return;
+
+  await insertNotifications(rows.map((r) => ({
+    user_id: r.id, kind: 'incident_new',
+    title: `New incident report: ${incident.category || 'Incident'}`,
+    body: `${placeLabel(incident)} — ${String(incident.description || 'No description provided.').slice(0, 160)}`,
+    link: 'admin-incidents.html', related_id: incident.id,
+  })));
+
   const emails = [...new Set(rows.map((r) => r.email).filter(Boolean))];
   if (!emails.length) return;
 
@@ -215,7 +197,7 @@ async function notifyAdminsOfIncident(incident) {
     <p>A new incident report was just submitted.</p>
     <p><strong>${escapeHtml(incident.category || 'Incident')}</strong> — ${escapeHtml(incident.area || 'Location not provided')}</p>
     <p>${escapeHtml(incident.description || 'No description provided.')}</p>
-    <p><a href="${process.env.APP_URL || ''}/admin-incidents.html">Review it in the admin dashboard</a></p>`;
+    <p><a href="${appLink('admin-incidents.html')}">Review it in the admin dashboard</a></p>`;
 
   await sendEmailBatch(
     emails.map((email) => ({
@@ -227,7 +209,70 @@ async function notifyAdminsOfIncident(incident) {
 }
 
 // ---------------------------------------------------------------------
-// 3. Incident status change -> the reporter
+// 3. Incident marked Reviewed ("under review") -> every resident (SMS + bell)
+//    It is now listed on the Report Incident page and pinned on the dashboard map.
+// ---------------------------------------------------------------------
+async function notifyIncidentUnderReview(incident) {
+  const place = placeLabel(incident);
+  const category = incident.category || 'Incident';
+  const residents = await residentIds();
+
+  const others = residents.filter((r) => r.id !== incident.reporter_id);
+  await insertNotifications(others.map((r) => ({
+    user_id: r.id, kind: 'incident_reviewed',
+    title: `Incident under review: ${category}`,
+    body: `A ${category.toLowerCase()} report (${place}) is now under review by officials. See it on the Report Incident page.`,
+    link: 'report.html#reviewed', related_id: incident.id,
+  })));
+  await sendSms(
+    others.map((r) => r.phone).filter(Boolean),
+    `RAIN: New incident under review - ${category} (${place}). See details on the Report Incident page. Stay alert.`
+  );
+
+  // The person who reported it gets their own wording.
+  if (incident.reporter_id) {
+    await insertNotifications([{
+      user_id: incident.reporter_id, kind: 'incident_reviewed',
+      title: 'Your report is under review',
+      body: `Officials reviewed your ${category.toLowerCase()} report (${place}). It is now listed on the Report Incident page.`,
+      link: 'report.html#reviewed', related_id: incident.id,
+    }]);
+    const self = residents.find((r) => r.id === incident.reporter_id)
+      || (await supabaseSelect(`profiles?select=id,phone&id=eq.${incident.reporter_id}`))[0];
+    if (self?.phone) await sendSms([self.phone], `RAIN: Your ${category} report (${place}) is now under review by officials. We will message you once it is resolved.`);
+  }
+}
+
+// ---------------------------------------------------------------------
+// 4. Incident resolved -> reporter (SMS + bell); other residents (bell only)
+// ---------------------------------------------------------------------
+async function notifyIncidentResolved(incident) {
+  const place = placeLabel(incident);
+  const category = incident.category || 'Incident';
+
+  if (incident.reporter_id) {
+    await insertNotifications([{
+      user_id: incident.reporter_id, kind: 'incident_resolved',
+      title: 'Your incident has been resolved',
+      body: `Your ${category.toLowerCase()} report (${place}) was marked resolved${incident.resolution_message ? `: ${String(incident.resolution_message).slice(0, 200)}` : '.'}`,
+      link: 'report.html', related_id: incident.id,
+    }]);
+    const rows = await supabaseSelect(`profiles?select=phone&id=eq.${incident.reporter_id}`);
+    if (rows[0]?.phone) await sendSms([rows[0].phone], `RAIN: Your ${category} report (${place}) has been RESOLVED. It has been removed from the incident list and map. Thank you for reporting.`);
+  }
+
+  // Everyone else was told it was under review -- tell them it is closed (no SMS, to keep texts meaningful).
+  const residents = await residentIds();
+  await insertNotifications(residents.filter((r) => r.id !== incident.reporter_id).map((r) => ({
+    user_id: r.id, kind: 'incident_resolved',
+    title: `Incident resolved: ${category}`,
+    body: `The ${category.toLowerCase()} incident (${place}) has been resolved and removed from the map.`,
+    link: 'report.html#reviewed', related_id: incident.id,
+  })));
+}
+
+// ---------------------------------------------------------------------
+// 5. Other status changes -> the reporter (email + bell for 'dismissed')
 // ---------------------------------------------------------------------
 async function notifyReporterOfStatusChange(incident) {
   if (!incident.reporter_id) return; // reports without a signed-in reporter can't be notified

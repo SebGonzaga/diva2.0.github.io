@@ -30,6 +30,7 @@
 
   <div class="rain-card reveal-on-scroll">
     <div class="card-eyebrow"><span>All published alerts</span><span class="cell-muted" id="alertsCount"></span></div>
+    <div class="mb-3" id="adminAlertRange"></div>
     <div class="table-rain-wrap cards-on-mobile">
       <table class="table-rain">
         <thead>
@@ -158,6 +159,7 @@
   // Local cache of the last fetch, so openForEdit() doesn't need a round
   // trip — refreshed every time renderAlertsTable() runs.
   let alertsCache = [];
+  let alertRange = null;
 
   async function fetchAlerts() {
     const { data, error } = await sb.from("alerts").select("*").order("created_at", { ascending: false });
@@ -169,10 +171,12 @@
     alertsCache = await fetchAlerts();
     const body = document.getElementById("alertsTableBody");
     const empty = document.getElementById("alertsEmpty");
-    document.getElementById("alertsCount").textContent = alertsCache.length + " total";
+    // alertsCache keeps EVERY alert (openForEdit needs it); only the table is date-filtered.
+    const shown = alertsCache.filter((a) => !alertRange || alertRange.matches(a.created_at));
+    document.getElementById("alertsCount").textContent = shown.length === alertsCache.length ? alertsCache.length + " total" : `${shown.length} of ${alertsCache.length}`;
     body.innerHTML = "";
-    empty.classList.toggle("d-none", alertsCache.length > 0);
-    alertsCache.forEach((a) => {
+    empty.classList.toggle("d-none", shown.length > 0);
+    shown.forEach((a) => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td data-label="Title"><strong>${a.title}</strong></td>
@@ -192,6 +196,7 @@
   function initAdminAlertsPage() {
     document.getElementById("app-content").appendChild(document.getElementById("admin-alerts-content").content.cloneNode(true));
     initializeAnimations();
+    alertRange = rainRangeFilter(document.getElementById("adminAlertRange"), { initial: "all", onChange: () => renderAlertsTable() });
     renderAlertsTable();
 
     const modalEl = document.getElementById("alertModal");

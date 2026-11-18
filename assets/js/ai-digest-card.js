@@ -75,6 +75,7 @@ window.RainDigest = (function () {
       if (d && d.status !== "ok") {
         const good = rows.find((r) => r.status === "ok" && fresh(r, 72));
         if (good) { failNote = MSG[d.status] || ""; d = good; }
+        else if (d.metrics) { failNote = ""; }
       }
       // Official numbers: newest row (max 3 days old) that has them, even when its AI summary failed.
       const mRow = rows.find((r) => r.metrics && typeof r.metrics === "object" && Object.keys(r.metrics).length && fresh(r, 72));
@@ -89,13 +90,16 @@ window.RainDigest = (function () {
         const m = mRow.metrics, head = el.querySelector(".card-eyebrow");
         head.innerHTML = "<span>Taal Volcano: bulletin data</span>" + TAG_OFFICIAL;
         html += stale(mRow) + officialGrid(m) +
-          '<div class="rd-note" style="margin-top:.55rem;">Copied automatically by software from the PHIVOLCS bulletin' + (m.bulletin_date ? " dated " + esc(m.bulletin_date) : "") +
+          '<div class="rd-note" style="margin-top:.55rem;">Copied automatically by software from the PHIVOLCS bulletin' + (m.bulletin_date ? " dated " + esc(m.bulletin_date) : "") + " (last checked " + esc(new Date(mRow.created_at).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })) + ")" +
           ". Each reading keeps the date PHIVOLCS gave it. If anything here differs from PHIVOLCS, follow PHIVOLCS." +
           (link(mRow) ? ' <a href="' + esc(link(mRow)) + '" target="_blank" rel="noopener noreferrer">Open source page</a>' : "") + "</div>" +
           '<hr style="opacity:.2;margin:.9rem 0;"><div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2"><b style="font-size:.88rem;">Plain-language summary</b>' + TAG_AI_SUM + "</div>";
       } else {
         html += stale(d);
       }
+      // Newest bulletin's numbers are shown but its summary isn't ready: say so instead of showing an older night's summary beside them.
+      const summaryPending = !!(mRow && rows[0] && rows[0].id === mRow.id && rows[0].status !== "ok" && d && d.id !== rows[0].id);
+      if (summaryPending) { body.innerHTML = html + '<div class="text-muted" style="font-size:.85rem;">The plain-language summary for the newest bulletin is not ready yet. It will appear after the next update. The official numbers above are current.</div><div class="text-muted mt-2" style="font-size:.74rem;">Last checked ' + esc(new Date(mRow.created_at).toLocaleString()) + ". Always follow " + OFFICIAL[kind] + ".</div>"; return; }
       if (failNote) html += '<div class="text-muted" style="font-size:.8rem;">The latest update did not complete: ' + esc(failNote) + "</div>";
       if (d.status === "ok") {
         if (img) html += '<figure class="m-0 mb-3" data-digest-fig><img src="' + esc(img) + '" alt="AI-generated illustration for the ' + esc(kind === "heat" ? "heat index" : "Taal volcano") + ' daily summary" loading="lazy" decoding="async" style="width:100%;max-height:280px;object-fit:cover;border-radius:12px;display:block;"><figcaption class="text-muted" style="font-size:.74rem;margin-top:.35rem;">AI-generated illustration of the summary below. It is not a real photo of current conditions.</figcaption></figure>';
@@ -117,6 +121,6 @@ window.RainDigest = (function () {
     let tries = 0;
     const t = setInterval(() => { const el = document.getElementById(id); if (el) { clearInterval(t); render(el, kind); } else if (++tries > 40) clearInterval(t); }, 250);
   }
-  function reload(id, kind) { const el = document.getElementById(id); if (el) render(el, kind); } // re-draw after an admin manual refresh
+  function reload(id, kind) { const el = document.getElementById(id); if (el) return render(el, kind); } // re-draw after an admin manual refresh
   return { mount, reload };
 })();

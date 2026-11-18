@@ -29,10 +29,11 @@
     </div>
   </div>
 
+  <div class="mb-3" id="incidentRange"></div>
   <div class="d-flex flex-column gap-3" id="incidentsList"></div>
   <div class="empty-state d-none" id="incidentsEmpty">
     <div class="glyph"><i class="bi bi-inbox dicon" data-dicon="inbox"></i></div>
-    <div>No incident reports in this category yet.</div>
+    <div>No incident reports in this category and period.</div>
   </div>
   <!-- Resolve / Pending email modal -->
   <div class="modal fade modal-rain" id="statusModal" tabindex="-1" aria-hidden="true">
@@ -130,13 +131,14 @@
   }
 
   let incidentCache = {};
+  let incidentRange = null;
 
   async function renderIncidents(filter) {
     const list = document.getElementById("incidentsList");
     const empty = document.getElementById("incidentsEmpty");
     const all = await fetchIncidents();
     incidentCache = Object.fromEntries(all.map((i) => [i.id, i]));
-    const items = filter === "all" ? all : all.filter((i) => i.status === filter);
+    const items = all.filter((i) => (filter === "all" || i.status === filter) && (!incidentRange || incidentRange.matches(i.reportedAt)));
     list.innerHTML = "";
     empty.classList.toggle("d-none", items.length > 0);
 
@@ -173,6 +175,7 @@
   function initAdminIncidentsPage() {
     document.getElementById("app-content").appendChild(document.getElementById("admin-incidents-content").content.cloneNode(true));
     initializeAnimations();
+    incidentRange = rainRangeFilter(document.getElementById("incidentRange"), { initial: "all", onChange: () => renderIncidents(document.querySelector("#incidentFilters .active-filter").dataset.filter) });
     renderIncidents("all");
 
     document.querySelectorAll("#incidentFilters button").forEach((btn) => {
@@ -275,7 +278,7 @@
       if (error) { console.error("Update incident error:", error); rainToast("Could not update status", "bi-exclamation-triangle"); return; }
       const activeFilter = document.querySelector("#incidentFilters .active-filter").dataset.filter;
       renderIncidents(activeFilter);
-      rainToast("Report marked " + btn.dataset.status, "bi-check-circle");
+      rainToast(btn.dataset.status === "Reviewed" ? "Marked Reviewed — now listed for residents, who are being notified" : "Report marked " + btn.dataset.status, "bi-check-circle");
     });
   }
 

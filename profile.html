@@ -67,7 +67,7 @@
   const user = renderAppShell("profile.html", { title: "Profile" });
   if (user) {
     document.getElementById("app-content").appendChild(document.getElementById("profile-content").content.cloneNode(true));
-    const { data: stored, error: fetchError } = await sb.from("profiles").select("barangay, phone").eq("id", user.id).single();
+    const { data: stored, error: fetchError } = await sb.from("profiles").select("barangay, phone, lat, lng").eq("id", user.id).single();
     if (fetchError) console.error("Fetch profile error:", fetchError);
 
     // Accepts 09XXXXXXXXX, 639XXXXXXXXX, or +639XXXXXXXXX and normalizes all
@@ -120,6 +120,12 @@
       return cityEl.value === TaalPlaces.OTHER_VALUE ? cityOtherEl.value.trim() : cityEl.value;
     }
 
+    // Exact GPS reading used by the daily safety update to find the nearest evacuation center.
+    // Starts as whatever is already saved; replaced by a fresh GPS reading, or cleared if the
+    // resident picks a different city by hand (then the server uses that city's centre).
+    let savedCoords = (stored && stored.lat != null && stored.lng != null) ? { lat: stored.lat, lng: stored.lng, city: (stored.barangay || "") } : null;
+    cityEl.addEventListener("change", () => { if (savedCoords && savedCoords.city !== getCityValue()) savedCoords = null; });
+
     // "Use my current location" — matches the browser's geolocation reading
     // to the closest place in TaalPlaces.PLACES. No external geocoding API
     // is used, so this stays free and works without any additional API key.
@@ -137,6 +143,7 @@
             return;
           }
           if (match.distanceKm <= 40) {
+            savedCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude, city: match.place.name };
             cityEl.value = match.place.name;
             cityOtherEl.classList.add("d-none");
             locationStatusEl.textContent = `Detected: ${match.place.name} (~${match.distanceKm.toFixed(1)} km away)`;
@@ -163,7 +170,7 @@
         rainToast("Enter a valid PH mobile number, e.g. 09171234567", "bi-exclamation-triangle");
         return;
       }
-      const { error } = await sb.from("profiles").update({ barangay: city, phone }).eq("id", user.id);
+      const { error } = await sb.from("profiles").update({ barangay: city, phone, lat: savedCoords && savedCoords.city === city ? savedCoords.lat : null, lng: savedCoords && savedCoords.city === city ? savedCoords.lng : null }).eq("id", user.id);
       if (error) { console.error("Update profile error:", error); rainToast("Could not save changes", "bi-exclamation-triangle"); return; }
       phoneEl.value = phone || "";
       const saved = document.getElementById("profileSaved");

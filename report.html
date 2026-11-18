@@ -11,12 +11,16 @@
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0a1830">
 <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+<style>
+.reviewed-item{display:flex; gap:.7rem; align-items:flex-start; padding:.7rem .8rem; border:1px solid var(--surface-line, #e2e8f0); border-radius:12px;}
+[data-theme="dark"] .reviewed-item{border-color:rgba(255,255,255,.12);}
+</style>
 </head>
 <body>
 <div id="app-shell-root"></div>
 
 <template id="report-content">
-  <div class="row justify-content-center">
+  <div class="row g-4 justify-content-center">
     <div class="col-lg-7">
       <div class="rain-card reveal-on-scroll">
         <div id="reportSuccess" class="alert-banner level-info mb-3 d-none" style="opacity:1;">
@@ -61,6 +65,19 @@
             <i class="bi bi-flag dicon" data-dicon="flag"></i> Submit Report
           </button>
         </form>
+      </div>
+    </div>
+
+    <div class="col-lg-5" id="reviewed">
+      <div class="rain-card reveal-on-scroll">
+        <div class="card-eyebrow"><span>Reviewed incidents</span><span class="cell-muted" id="reviewedCount"></span></div>
+        <p class="cell-muted" style="font-size:.82rem;">Reports officials have reviewed and are acting on. An incident disappears from this list and from the map as soon as it is resolved.</p>
+        <div class="mb-3" id="reviewedRange"></div>
+        <div class="d-flex flex-column gap-2" id="reviewedList"></div>
+        <div class="empty-state d-none" id="reviewedEmpty">
+          <div class="glyph"><i class="bi bi-check-circle"></i></div>
+          <div>No reviewed incidents in this period.</div>
+        </div>
       </div>
     </div>
   </div>
@@ -173,7 +190,68 @@
     });
   }
 
-  if (user) initReportPage();
+  // ---------------------------------------------------------------------
+  // Reviewed incidents: status "verified" in the DB. Marking one Resolved (or
+  // back to Pending) takes it out of this list and off the dashboard map. The
+  // realtime subscription below makes that happen live, without a refresh.
+  // ---------------------------------------------------------------------
+  const REVIEWED_ICON = { Ashfall: "bi-cloud-haze2", "Ground cracks": "bi-layers", "Gas smell": "bi-wind", Flooding: "bi-water", Landslide: "bi-layers", "Earthquake damage": "bi-activity", Other: "bi-flag" };
+  const escapeHtml = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const COORD_RE = /^\s*-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?\s*$/;
+  let reviewedRange = null;
+  let reviewedRows = [];
+
+  // "14.08312, 121.14977" means nothing to a resident; say which barangay it's near instead.
+  function placeText(inc) {
+    const area = String(inc.area || "").trim();
+    if (area && !COORD_RE.test(area) && !/^(detecting|permission denied|location unavailable)/i.test(area)) return area;
+    if (inc.lat != null && inc.lng != null && RAIN_DEMO && RAIN_DEMO.evacuationCenters) {
+      let best = null, bestKm = Infinity;
+      RAIN_DEMO.evacuationCenters.forEach((c) => { const d = haversineKm(inc.lat, inc.lng, c.lat, c.lng); if (d < bestKm) { bestKm = d; best = c; } });
+      if (best && best.address) return "Near " + best.address;
+    }
+    return "Location not provided";
+  }
+
+  function paintReviewed() {
+    const list = document.getElementById("reviewedList");
+    const empty = document.getElementById("reviewedEmpty");
+    if (!list) return;
+    const rows = reviewedRows.filter((r) => !reviewedRange || reviewedRange.matches(r.created_at));
+    document.getElementById("reviewedCount").textContent = rows.length === reviewedRows.length ? `${rows.length} active` : `${rows.length} of ${reviewedRows.length}`;
+    empty.classList.toggle("d-none", rows.length > 0);
+    list.innerHTML = rows.map((r) => `
+      <div class="reviewed-item">
+        <span class="icon-chip tone-caution"><i class="bi ${REVIEWED_ICON[r.category] || "bi-flag"}"></i></span>
+        <div class="flex-grow-1" style="min-width:0;">
+          <div class="d-flex justify-content-between align-items-start gap-2">
+            <strong>${escapeHtml(r.category || "Incident")}</strong>
+            <span class="status-badge status-caution"><span class="dot"></span>Under review</span>
+          </div>
+          <div style="font-size:.84rem; margin:.2rem 0;">${escapeHtml((r.description || "").slice(0, 140))}${(r.description || "").length > 140 ? "…" : ""}</div>
+          <div class="data-source-line"><i class="bi bi-geo-alt"></i> ${escapeHtml(placeText(r))} · ${new Date(r.created_at).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</div>
+        </div>
+      </div>`).join("");
+  }
+
+  async function loadReviewed() {
+    const { data, error } = await sb.from("incidents").select("id, category, description, area, lat, lng, created_at").eq("status", "verified").order("created_at", { ascending: false }).limit(200);
+    if (error) { console.error("Fetch reviewed incidents error:", error); return; }
+    reviewedRows = data || [];
+    paintReviewed();
+  }
+
+  function initReviewed() {
+    reviewedRange = rainRangeFilter(document.getElementById("reviewedRange"), { initial: "all", onChange: paintReviewed });
+    loadReviewed();
+    let t = null;
+    sb.channel("reviewed-incidents")
+      .on("postgres_changes", { event: "*", schema: "public", table: "incidents" }, () => { clearTimeout(t); t = setTimeout(loadReviewed, 300); })
+      .subscribe();
+    if (location.hash === "#reviewed") setTimeout(() => document.getElementById("reviewed")?.scrollIntoView({ behavior: "smooth" }), 400);
+  }
+
+  if (user) { initReportPage(); initReviewed(); }
 </script>
 </body>
 </html>

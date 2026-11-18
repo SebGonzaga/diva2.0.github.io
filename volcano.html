@@ -173,10 +173,10 @@
     if (!data.length) {
       body.innerHTML = "No alert level has been entered by an administrator yet. <b>Check PHIVOLCS directly for the current level.</b>";
       try {   // fall back to the level copied by the nightly job (ai_digests.metrics), clearly labelled
-        const r = await sb.from("ai_digests").select("alert_level,metrics,digest_date").eq("kind", "volcano").order("created_at", { ascending: false }).limit(5);
+        const r = await sb.from("ai_digests").select("alert_level,metrics,digest_date,created_at").eq("kind", "volcano").order("created_at", { ascending: false }).limit(5);
         const d = (r.data || []).find((x) => (x.metrics && x.metrics.alert_level != null) || x.alert_level != null);
         const lv = d ? (d.metrics && d.metrics.alert_level != null ? d.metrics.alert_level : d.alert_level) : null;
-        if (lv != null) { paintHero(lv, LEVEL_NAMES[lv] || "", "Auto-copied from bulletin" + (d.metrics && d.metrics.bulletin_date ? " of " + d.metrics.bulletin_date : "")); return; }
+        if (lv != null) { paintHero(lv, LEVEL_NAMES[lv] || "", "Auto-copied from bulletin" + (d.metrics && d.metrics.bulletin_date ? " of " + d.metrics.bulletin_date : "") + " · checked " + new Date(d.created_at).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })); return; }
       } catch (e) { console.warn("digest fallback", e); }
       paintHero(null, "Not entered yet", "Check PHIVOLCS directly"); return;
     }
@@ -261,19 +261,37 @@
     if (!RainAuth.isAdmin(RainAuth.getUser())) return;
     $("digestAdminBar").classList.remove("d-none");
     const btn = $("digestRefreshBtn"), msg = $("digestRefreshMsg");
-    btn.addEventListener("click", async () => {
-      btn.disabled = true; msg.textContent = "Checking PHIVOLCS…";
+    const label = btn.innerHTML;
+    const say = (t, bad) => { msg.textContent = t; msg.style.color = bad ? "#b45309" : ""; };
+
+    async function callRefresh() {
+      let { data } = await sb.auth.getSession();
+      let token = data && data.session && data.session.access_token;
+      if (!token) { const r = await sb.auth.refreshSession(); token = r.data && r.data.session && r.data.session.access_token; }
+      if (!token) return { status: 401 };
+      const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 70000);
       try {
-        const { data } = await sb.auth.getSession();
-        const token = data && data.session && data.session.access_token;
-        if (!token) throw new Error("please log in again");
-        const r = await fetch("/api/daily-digest?kind=volcano", { method: "POST", headers: { Authorization: "Bearer " + token }, signal: AbortSignal.timeout(65000) });
-        const j = await r.json().catch(() => ({}));
-        if (!r.ok) throw new Error(j.error || "HTTP " + r.status);
-        msg.textContent = (j.results && j.results.volcano) || "Done";
-        RainDigest.reload("aiDigestVolcano", "volcano");
-      } catch (e) { msg.textContent = "Refresh failed: " + (e.name === "TimeoutError" ? "timed out" : e.message); }
-      finally { btn.disabled = false; }
+        const r = await fetch("/api/daily-digest?kind=volcano", { method: "POST", headers: { Authorization: "Bearer " + token }, signal: ctl.signal });
+        return { status: r.status, json: await r.json().catch(() => ({})) };
+      } finally { clearTimeout(timer); }
+    }
+
+    btn.addEventListener("click", async () => {
+      if (btn.disabled) return; // no double clicks
+      btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Checking PHIVOLCS…'; say("This can take up to a minute.");
+      try {
+        let r;
+        try { r = await callRefresh(); }
+        catch (e) { if (e.name === "AbortError") throw e; await new Promise((ok) => setTimeout(ok, 1200)); r = await callRefresh(); } // one automatic retry on a network blip
+        if (r.status === 401 || r.status === 403) { say("Your session expired. Please log in again, then retry.", true); return; }
+        if (r.status === 504 || r.status === 502) { say("PHIVOLCS is responding slowly. The saved data is still shown; please try again in a minute.", true); return; }
+        if (r.status >= 400) { say("The update could not be completed right now. The saved data is still shown; please try again.", true); return; }
+        say((r.json.results && r.json.results.volcano) || "Done.");
+        // Re-draw BOTH the hero (alert level / bulletin date) and the digest card. Before, only the card was redrawn.
+        await Promise.allSettled([loadBulletin(), Promise.resolve(RainDigest.reload("aiDigestVolcano", "volcano"))]);
+      } catch (e) {
+        say(e.name === "AbortError" ? "PHIVOLCS is responding slowly. The saved data is still shown; please try again in a minute." : "Couldn't reach the server. Check your connection and try again.", true);
+      } finally { btn.disabled = false; btn.innerHTML = label; }
     });
   }
 

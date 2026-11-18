@@ -56,3 +56,4 @@
 .db-admin .rain-card:has(canvas){transition:box-shadow .3s}
 .db-admin .rain-card:has(canvas):hover{box-shadow:0 22px 40px -26px rgba(139,92,246,.55)}
 @media (prefers-reduced-motion:reduce){.db-hero::before{animation:none}.db-page *{transition-duration:.01ms!important}}
+button.db-chip{font-family:inherit;cursor:pointer}

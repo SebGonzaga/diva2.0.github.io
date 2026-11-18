@@ -22,11 +22,12 @@
     <button class="btn-rain btn-rain-ghost btn-rain-sm" data-filter="warning">Warning</button>
     <button class="btn-rain btn-rain-ghost btn-rain-sm" data-filter="advisory">Advisory</button>
   </div>
+  <div class="mb-4" id="alertRange"></div>
   <div class="d-flex align-items-center gap-2 mb-3 d-none" id="alertsCacheNote"><span class="cached-data-tag"><i class="bi bi-cloud-slash"></i> Saved data</span><span style="font-size:.8rem; color:var(--ink-400);"></span></div>
   <div class="d-flex flex-column gap-3" id="alertsList"></div>
   <div class="empty-state d-none" id="alertsEmpty">
     <div class="glyph"><i class="bi bi-check-circle dicon" data-dicon="check-circle"></i></div>
-    <div>No active alerts in this category.</div>
+    <div>No alerts in this category and period.</div>
   </div>
 </template>
 
@@ -46,6 +47,9 @@
   const severityMap = { information: "level-info", advisory: "level-advisory", warning: "level-warning", critical: "level-critical" };
   const statusMap = { information: "status-safe", advisory: "status-caution", warning: "status-warning", critical: "status-critical" };
   const typeIcon = { Typhoon: "bi-hurricane", Earthquake: "bi-activity", Volcanic: "bi-triangle", Flood: "bi-water", Landslide: "bi-layers", "General Emergency": "bi-exclamation-triangle" };
+
+  let rangeFilter = null;
+  let currentSeverity = "all";
 
   async function renderAlerts(filter) {
     const list = document.getElementById("alertsList");
@@ -76,7 +80,7 @@
       if (usingCache && cached) cacheNote.querySelector("span").textContent = `Showing alerts saved ${RainOffline.timeAgo(cached.savedAt)} — reconnect for the latest.`;
     }
 
-    const items = allAlerts.filter((a) => filter === "all" || a.severity === filter);
+    const items = allAlerts.filter((a) => (filter === "all" || a.severity === filter) && (!rangeFilter || rangeFilter.matches(a.created_at || a.starts_at)));
     empty.classList.toggle("d-none", items.length > 0);
     items.forEach((a) => {
       const el = document.createElement("div");
@@ -99,12 +103,14 @@
 
   function initAlertsPage() {
     document.getElementById("app-content").appendChild(document.getElementById("alerts-content").content.cloneNode(true));
+    rangeFilter = rainRangeFilter(document.getElementById("alertRange"), { initial: "all", onChange: () => renderAlerts(currentSeverity) });
     renderAlerts("all");
     document.querySelectorAll("#alertFilters button").forEach((btn) => {
       btn.addEventListener("click", () => {
         document.querySelectorAll("#alertFilters button").forEach((b) => b.classList.remove("active-filter"));
         btn.classList.add("active-filter");
-        renderAlerts(btn.dataset.filter);
+        currentSeverity = btn.dataset.filter;
+        renderAlerts(currentSeverity);
       });
     });
   }

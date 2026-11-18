@@ -115,7 +115,7 @@ const RainAuth = {
    *  matching profiles row. Returns the created session's user, or
    *  { error: "message" } on failure (e.g. email already registered,
    *  weak password, or a server-side trigger/database error). */
-  async register({ name, email, phone, password, city }) {
+  async register({ name, email, phone, password, city, lat, lng }) {
     const { data, error } = await sb.auth.signUp({
       email,
       password,
@@ -139,6 +139,10 @@ const RainAuth = {
     const profileUpdates = {};
     if (city) profileUpdates.barangay = city;
     if (phone) profileUpdates.phone = phone;
+    // Exact coordinates (only when the resident used "Use my current location") let the
+    // daily safety update pick the truly nearest evacuation center. Without them the
+    // server falls back to the centre of the chosen city.
+    if (Number.isFinite(lat) && Number.isFinite(lng)) { profileUpdates.lat = lat; profileUpdates.lng = lng; }
     if (Object.keys(profileUpdates).length) {
       const { error: profileError } = await sb.from("profiles").update(profileUpdates).eq("id", data.user.id);
       if (profileError) console.error("Save profile fields error:", profileError);

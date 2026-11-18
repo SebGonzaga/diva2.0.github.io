@@ -417,10 +417,12 @@
       const { data: dbIncidents, error: incidentsFetchError } = await sb
         .from("incidents")
         .select("*, profiles!reporter_id(full_name)")
+        .eq("status", "verified") // only Reviewed incidents are public; Pending/Resolved/Dismissed stay off the map
         .not("lat", "is", null)
         .not("lng", "is", null);
       if (incidentsFetchError) console.error("Fetch incidents error:", incidentsFetchError);
       const reportedWithCoords = (dbIncidents || []).map((r) => ({
+        id: r.id,
         title: r.category || "Incident report",
         lat: r.lat,
         lng: r.lng,
@@ -478,11 +480,33 @@
 
       // Map-pinnable incidents (nearby + seeded + resident-reported) were
       // already computed above for Community Risk — reuse allIncidents here.
-      allIncidents.forEach((inc) => {
-        L.marker([inc.lat, inc.lng], { icon: pinIcon("incident", "bi-flag-fill") })
+      // Markers are kept by incident id so the realtime listener below can pull a
+      // resolved incident off the map (or add a newly reviewed one) without a refresh.
+      const incidentMarkers = new Map();
+      function addIncidentMarker(inc) {
+        const m = L.marker([inc.lat, inc.lng], { icon: pinIcon("incident", "bi-flag-fill") })
           .bindPopup(`<strong>${inc.title}</strong><br>${inc.area} · ${inc.updated}`)
           .addTo(groups.incidents);
-      });
+        if (inc.id) incidentMarkers.set(inc.id, m);
+      }
+      allIncidents.forEach(addIncidentMarker);
+
+      sb.channel("map-incidents")
+        .on("postgres_changes", { event: "*", schema: "public", table: "incidents" }, (payload) => {
+          const row = payload.new && payload.new.id ? payload.new : null;
+          const id = row ? row.id : payload.old && payload.old.id;
+          if (!id) return;
+          const onMap = incidentMarkers.has(id);
+          const shouldShow = !!row && row.status === "verified" && row.lat != null && row.lng != null;
+          if (onMap && !shouldShow) {
+            groups.incidents.removeLayer(incidentMarkers.get(id));
+            incidentMarkers.delete(id);
+            if (row && row.status === "resolved") rainToast("An incident near you was resolved and removed from the map", "bi-check-circle");
+          } else if (!onMap && shouldShow) {
+            addIncidentMarker({ id, title: row.category || "Incident report", lat: row.lat, lng: row.lng, area: "Resident report", updated: new Date(row.created_at).toLocaleString() });
+          }
+        })
+        .subscribe();
 
       // Shelters, barangay/city halls, and SM malls that accept evacuees all
       // share the "shelters" filter/layer group, but keep their own marker

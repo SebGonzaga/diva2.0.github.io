@@ -13,10 +13,21 @@ import { htmlToText, extractAlertLevel, SYSTEM_PROMPT, buildPrompt, parseModelJs
 const KINDS = [['volcano', 'DIGEST_VOLCANO_URL'], ['heat', 'DIGEST_HEAT_URL']];
 const GEMINI = 'https://generativelanguage.googleapis.com/v1beta/models';
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// PHIVOLCS' site is slow/flaky: one quick retry turns most "source unreachable" nights into a success.
 async function getPage(url) {
-  const r = await fetch(url, { headers: { 'User-Agent': 'RAIN-digest/1.0 (disaster-awareness app)' }, signal: AbortSignal.timeout(6000) });
-  if (!r.ok) throw new Error('source ' + r.status);
-  return r.text();
+  let lastErr;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const r = await fetch(url, { headers: { 'User-Agent': 'RAIN-digest/1.0 (disaster-awareness app)' }, signal: AbortSignal.timeout(6000) });
+      if (r.ok) return r.text();
+      lastErr = new Error('source ' + r.status);
+      if (r.status < 500 && r.status !== 429) break; // 4xx: retrying won't help
+    } catch (e) { lastErr = e; }
+    if (attempt === 0) await sleep(800);
+  }
+  throw lastErr;
 }
 
 const sbHeaders = () => ({ apikey: process.env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}` });
@@ -36,13 +47,16 @@ async function isAdminToken(token) {
 
 async function summarize(kind, text) {
   const model = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
-  const r = await fetch(`${GEMINI}/${model}:generateContent`, {
+  const call = () => fetch(`${GEMINI}/${model}:generateContent`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': process.env.DIGEST_GEMINI_API_KEY },
     body: JSON.stringify({ systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] }, contents: [{ role: 'user', parts: [{ text: buildPrompt(kind, text) }] }],
       generationConfig: { temperature: 0.1, maxOutputTokens: 1200, responseMimeType: 'application/json' } }),
-    signal: AbortSignal.timeout(15000),
+    signal: AbortSignal.timeout(12000),
   });
+  let r;
+  try { r = await call(); } catch { r = null; }
+  if (!r || r.status === 429 || r.status >= 500) { await sleep(1500); r = await call(); } // one retry for rate limits / hiccups
   if (!r.ok) throw new Error('gemini ' + r.status);
   const j = await r.json();
   return { model, parsed: parseModelJson(j?.candidates?.[0]?.content?.parts?.[0]?.text) };
@@ -81,11 +95,13 @@ async function imageStep(kind, date, summary) {
   catch (e) { console.error('digest image error:', kind, e.message); return 'image failed: ' + e.message; }
 }
 
+const fmtBulletin = (m) => (m && m.bulletin_date ? ` The newest PHIVOLCS Taal bulletin is dated ${m.bulletin_date}.` : '');
+
 async function runOne(kind, url, date, force = false) {
   const have = await fetch(`${process.env.SUPABASE_URL}/rest/v1/ai_digests?select=status,image_url,summary,metrics,source_sha256,created_at&kind=eq.${kind}&digest_date=eq.${date}`, { headers: sbHeaders() }).then((r) => (r.ok ? r.json() : [])).catch(() => []);
-  if (force && have[0] && Date.now() - new Date(have[0].created_at).getTime() < 60000) return 'just refreshed; wait a minute and try again';
+  if (force && have[0] && Date.now() - new Date(have[0].created_at).getTime() < 60000) return 'Already refreshed a moment ago. Please wait a minute before trying again.';
   if (!force && have[0] && have[0].status === 'ok' && !(kind === 'volcano' && have[0].metrics == null)) { // cron can fire twice; never overwrite a good row or re-spend AI calls (a volcano row still missing the official numbers is rebuilt)
-    if (have[0].image_url || !imagesOn() || !have[0].summary) return 'already done today';
+    if (force || have[0].image_url || !imagesOn() || !have[0].summary) return 'already done today';
     return 'summary already done; ' + (await imageStep(kind, date, have[0].summary)); // only the picture is missing: retry just that
   }
   const row = { kind, digest_date: date, created_at: new Date().toISOString(), source_url: url, status: 'source_unreachable', alert_level: null, summary: null, source_fetched_at: null, source_sha256: null, model: null };
@@ -101,7 +117,7 @@ async function runOne(kind, url, date, force = false) {
     if (text.length < 200) { row.status = 'source_unparsed'; }
     else {
       row.source_sha256 = sha256Hex(text);
-      if (force && have[0] && have[0].status === 'ok' && have[0].source_sha256 === row.source_sha256 && have[0].metrics != null) return 'already up to date (no newer bulletin than the one shown)';
+      if (force && have[0] && have[0].status === 'ok' && have[0].source_sha256 === row.source_sha256 && have[0].metrics != null) return 'Already up to date. PHIVOLCS has not published anything newer than what is shown.' + fmtBulletin(have[0].metrics);
       if (kind === 'volcano') row.alert_level = extractAlertLevel(text);
       row.status = 'ai_failed';
       try {
@@ -111,7 +127,12 @@ async function runOne(kind, url, date, force = false) {
       } catch (e) { console.error('digest AI error:', kind, e.message); }
     }
   } catch (e) { console.error('digest source error:', kind, e.message); }
-  if (force && have[0] && have[0].status === 'ok' && row.status !== 'ok') return 'refresh failed (' + row.status + '); kept the data already shown'; // a manual retry must never replace good data with a failure
+  // A manual retry must never replace good data with a failure. Exception: the official numbers are copied by code (no AI),
+  // so when only the AI summary failed we still save the NEW numbers (the card then says the summary is not ready yet).
+  if (force && have[0] && have[0].status === 'ok' && row.status !== 'ok' && !(row.status === 'ai_failed' && row.metrics)) {
+    return row.status === 'source_unreachable' ? 'Could not reach the PHIVOLCS website right now. Showing the last saved bulletin data; try again in a minute.'
+      : 'The PHIVOLCS page could not be read right now. Showing the last saved bulletin data.';
+  }
   const post = (r) => fetch(`${process.env.SUPABASE_URL}/rest/v1/ai_digests?on_conflict=kind,digest_date`, {
     method: 'POST', headers: { ...sbHeaders(), 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify(r),
   });
@@ -121,9 +142,14 @@ async function runOne(kind, url, date, force = false) {
     console.error('digest: saving without metrics (run supabase/012_ai_digest_metrics.sql)');
     save = await post(plain);
   }
-  if (!save.ok) { console.error('digest save error:', save.status); return 'could not save'; }
-  if (row.status === 'ok') return 'ok; ' + (await imageStep(kind, date, row.summary));
-  return row.status;
+  if (!save.ok) { console.error('digest save error:', save.status); return 'Could not save the update. Please try again.'; }
+  if (row.status === 'ok') {
+    // Pictures are best-effort and slow: never make the admin's button wait on them (the nightly job still makes them).
+    if (!force) await imageStep(kind, date, row.summary);
+    return 'Updated.' + fmtBulletin(row.metrics);
+  }
+  if (row.status === 'ai_failed' && row.metrics) return 'Official bulletin numbers updated.' + fmtBulletin(row.metrics) + " The plain-language summary couldn't be written right now; it will be retried tonight.";
+  return row.status === 'source_unreachable' ? 'Could not reach the PHIVOLCS website right now. Try again in a minute.' : 'The PHIVOLCS page could not be read right now.';
 }
 
 export default async function handler(req, res) {

@@ -2647,3 +2647,73 @@ html:has(#app-shell-root){ background:var(--bg-primary); }
   .app-content, .app-content::before,
   body:not(:has(#app-shell-root)) > *{ animation:none !important; }
 }
+
+
+/* =========================================================================
+   Notification bar (bell) — see RainNotifications in assets/js/main.js
+   ========================================================================= */
+.notif-wrap{position:relative; flex-shrink:0;}
+.notif-bell-btn{
+  position:relative; width:38px; height:38px; border-radius:50%;
+  background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.16);
+  display:inline-flex; align-items:center; justify-content:center;
+  color:#fff; transition:background .2s ease;
+}
+.notif-bell-btn:hover{background:rgba(255,255,255,.16);}
+.notif-bell-btn i{font-size:1rem;}
+.notif-badge{
+  position:absolute; top:-4px; right:-4px; min-width:18px; height:18px; padding:0 4px;
+  border-radius:999px; background:var(--danger); color:#fff;
+  font:700 .65rem/18px var(--font-mono); text-align:center; border:2px solid var(--navy-950, #0a1830);
+}
+.notif-panel{
+  display:none; position:absolute; right:0; top:46px; z-index:2500;
+  width:min(380px, calc(100vw - 24px)); max-height:min(70vh, 520px);
+  background:var(--surface-alt, #fff); color:var(--ink-900, #0a1830);
+  border:1px solid var(--surface-line, #e2e8f0); border-radius:14px;
+  box-shadow:0 18px 48px rgba(5,12,28,.35); overflow:hidden; flex-direction:column;
+}
+.notif-panel.open{display:flex;}
+[data-theme="dark"] .notif-panel{background:#12203a; color:#e8eefb; border-color:rgba(255,255,255,.12);}
+.notif-head{display:flex; align-items:center; justify-content:space-between; padding:.8rem 1rem; border-bottom:1px solid var(--surface-line, #e2e8f0);}
+[data-theme="dark"] .notif-head{border-color:rgba(255,255,255,.1);}
+.notif-markall{font-size:.78rem; font-weight:600; color:var(--accent-cyan-hover, #1f8489); background:none; border:0; padding:.2rem .4rem; border-radius:6px;}
+.notif-markall:hover:not(:disabled){background:rgba(51,201,209,.12);}
+.notif-markall:disabled{opacity:.4; cursor:default;}
+.notif-list{overflow-y:auto; overscroll-behavior:contain;}
+.notif-item{
+  display:flex; align-items:flex-start; gap:.7rem; width:100%; text-align:left;
+  padding:.75rem 1rem; background:none; border:0; border-bottom:1px solid var(--surface-line, #e2e8f0); color:inherit;
+}
+[data-theme="dark"] .notif-item{border-color:rgba(255,255,255,.07);}
+.notif-item:hover{background:rgba(51,201,209,.08);}
+.notif-item.unread{background:rgba(51,201,209,.07);}
+.notif-ico{flex:0 0 32px; width:32px; height:32px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:.85rem;}
+.notif-ico.tone-warn{background:var(--status-warning-bg); color:var(--status-warning-text);}
+.notif-ico.tone-info{background:#e3effd; color:var(--info-text);}
+.notif-ico.tone-ok{background:var(--status-safe-bg); color:var(--status-safe-text);}
+.notif-text{display:flex; flex-direction:column; gap:.15rem; min-width:0; flex:1;}
+.notif-title{font-weight:700; font-size:.86rem; line-height:1.25;}
+.notif-body{font-size:.8rem; opacity:.82; line-height:1.35; white-space:pre-line; display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden;}
+.notif-time{font-size:.7rem; opacity:.6; font-family:var(--font-mono);}
+.notif-dot{flex:0 0 9px; width:9px; height:9px; border-radius:50%; background:var(--accent-cyan); margin-top:.35rem;}
+.notif-empty{padding:2rem 1.25rem; text-align:center; opacity:.75; font-size:.9rem;}
+.notif-empty i{font-size:1.6rem; display:block; margin-bottom:.4rem;}
+.notif-empty small{display:block; margin-top:.3rem; opacity:.8;}
+@media (max-width:575.98px){
+  .notif-wrap{position:static;}
+  .notif-panel{position:fixed; left:12px; right:12px; top:64px; width:auto;}
+}
+
+/* Date-range chips (Today / 7 / 30 / 90 days / All) — rainRangeFilter() in main.js */
+.range-chips{display:flex; flex-wrap:wrap; align-items:center; gap:.4rem;}
+.range-chips .range-label{font-family:var(--font-mono); font-size:.7rem; letter-spacing:.05em; text-transform:uppercase; color:var(--ink-400); margin-right:.2rem;}
+.range-chips button{
+  font-size:.78rem; font-weight:600; padding:.3rem .75rem; border-radius:999px;
+  border:1px solid var(--surface-line, #e2e8f0); background:transparent; color:var(--ink-600);
+  transition:background .15s ease, color .15s ease, border-color .15s ease;
+}
+.range-chips button:hover{border-color:var(--accent-cyan);}
+.range-chips button.active{background:var(--navy-950, #0a1830); color:#fff; border-color:var(--navy-950, #0a1830);}
+[data-theme="dark"] .range-chips button{color:#c9d6ee; border-color:rgba(255,255,255,.18);}
+[data-theme="dark"] .range-chips button.active{background:var(--accent-cyan); color:#06202a; border-color:var(--accent-cyan);}
