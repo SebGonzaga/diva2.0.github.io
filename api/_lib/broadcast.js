@@ -55,6 +55,9 @@ export function topAlerts(alerts = [], limit = 2) {
 const phDate = (ms) => new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric' }).format(new Date(ms));
 
 /** Short, GSM-friendly plain text (no emoji / degree sign, so segments stay cheap). */
+/** Public website shown in every safety update text. */
+export const SITE_URL = 'https://rain2-0-github-io.vercel.app/';
+
 export function buildSmsText({ now = Date.now(), weather, flood, volcano, quake, alerts = [], alertCount = 0, incidentsNear = 0, incidentsTotal = 0, center, note }) {
   const lines = [`RAIN Daily Safety Update (${phDate(now)})`];
   if (weather) lines.push(`Weather: ${weather.desc}, ${weather.tempC}C${weather.rainMm ? `, rain ${weather.rainMm}mm/h now` : ''}.`);
@@ -69,7 +72,7 @@ export function buildSmsText({ now = Date.now(), weather, flood, volcano, quake,
   else lines.push('Incidents: no reviewed incidents right now.');
   if (center) lines.push(`Nearest evac: ${center.name} (${center.km < 10 ? center.km.toFixed(1) : Math.round(center.km)}km) ${directionsUrl(center)}`);
   if (note) lines.push(String(note).trim().slice(0, 160));
-  lines.push('Stay safe. Open RAIN for details.');
+  lines.push(`Stay safe. Check the web for details: ${SITE_URL}`);
   return lines.join('\n');
 }
 

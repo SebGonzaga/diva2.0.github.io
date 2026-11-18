@@ -25,6 +25,14 @@ export async function supabaseSelect(pathAndQuery) {
   return res.json();
 }
 
+/** Like supabaseSelect, but throws on a failed query so the caller can report it
+ *  instead of mistaking an error for an empty table (e.g. a missing column). */
+export async function supabaseSelectStrict(pathAndQuery) {
+  const res = await fetch(`${process.env.SUPABASE_URL}/rest/v1/${pathAndQuery}`, { headers: svcHeaders() });
+  if (!res.ok) throw new Error(`Supabase query failed (${res.status}): ${(await res.text()).slice(0, 200)}`);
+  return res.json();
+}
+
 export async function supabaseInsert(table, rows) {
   const res = await fetch(`${process.env.SUPABASE_URL}/rest/v1/${table}`, {
     method: 'POST',

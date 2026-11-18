@@ -14,7 +14,7 @@
 
 import { fetchJson, haversineKm } from './_lib/util.js';
 import {
-  getAdminId, supabaseSelect, supabaseInsert, insertNotifications, sendSms,
+  getAdminId, supabaseSelect, supabaseSelectStrict, supabaseInsert, insertNotifications, sendSms,
   normalizePhone, loadEvacuationCenters, loadPlaces,
 } from './_lib/notify.js';
 import { residentLocation, nearestEvacCenter, floodEstimate, topAlerts, buildSmsText, groupByText } from './_lib/broadcast.js';
@@ -96,7 +96,7 @@ export default async function handler(req, res) {
 
     const nowIso = new Date().toISOString();
     const [profiles, alertRows, incidentRows, quake, volcano] = await Promise.all([
-      supabaseSelect('profiles?select=id,full_name,role,barangay,phone,lat,lng&status=eq.active&limit=5000'),
+      supabaseSelectStrict('profiles?select=id,full_name,role,barangay,phone,lat,lng&status=eq.active&limit=5000'),
       supabaseSelect(`alerts?select=title,severity,type,area&starts_at=lte.${nowIso}&or=(expires_at.is.null,expires_at.gt.${nowIso})&order=created_at.desc&limit=50`),
       supabaseSelect('incidents?select=id,lat,lng,category&status=eq.verified&limit=500'),
       getQuakes(),
@@ -157,7 +157,7 @@ export default async function handler(req, res) {
     // 1) In-app bell notification for EVERYONE (with or without a phone number).
     const inApp = await insertNotifications(items.map((i) => ({
       user_id: i.id, kind: 'broadcast', title: 'Daily safety update',
-      body: i.text.replace(/^RAIN Daily Safety Update[^\n]*\n/, '').replace(/\s*https?:\/\/\S+/g, '').replace(/\nStay safe\. Open RAIN for details\.$/, '').trim(),
+      body: i.text.replace(/^RAIN Daily Safety Update[^\n]*\n/, '').replace(/\s*https?:\/\/\S+/g, '').replace(/\nStay safe\. Check the web for details:$/, '').trim(),
       link: i.role === 'admin' ? 'admin-dashboard.html' : 'emergency.html',
     })));
 
@@ -178,6 +178,6 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true, recipients: items.length, smsRecipients: smsItems.length, smsAccepted, inApp });
   } catch (err) {
     console.error('broadcast error:', err);
-    return res.status(500).json({ error: 'Something went wrong sending the update' });
+    return res.status(500).json({ error: 'Something went wrong sending the update: ' + String(err?.message || err).slice(0, 300) });
   }
 }
