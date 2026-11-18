@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { htmlToText, extractAlertLevel, parseModelJson, numbersSupported, phtDate, buildImagePrompt, extractImage, findLatestBulletinUrl, parseTaalBulletin } from '../api/_lib/digest.js';
+import { htmlToText, extractAlertLevel, parseModelJson, numbersSupported, phtDate, buildImagePrompt, extractImage, findLatestBulletinUrl, parseTaalBulletin, bulletinDateIso, sha256Hex } from '../api/_lib/digest.js';
 import handler from '../api/daily-digest.js';
 
 test('htmlToText drops scripts/tags and decodes entities', () => {
@@ -217,4 +217,50 @@ test('volcano run stores the official numbers, and still saves without them if c
   assert.equal(posts.length, 2);
   assert.equal(posts[0].metrics.so2.v, '557 tonnes / day');
   assert.equal(posts[1].metrics, undefined); assert.equal(posts[1].status, 'ok');
+});
+
+// ---- stale-bulletin handling (PHIVOLCS posts in the morning; a row saved earlier holds yesterday's bulletin) ----
+test('bulletinDateIso reads PHIVOLCS dates', () => {
+  assert.equal(bulletinDateIso('17 November 2026'), '2026-11-17');
+  assert.equal(bulletinDateIso(' 5 march 2027 '), '2027-03-05');
+  assert.equal(bulletinDateIso('Nov 17'), null); assert.equal(bulletinDateIso(null), null);
+});
+test("cron re-reads today's row when it still holds an older bulletin; same page = no AI call, only 'checked' time updated", async () => {
+  const hash = sha256Hex(htmlToText(BULLETIN_HTML));
+  const t = run({ DIGEST_VOLCANO_URL: 'https://src.test/b', DIGEST_IMAGES: 'off' }, (url, opts) => {
+    if (url.includes('/rest/v1/ai_digests?select')) return ok([{ status: 'ok', image_url: null, summary: 's', source_sha256: hash, created_at: '2000-01-01T00:00:00Z', metrics: { alert_level: 1, bulletin_date: '1 January 2000' } }]);
+    if (url === 'https://src.test/b') return ok(BULLETIN_HTML);
+    if (opts.method === 'PATCH') return { ok: true, status: 204 };
+    throw new Error('unexpected ' + url);
+  });
+  await handler({ method: 'GET', headers: { authorization: 'Bearer sekret' } }, t.res); t.done();
+  assert.match(t.res.body.results.volcano, /Already up to date/);
+  assert.ok(!t.calls.some((c) => c.url.includes('generateContent')));
+  assert.ok(!t.calls.some((c) => c.url.includes('on_conflict')));
+  assert.ok(t.calls.some((c) => c.opts.method === 'PATCH' && JSON.parse(c.opts.body).source_fetched_at));
+});
+test('a newer bulletin than the saved one is picked up by the cron run', async () => {
+  const t = run({ DIGEST_VOLCANO_URL: 'https://src.test/b', DIGEST_IMAGES: 'off' }, (url) => {
+    if (url.includes('/rest/v1/ai_digests?select')) return ok([{ status: 'ok', image_url: null, summary: 'old', source_sha256: 'x', created_at: '2000-01-01T00:00:00Z', metrics: { alert_level: 1, bulletin_date: '1 January 2000' } }]);
+    if (url === 'https://src.test/b') return ok(BULLETIN_HTML);
+    if (url.includes('generateContent')) return ok({ candidates: [{ content: { parts: [{ text: '{"summary":"Alert Level 1. Plume 1800 meters tall.","points":[]}' }] } }] });
+    if (url.includes('on_conflict')) return { ok: true, status: 201 };
+    throw new Error('unexpected ' + url);
+  });
+  await handler({ method: 'GET', headers: { authorization: 'Bearer sekret' } }, t.res); t.done();
+  const saved = JSON.parse(t.calls.find((c) => c.url.includes('on_conflict')).opts.body);
+  assert.equal(saved.metrics.bulletin_date, '26 October 2026'); assert.equal(saved.status, 'ok');
+});
+test('a rate-limited primary model falls back to the second model instead of failing the summary', async () => {
+  const t = run({ DIGEST_VOLCANO_URL: 'https://src.test/taal', DIGEST_IMAGES: 'off', GEMINI_MODEL: 'm-primary', GEMINI_FALLBACK_MODEL: 'm-backup' }, (url) => {
+    if (url.includes('/rest/v1/ai_digests?select')) return ok([]);
+    if (url === 'https://src.test/taal') return ok(PAGE);
+    if (url.includes('m-primary:generateContent')) return { ok: false, status: 429 };
+    if (url.includes('m-backup:generateContent')) return ok(SUMMARY_RESP);
+    if (url.includes('on_conflict')) return { ok: true, status: 201 };
+    throw new Error('unexpected ' + url);
+  });
+  await handler({ method: 'GET', headers: { authorization: 'Bearer sekret' } }, t.res); t.done();
+  const saved = JSON.parse(t.calls.find((c) => c.url.includes('on_conflict')).opts.body);
+  assert.equal(saved.status, 'ok'); assert.equal(saved.model, 'm-backup');
 });

@@ -1,5 +1,6 @@
 // /api/daily-digest.js — nightly AI digest of PUBLIC PHIVOLCS / PAGASA pages (additional feature; unofficial).
-// Triggered by Vercel Cron (vercel.json: 0 16 * * * UTC = 00:00 Philippine time; on the Hobby plan it may fire any time within that hour).
+// Triggered by Vercel Cron (vercel.json: 0 1 * * * UTC = 09:00 and 0 5 * * * UTC = 13:00 Philippine time, i.e. AFTER PHIVOLCS posts its morning Taal bulletin;
+//      on the Hobby plan each may fire any time within its hour). The 13:00 run only does work when the 09:00 run could not yet see today's bulletin.
 // Env: CRON_SECRET (required; Vercel sends it as a Bearer token), SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, DIGEST_GEMINI_API_KEY (separate from the chatbot's GEMINI_API_KEY),
 //      DIGEST_VOLCANO_URL and/or DIGEST_HEAT_URL (exact public https pages to read; a kind is skipped when its URL is unset;
 //      for volcano it may be the PHIVOLCS bulletin LIST page: the newest Taal bulletin linked there is then read instead),
@@ -8,7 +9,7 @@
 //      A manual run re-reads the bulletin, skips the AI calls when it is unchanged, and never replaces a good row with a failed one.
 // Pictures: after a summary is saved with status 'ok', one AI illustration is generated from that summary, uploaded to the public
 //      Supabase Storage bucket 'digest-images' (migration 011) and linked in ai_digests.image_url. Best effort: a failure never hides the text.
-import { htmlToText, extractAlertLevel, SYSTEM_PROMPT, buildPrompt, parseModelJson, numbersSupported, sha256Hex, phtDate, buildImagePrompt, extractImage, findLatestBulletinUrl, parseTaalBulletin } from './_lib/digest.js';
+import { htmlToText, extractAlertLevel, SYSTEM_PROMPT, buildPrompt, parseModelJson, numbersSupported, sha256Hex, phtDate, buildImagePrompt, extractImage, findLatestBulletinUrl, parseTaalBulletin, bulletinDateIso } from './_lib/digest.js';
 
 const KINDS = [['volcano', 'DIGEST_VOLCANO_URL'], ['heat', 'DIGEST_HEAT_URL']];
 const GEMINI = 'https://generativelanguage.googleapis.com/v1beta/models';
@@ -45,21 +46,30 @@ async function isAdminToken(token) {
   } catch { return false; }
 }
 
-async function summarize(kind, text) {
-  const model = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
-  const call = () => fetch(`${GEMINI}/${model}:generateContent`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': process.env.DIGEST_GEMINI_API_KEY },
-    body: JSON.stringify({ systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] }, contents: [{ role: 'user', parts: [{ text: buildPrompt(kind, text) }] }],
-      generationConfig: { temperature: 0.1, maxOutputTokens: 1200, responseMimeType: 'application/json' } }),
-    signal: AbortSignal.timeout(12000),
-  });
-  let r;
-  try { r = await call(); } catch { r = null; }
-  if (!r || r.status === 429 || r.status >= 500) { await sleep(1500); r = await call(); } // one retry for rate limits / hiccups
-  if (!r.ok) throw new Error('gemini ' + r.status);
-  const j = await r.json();
-  return { model, parsed: parseModelJson(j?.candidates?.[0]?.content?.parts?.[0]?.text) };
+async function summarize(kind, text, deadline) {
+  // Primary model, then a fallback model: a free-tier 429 on one model should not leave the card without a summary.
+  const models = [...new Set([process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite', process.env.GEMINI_FALLBACK_MODEL || 'gemini-2.5-flash-lite'])];
+  let lastErr = new Error('gemini unavailable');
+  for (const model of models) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const left = deadline - Date.now();
+      if (left < 3000) throw lastErr; // out of time: stop cleanly instead of being killed by the 60 s limit
+      try {
+        const r = await fetch(`${GEMINI}/${model}:generateContent`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': process.env.DIGEST_GEMINI_API_KEY },
+          body: JSON.stringify({ systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] }, contents: [{ role: 'user', parts: [{ text: buildPrompt(kind, text) }] }],
+            generationConfig: { temperature: 0.1, maxOutputTokens: 1200, responseMimeType: 'application/json' } }),
+          signal: AbortSignal.timeout(Math.min(12000, left)),
+        });
+        if (r.ok) { const j = await r.json(); return { model, parsed: parseModelJson(j?.candidates?.[0]?.content?.parts?.[0]?.text) }; }
+        lastErr = new Error('gemini ' + r.status);
+        if (r.status !== 429 && r.status < 500) break; // this model rejects the request: go straight to the next one
+      } catch (e) { lastErr = e; }
+      if (attempt === 0) await sleep(1200);
+    }
+  }
+  throw lastErr;
 }
 
 
@@ -95,12 +105,19 @@ async function imageStep(kind, date, summary) {
   catch (e) { console.error('digest image error:', kind, e.message); return 'image failed: ' + e.message; }
 }
 
-const fmtBulletin = (m) => (m && m.bulletin_date ? ` The newest PHIVOLCS Taal bulletin is dated ${m.bulletin_date}.` : '');
+const fmtBulletin = (m, date) => {
+  if (!m || !m.bulletin_date) return '';
+  const iso = bulletinDateIso(m.bulletin_date);
+  return ` The newest PHIVOLCS Taal bulletin is dated ${m.bulletin_date}` + (iso && date && iso < date ? ", and today's bulletin has not been posted yet." : '.');
+};
 
 async function runOne(kind, url, date, force = false) {
+  const deadline = Date.now() + 45000; // Vercel stops the function at 60 s; leave room to save
   const have = await fetch(`${process.env.SUPABASE_URL}/rest/v1/ai_digests?select=status,image_url,summary,metrics,source_sha256,created_at&kind=eq.${kind}&digest_date=eq.${date}`, { headers: sbHeaders() }).then((r) => (r.ok ? r.json() : [])).catch(() => []);
   if (force && have[0] && Date.now() - new Date(have[0].created_at).getTime() < 60000) return 'Already refreshed a moment ago. Please wait a minute before trying again.';
-  if (!force && have[0] && have[0].status === 'ok' && !(kind === 'volcano' && have[0].metrics == null)) { // cron can fire twice; never overwrite a good row or re-spend AI calls (a volcano row still missing the official numbers is rebuilt)
+  // A volcano row saved before PHIVOLCS posted today's bulletin (e.g. the 17 Nov bulletin stored on 18 Nov) must be re-checked, so later runs can pick up the new bulletin.
+  const bulletinBehind = kind === 'volcano' && !!have[0] && (() => { const iso = bulletinDateIso(have[0].metrics && have[0].metrics.bulletin_date); return !!iso && iso < date; })();
+  if (!force && have[0] && have[0].status === 'ok' && !bulletinBehind && !(kind === 'volcano' && have[0].metrics == null)) { // cron can fire twice; never overwrite a good row or re-spend AI calls (a volcano row still missing the official numbers is rebuilt)
     if (force || have[0].image_url || !imagesOn() || !have[0].summary) return 'already done today';
     return 'summary already done; ' + (await imageStep(kind, date, have[0].summary)); // only the picture is missing: retry just that
   }
@@ -117,11 +134,15 @@ async function runOne(kind, url, date, force = false) {
     if (text.length < 200) { row.status = 'source_unparsed'; }
     else {
       row.source_sha256 = sha256Hex(text);
-      if (force && have[0] && have[0].status === 'ok' && have[0].source_sha256 === row.source_sha256 && have[0].metrics != null) return 'Already up to date. PHIVOLCS has not published anything newer than what is shown.' + fmtBulletin(have[0].metrics);
+      if (have[0] && have[0].status === 'ok' && have[0].source_sha256 === row.source_sha256 && (kind !== 'volcano' || have[0].metrics != null)) {
+        // Same bulletin as already saved: no AI calls. Record that we just looked, so the card's "last checked" time is honest.
+        await fetch(`${process.env.SUPABASE_URL}/rest/v1/ai_digests?kind=eq.${kind}&digest_date=eq.${date}`, { method: 'PATCH', headers: { ...sbHeaders(), 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify({ source_fetched_at: row.source_fetched_at }), signal: AbortSignal.timeout(5000) }).catch(() => {});
+        return 'Already up to date. PHIVOLCS has not published anything newer than what is shown.' + fmtBulletin(have[0].metrics, date);
+      }
       if (kind === 'volcano') row.alert_level = extractAlertLevel(text);
       row.status = 'ai_failed';
       try {
-        const { model, parsed } = await summarize(kind, text);
+        const { model, parsed } = await summarize(kind, text, deadline);
         row.model = model;
         if (parsed && numbersSupported(parsed.summary, text)) { row.summary = parsed.summary; row.status = 'ok'; }
       } catch (e) { console.error('digest AI error:', kind, e.message); }
@@ -129,7 +150,7 @@ async function runOne(kind, url, date, force = false) {
   } catch (e) { console.error('digest source error:', kind, e.message); }
   // A manual retry must never replace good data with a failure. Exception: the official numbers are copied by code (no AI),
   // so when only the AI summary failed we still save the NEW numbers (the card then says the summary is not ready yet).
-  if (force && have[0] && have[0].status === 'ok' && row.status !== 'ok' && !(row.status === 'ai_failed' && row.metrics)) {
+  if (have[0] && have[0].status === 'ok' && row.status !== 'ok' && !(row.status === 'ai_failed' && row.metrics)) {
     return row.status === 'source_unreachable' ? 'Could not reach the PHIVOLCS website right now. Showing the last saved bulletin data; try again in a minute.'
       : 'The PHIVOLCS page could not be read right now. Showing the last saved bulletin data.';
   }
@@ -145,10 +166,10 @@ async function runOne(kind, url, date, force = false) {
   if (!save.ok) { console.error('digest save error:', save.status); return 'Could not save the update. Please try again.'; }
   if (row.status === 'ok') {
     // Pictures are best-effort and slow: never make the admin's button wait on them (the nightly job still makes them).
-    if (!force) await imageStep(kind, date, row.summary);
-    return 'Updated.' + fmtBulletin(row.metrics);
+    const pic = force ? '' : ' ' + (await imageStep(kind, date, row.summary));
+    return 'Updated.' + fmtBulletin(row.metrics, date) + pic;
   }
-  if (row.status === 'ai_failed' && row.metrics) return 'Official bulletin numbers updated.' + fmtBulletin(row.metrics) + " The plain-language summary couldn't be written right now; it will be retried tonight.";
+  if (row.status === 'ai_failed' && row.metrics) return 'Official bulletin numbers updated.' + fmtBulletin(row.metrics, date) + " The plain-language summary couldn't be written right now; it will be retried at the next scheduled update.";
   return row.status === 'source_unreachable' ? 'Could not reach the PHIVOLCS website right now. Try again in a minute.' : 'The PHIVOLCS page could not be read right now.';
 }
 

@@ -8,6 +8,15 @@ export function phtDate(now = new Date()) {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(now);
 }
 
+const MONTHS = { january: 1, february: 2, march: 3, april: 4, may: 5, june: 6, july: 7, august: 8, september: 9, october: 10, november: 11, december: 12 };
+/** "17 November 2026" (as PHIVOLCS prints it) -> "2026-11-17"; null when it cannot be read. */
+export function bulletinDateIso(s) {
+  const m = /^\s*(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})\s*$/.exec(String(s || ''));
+  const mo = m && MONTHS[m[2].toLowerCase()];
+  if (!m || !mo) return null;
+  return `${m[3]}-${String(mo).padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+}
+
 const ENT = { '&nbsp;': ' ', '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'", '&apos;': "'" };
 export function htmlToText(html, max = 12000) {
   return String(html || '')

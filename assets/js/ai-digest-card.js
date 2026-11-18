@@ -79,7 +79,7 @@ window.RainDigest = (function () {
       }
       // Official numbers: newest row (max 3 days old) that has them, even when its AI summary failed.
       const mRow = rows.find((r) => r.metrics && typeof r.metrics === "object" && Object.keys(r.metrics).length && fresh(r, 72));
-      if (!d) { body.textContent = "No daily summary yet. It is created automatically every day at 12:00 AM (Philippine time)."; return; }
+      if (!d) { body.textContent = "No daily summary yet. It is created automatically every day after PHIVOLCS posts its morning bulletin (about 9:00 AM Philippine time)."; return; }
 
       const link = (r) => (r && /^https:\/\//.test(r.source_url) ? r.source_url : null);
       const img = d.status === "ok" && typeof d.image_url === "string" && /^https:\/\/[^/]+\/storage\/v1\/object\/public\/digest-images\//.test(d.image_url) ? d.image_url : null;
@@ -90,7 +90,7 @@ window.RainDigest = (function () {
         const m = mRow.metrics, head = el.querySelector(".card-eyebrow");
         head.innerHTML = "<span>Taal Volcano: bulletin data</span>" + TAG_OFFICIAL;
         html += stale(mRow) + officialGrid(m) +
-          '<div class="rd-note" style="margin-top:.55rem;">Copied automatically by software from the PHIVOLCS bulletin' + (m.bulletin_date ? " dated " + esc(m.bulletin_date) : "") + " (last checked " + esc(new Date(mRow.created_at).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })) + ")" +
+          '<div class="rd-note" style="margin-top:.55rem;">Copied automatically by software from the PHIVOLCS bulletin' + (m.bulletin_date ? " dated " + esc(m.bulletin_date) : "") + " (last checked " + esc(new Date(mRow.source_fetched_at || mRow.created_at).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })) + ")" +
           ". Each reading keeps the date PHIVOLCS gave it. If anything here differs from PHIVOLCS, follow PHIVOLCS." +
           (link(mRow) ? ' <a href="' + esc(link(mRow)) + '" target="_blank" rel="noopener noreferrer">Open source page</a>' : "") + "</div>" +
           '<hr style="opacity:.2;margin:.9rem 0;"><div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2"><b style="font-size:.88rem;">Plain-language summary</b>' + TAG_AI_SUM + "</div>";

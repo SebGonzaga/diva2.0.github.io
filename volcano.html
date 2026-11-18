@@ -173,10 +173,10 @@
     if (!data.length) {
       body.innerHTML = "No alert level has been entered by an administrator yet. <b>Check PHIVOLCS directly for the current level.</b>";
       try {   // fall back to the level copied by the nightly job (ai_digests.metrics), clearly labelled
-        const r = await sb.from("ai_digests").select("alert_level,metrics,digest_date,created_at").eq("kind", "volcano").order("created_at", { ascending: false }).limit(5);
+        const r = await sb.from("ai_digests").select("alert_level,metrics,digest_date,created_at,source_fetched_at").eq("kind", "volcano").order("created_at", { ascending: false }).limit(5);
         const d = (r.data || []).find((x) => (x.metrics && x.metrics.alert_level != null) || x.alert_level != null);
         const lv = d ? (d.metrics && d.metrics.alert_level != null ? d.metrics.alert_level : d.alert_level) : null;
-        if (lv != null) { paintHero(lv, LEVEL_NAMES[lv] || "", "Auto-copied from bulletin" + (d.metrics && d.metrics.bulletin_date ? " of " + d.metrics.bulletin_date : "") + " · checked " + new Date(d.created_at).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })); return; }
+        if (lv != null) { paintHero(lv, LEVEL_NAMES[lv] || "", "Auto-copied from bulletin" + (d.metrics && d.metrics.bulletin_date ? " of " + d.metrics.bulletin_date : "") + " · checked " + new Date(d.source_fetched_at || d.created_at).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })); return; }
       } catch (e) { console.warn("digest fallback", e); }
       paintHero(null, "Not entered yet", "Check PHIVOLCS directly"); return;
     }
@@ -263,6 +263,8 @@
     const btn = $("digestRefreshBtn"), msg = $("digestRefreshMsg");
     const label = btn.innerHTML;
     const say = (t, bad) => { msg.textContent = t; msg.style.color = bad ? "#b45309" : ""; };
+    // Server texts that mean "all fine" (even when nothing new exists) are shown plainly; only real problems are amber.
+    const isGood = (t) => /^(Updated|Already up to date|Official bulletin numbers updated|Already refreshed)/.test(t || "");
 
     async function callRefresh() {
       let { data } = await sb.auth.getSession();
@@ -286,7 +288,8 @@
         if (r.status === 401 || r.status === 403) { say("Your session expired. Please log in again, then retry.", true); return; }
         if (r.status === 504 || r.status === 502) { say("PHIVOLCS is responding slowly. The saved data is still shown; please try again in a minute.", true); return; }
         if (r.status >= 400) { say("The update could not be completed right now. The saved data is still shown; please try again.", true); return; }
-        say((r.json.results && r.json.results.volcano) || "Done.");
+        const out = String((r.json.results && r.json.results.volcano) || "Done.").replace(/\s*;?\s*image (failed|skipped)[^.]*\.?/i, ""); // picture problems are never the admin's concern
+        say(out, !isGood(out) && out !== "Done.");
         // Re-draw BOTH the hero (alert level / bulletin date) and the digest card. Before, only the card was redrawn.
         await Promise.allSettled([loadBulletin(), Promise.resolve(RainDigest.reload("aiDigestVolcano", "volcano"))]);
       } catch (e) {
