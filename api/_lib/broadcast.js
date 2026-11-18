@@ -113,7 +113,9 @@ export function buildSmsText({ now = Date.now(), area, weather, flood, volcano, 
 export const SMS_USE_EMOJIS = false;
 
 export function buildShortSms({ now = Date.now(), area, weather, flood, volcano, alertCount = 0, center, emojis = SMS_USE_EMOJIS }) {
-  const MAX = 160;
+  // Plain text fits 160 characters in one segment. Emoji text is Unicode, which fits
+  // only 70 characters per segment, so cap it at 2 segments (134 characters).
+  const MAX = emojis ? 134 : 160;
   const e = (emoji, text) => (emojis ? `${emoji} ${text}` : text);
   const head = e('🌧', `Hi neighbor! RAIN update ${phDate(now)}${area ? ` - ${String(area).split(',')[0].trim()}` : ''}.`);
   // No link in the text: carriers filter texts with web addresses, so the daily update
