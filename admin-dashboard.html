@@ -238,6 +238,9 @@
     // re-checks that the caller is an admin; this button is only the front door.
     // ---------------------------------------------------------------------
     const bcModalEl = document.getElementById("broadcastModal");
+    // Bootstrap appends its backdrop to <body>; keep the modal there too, otherwise it is
+    // trapped inside .app-content's z-index stacking context and renders under the backdrop.
+    document.body.appendChild(bcModalEl);
     const bcModal = new bootstrap.Modal(bcModalEl);
     const $bc = (id) => document.getElementById(id);
     const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -266,17 +269,17 @@
         const { ok, out } = await callBroadcast({ dryRun: true });
         if (!ok) throw new Error(out.error || "Could not build the preview");
         $bc("bcStats").innerHTML = [
-          [out.recipients, "people (bell)"], [out.smsRecipients, "with a phone (SMS)"], [out.hazards.activeAlerts, "active alerts"], [out.hazards.reviewedIncidents, "reviewed incidents"],
+          [out.recipients, "people (bell)"], [out.smsRecipients, "with a phone (SMS)"], [out.hazards?.activeAlerts ?? 0, "active alerts"], [out.hazards?.reviewedIncidents ?? 0, "reviewed incidents"],
         ].map(([n, l]) => `<span class="status-badge status-caution"><strong>${esc(n)}</strong>&nbsp;${esc(l)}</span>`).join("");
         $bc("bcSample").textContent = out.sample;
         const warns = [];
         if (!out.smsConfigured) warns.push("SMS gateway isn't configured on the server (SMS_GATEWAY_LOGIN / SMS_GATEWAY_PASSWORD) — only bell notifications will be delivered.");
         if (!out.weatherConfigured) warns.push("OPENWEATHER_API_KEY isn't set — the weather and flood lines will say unavailable.");
-        if (out.hazards.taalLevel == null) warns.push("No Taal bulletin is on file yet, so that line points people to PHIVOLCS.");
+        if (out.hazards?.taalLevel == null) warns.push("No Taal bulletin is on file yet, so that line points people to PHIVOLCS.");
         warns.push("SMS texts of this length are billed by your carrier as 3–5 segments each.");
         $bc("bcWarn").innerHTML = warns.map((w) => "• " + esc(w)).join("<br>");
         $bc("bcPreview").classList.remove("d-none");
-        $bc("bcSend").disabled = out.recipients === 0;
+        $bc("bcSend").disabled = !out.recipients;
       } catch (err) {
         bcError(err.message);
         $bc("bcRefresh").classList.remove("d-none");

@@ -102,7 +102,13 @@ export default async function handler(req, res) {
       getQuakes(),
       getVolcano(),
     ]);
-    if (!profiles.length) return res.status(200).json({ ok: true, recipients: 0, smsRecipients: 0, smsAccepted: 0, inApp: 0, message: 'No recipients found.' });
+    if (!profiles.length) return res.status(200).json({
+      ok: true, dryRun: !!dryRun, recipients: 0, smsRecipients: 0, residents: 0, admins: 0, smsAccepted: 0, inApp: 0,
+      smsConfigured: !!(process.env.SMS_GATEWAY_LOGIN && process.env.SMS_GATEWAY_PASSWORD),
+      weatherConfigured: !!process.env.OPENWEATHER_API_KEY,
+      sample: '', message: 'No recipients found.',
+      hazards: { activeAlerts: alertRows.length, reviewedIncidents: incidentRows.length, quakes: quake?.count ?? null, taalLevel: volcano?.level ?? null },
+    });
 
     const centers = loadEvacuationCenters();
     const places = loadPlaces();
