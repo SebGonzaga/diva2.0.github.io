@@ -80,6 +80,6 @@ test('buildShortSms stays within 160 characters and has no link', async () => {
     const t = buildShortSms({ now: Date.UTC(2026, 10, 18), ...c });
     assert.ok(t.length <= 160, `too long (${t.length}): ${t}`);
     assert.ok(!t.includes('http'), 'must not include a link (carriers filter them)');
-    assert.ok(t.includes('Open the RAIN app'), 'must point people to the app');
+    assert.ok(t.includes('Check the RAIN website'), 'must point people to the website');
   }
 });
