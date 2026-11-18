@@ -110,20 +110,20 @@ export function buildSmsText({ now = Date.now(), area, weather, flood, volcano, 
  *  and the link is always included. The full update goes to the in-app bell. */
 /** Turn the SMS emojis on or off here. With emojis on, each text is sent as
  *  Unicode and costs more queue slots (roughly 2-3 segments instead of 1). */
-export const SMS_USE_EMOJIS = true;
+export const SMS_USE_EMOJIS = false;
 
 export function buildShortSms({ now = Date.now(), area, weather, flood, volcano, alertCount = 0, center, emojis = SMS_USE_EMOJIS }) {
   const MAX = 160;
   const e = (emoji, text) => (emojis ? `${emoji} ${text}` : text);
-  const head = e('🌧', `RAIN update ${phDate(now)}${area ? ` - ${String(area).split(',')[0].trim()}` : ''}.`);
+  const head = e('🌧', `Hi neighbor! RAIN update ${phDate(now)}${area ? ` - ${String(area).split(',')[0].trim()}` : ''}.`);
   const tail = ` Details: ${SITE_URL}`;
   const sections = [];
   const temp = Number(weather?.tempC);
   const desc = String(weather?.desc || '').toLowerCase();
-  if (Number.isFinite(temp) && temp >= 33) sections.push(e('🥵', 'Hot: bring water.'));
-  if ((Number(weather?.rainMm) > 0) || /rain|drizzle|storm|thunder/.test(desc)) sections.push(e('☔', 'Rain: bring an umbrella.'));
-  if (flood && /high|severe|very/i.test(String(flood.level))) sections.push(e('🌊', `Flood risk ${flood.level}: avoid low roads.`));
-  if (alertCount > 0) sections.push(e('🚨', `${alertCount} active alert${alertCount === 1 ? '' : 's'}.`));
+  if (Number.isFinite(temp) && temp >= 33) sections.push(e('🥵', 'Hot, drink water!'));
+  if ((Number(weather?.rainMm) > 0) || /rain|drizzle|storm|thunder/.test(desc)) sections.push(e('☔', 'Rain today, bring an umbrella!'));
+  if (flood && /high|severe|very/i.test(String(flood.level))) sections.push(e('🌊', `Flood risk ${flood.level}, avoid low roads and stay safe.`));
+  if (alertCount > 0) sections.push(e('🚨', `${alertCount} active alert${alertCount === 1 ? '' : 's'}, please check the site.`));
   if (volcano) sections.push(e('🌋', `Taal Alert Level ${volcano.level}.`));
   if (weather && Number.isFinite(temp)) sections.push(`${Math.round(temp)}C, ${weather.desc}.`);
   if (center) sections.push(e('🏫', `Evac: ${center.name}.`));
