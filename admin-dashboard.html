@@ -106,7 +106,7 @@
           <div id="bcLoading" class="cell-muted"><span class="spinner-border spinner-border-sm"></span> Gathering today's weather, volcano, earthquake, alert and incident data…</div>
           <div id="bcPreview" class="d-none">
             <div class="d-flex flex-wrap gap-2 mb-3" id="bcStats"></div>
-            <label class="form-label">Preview (your own copy — each person gets their own nearest evacuation center)</label>
+            <label class="form-label">Text message preview (each resident gets their own area and tips)</label>
             <pre id="bcSample" style="white-space:pre-wrap; font-size:.8rem; padding:.75rem; border-radius:10px; background:rgba(51,201,209,.08); border:1px solid var(--surface-line,#e2e8f0); max-height:260px; overflow:auto;"></pre>
             <label class="form-label" for="bcNote">Extra note (optional, max 160 characters)</label>
             <input type="text" class="form-control mb-2" id="bcNote" maxlength="160" placeholder="e.g. Classes suspended tomorrow.">
@@ -276,7 +276,7 @@
         if (!out.smsConfigured) warns.push("SMS gateway isn't configured on the server (SMS_GATEWAY_LOGIN / SMS_GATEWAY_PASSWORD) — only bell notifications will be delivered.");
         if (!out.weatherConfigured) warns.push("OPENWEATHER_API_KEY isn't set — the weather and flood lines will say unavailable.");
         if (out.hazards?.taalLevel == null) warns.push("No Taal bulletin is on file yet, so that line points people to PHIVOLCS.");
-        warns.push("SMS texts of this length are billed by your carrier as 3–5 segments each.");
+        warns.push("Emojis are on, so each text may count as 2–3 SMS segments in the gateway queue. The full update also goes to the in-app bell.");
         $bc("bcWarn").innerHTML = warns.map((w) => "• " + esc(w)).join("<br>");
         $bc("bcPreview").classList.remove("d-none");
         $bc("bcSend").disabled = !out.recipients;

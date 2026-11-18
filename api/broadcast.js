@@ -17,7 +17,7 @@ import {
   getAdminId, supabaseSelect, supabaseSelectStrict, supabaseInsert, insertNotifications, sendSms,
   normalizePhone, loadEvacuationCenters, loadPlaces,
 } from './_lib/notify.js';
-import { residentLocation, nearestEvacCenter, floodEstimate, topAlerts, buildSmsText, groupByText } from './_lib/broadcast.js';
+import { residentLocation, nearestEvacCenter, floodEstimate, topAlerts, buildSmsText, buildShortSms, groupByText } from './_lib/broadcast.js';
 
 const OWM = 'https://api.openweathermap.org/data/2.5';
 const USGS = 'https://earthquake.usgs.gov/fdsnws/event/1/query';
@@ -136,7 +136,10 @@ export default async function handler(req, res) {
         incidentsNear, incidentsTotal: incidentRows.length,
         center, note,
       });
-      return { id: p.id, role: p.role, phone: normalizePhone(p.phone), text, center };
+      const smsText = buildShortSms({
+        area: p.barangay, weather: cell.weather, flood: cell.flood, volcano, alertCount: alertRows.length, center,
+      });
+      return { id: p.id, role: p.role, phone: normalizePhone(p.phone), text, smsText, center };
     });
 
     const smsItems = items.filter((i) => i.phone);
@@ -149,7 +152,7 @@ export default async function handler(req, res) {
         residents: items.filter((i) => i.role !== 'admin').length, admins: items.filter((i) => i.role === 'admin').length,
         smsConfigured: !!(process.env.SMS_GATEWAY_LOGIN && process.env.SMS_GATEWAY_PASSWORD),
         weatherConfigured: !!process.env.OPENWEATHER_API_KEY,
-        sample: sample.text,
+        sample: sample.smsText,
         hazards: { activeAlerts: alertRows.length, reviewedIncidents: incidentRows.length, quakes: quake?.count ?? null, taalLevel: volcano?.level ?? null },
       });
     }
@@ -172,7 +175,7 @@ export default async function handler(req, res) {
     const SMS_PAUSE_MS = 2000;
     const SMS_TIME_BUDGET_MS = 45000;
     const smsStart = Date.now();
-    const groups = groupByText(smsItems);
+    const groups = groupByText(smsItems.map((i) => ({ ...i, text: i.smsText })));
     for (let i = 0; i < groups.length; i++) {
       if (Date.now() - smsStart > SMS_TIME_BUDGET_MS) { smsSkippedGroups = groups.length - i; break; }
       smsAccepted += await sendSms(groups[i].members.map((m) => m.phone), groups[i].text);

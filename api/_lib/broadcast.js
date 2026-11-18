@@ -62,10 +62,10 @@ export function dayTips({ weather, flood }) {
   const temp = Number(weather?.tempC);
   const desc = String(weather?.desc || '').toLowerCase();
   const rainy = (Number(weather?.rainMm) > 0) || /rain|drizzle|storm|thunder/.test(desc);
-  if (Number.isFinite(temp) && temp >= 33) tips.push('🥵 It is a hot one today, so bring water, wear a hat, and take breaks in the shade.');
-  else if (Number.isFinite(temp) && temp >= 30) tips.push('💧 Warm day ahead, so keep a water bottle handy.');
-  if (rainy) tips.push('☔ Rain is expected, so bring an umbrella and allow extra travel time.');
-  if (flood && /high|severe|very/i.test(String(flood.level))) tips.push('🌊 Flood risk is up, so avoid low-lying roads and listen for official advisories.');
+  if (Number.isFinite(temp) && temp >= 33) tips.push('It is a hot one today, so bring water, wear a hat, and take breaks in the shade.');
+  else if (Number.isFinite(temp) && temp >= 30) tips.push('Warm day ahead, so keep a water bottle handy.');
+  if (rainy) tips.push('Rain is expected, so bring an umbrella and allow extra travel time.');
+  if (flood && /high|severe|very/i.test(String(flood.level))) tips.push('Flood risk is up, so avoid low-lying roads and listen for official advisories.');
   return tips;
 }
 
@@ -102,6 +102,39 @@ export function buildSmsText({ now = Date.now(), area, weather, flood, volcano, 
   blocks.push(data.join('\n'));
   blocks.push(footer.join('\n'));
   return blocks.join('\n\n');
+}
+
+/** Plain-text SMS, kept to one 160-character segment. Emojis and long text
+ *  make each message split into several segments, and the SMS gateway counts
+ *  every segment against its queue limit. Sections are added in priority order
+ *  and the link is always included. The full update goes to the in-app bell. */
+/** Turn the SMS emojis on or off here. With emojis on, each text is sent as
+ *  Unicode and costs more queue slots (roughly 2-3 segments instead of 1). */
+export const SMS_USE_EMOJIS = true;
+
+export function buildShortSms({ now = Date.now(), area, weather, flood, volcano, alertCount = 0, center, emojis = SMS_USE_EMOJIS }) {
+  const MAX = 160;
+  const e = (emoji, text) => (emojis ? `${emoji} ${text}` : text);
+  const head = e('🌧', `RAIN update ${phDate(now)}${area ? ` - ${String(area).split(',')[0].trim()}` : ''}.`);
+  const tail = ` Details: ${SITE_URL}`;
+  const sections = [];
+  const temp = Number(weather?.tempC);
+  const desc = String(weather?.desc || '').toLowerCase();
+  if (Number.isFinite(temp) && temp >= 33) sections.push(e('🥵', 'Hot: bring water.'));
+  if ((Number(weather?.rainMm) > 0) || /rain|drizzle|storm|thunder/.test(desc)) sections.push(e('☔', 'Rain: bring an umbrella.'));
+  if (flood && /high|severe|very/i.test(String(flood.level))) sections.push(e('🌊', `Flood risk ${flood.level}: avoid low roads.`));
+  if (alertCount > 0) sections.push(e('🚨', `${alertCount} active alert${alertCount === 1 ? '' : 's'}.`));
+  if (volcano) sections.push(e('🌋', `Taal Alert Level ${volcano.level}.`));
+  if (weather && Number.isFinite(temp)) sections.push(`${Math.round(temp)}C, ${weather.desc}.`);
+  if (center) sections.push(e('🏫', `Evac: ${center.name}.`));
+
+  // Add sections in priority order, keeping each one only if the whole text still fits.
+  let body = '';
+  for (const sec of sections) {
+    const candidate = `${head}${body ? ' ' + body : ''} ${sec}${tail}`.replace(/\s+/g, ' ');
+    if (candidate.length <= MAX) body = body ? `${body} ${sec}` : sec;
+  }
+  return `${head}${body ? ' ' + body : ''}${tail}`.replace(/\s+/g, ' ');
 }
 
 /** Groups recipients whose SMS text is identical, so each distinct text is one gateway request. */
