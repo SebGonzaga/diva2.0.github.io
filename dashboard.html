@@ -632,7 +632,10 @@
     }
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => finishInit(pos.coords.latitude, pos.coords.longitude, true),
+        (pos) => {
+          RainOffline.save("userLocation", { lat: pos.coords.latitude, lng: pos.coords.longitude }); // for the offline evacuation map
+          finishInit(pos.coords.latitude, pos.coords.longitude, true);
+        },
         () => finishInit(FALLBACK_LAT, FALLBACK_LNG, false),
         { timeout: 8000 }
       );

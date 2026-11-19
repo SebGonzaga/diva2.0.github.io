@@ -156,6 +156,36 @@
   .tip-time{display:block; font-size:.72rem; color:var(--ink-400); margin-top:2px;}
   .evac-name{font-size:.86rem; font-weight:600;}
   .evac-meta{font-size:.78rem; color:var(--ink-400); margin-top:2px;}
+
+  /* contacts */
+  .contact{border-top:1px solid var(--navy-700); padding:12px 0;}
+  .contact:first-of-type{border-top:none; padding-top:0;}
+  .contact-head{display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:8px;}
+  .contact-nums{display:flex; flex-wrap:wrap; gap:8px;}
+  .contact.national{background:rgba(216,57,74,.12); border:1px solid rgba(216,57,74,.35); border-radius:12px; padding:12px; margin-bottom:10px;}
+  .contact.national .call-btn{background:var(--status-critical); border-color:var(--status-critical); color:#fff; font-size:1rem; padding:10px 18px;}
+  .contact.national .contact-sub{font-size:.76rem; color:#ff8b97; margin:0 0 8px;}
+
+  /* map */
+  .map-wrap{position:relative; border-radius:12px; overflow:hidden; border:1px solid var(--navy-700); background:#0b1b33;}
+  #evacMap{display:block; width:100%; height:320px; touch-action:none; cursor:grab; -webkit-user-select:none; user-select:none;}
+  #evacMap .bnd{fill:rgba(51,201,209,.06); stroke:#3a5a80; stroke-width:1; vector-effect:non-scaling-stroke; fill-rule:evenodd; stroke-linejoin:round;}
+  .map-ctrl{position:absolute; right:8px; top:8px; display:flex; flex-direction:column; gap:6px;}
+  .map-ctrl button{width:36px; height:36px; border-radius:10px; border:1px solid var(--navy-700); background:rgba(10,24,48,.92); color:var(--ink-000); font-size:1.15rem; font-weight:700; cursor:pointer; line-height:1;}
+  .map-ctrl button:active{background:var(--accent-cyan); color:var(--navy-950);}
+  .legend{display:flex; flex-wrap:wrap; gap:14px; font-size:.74rem; color:var(--ink-400); margin:10px 0 4px;}
+  .legend i{display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px; vertical-align:-1px;}
+  .sel-info{margin-top:10px; padding:12px; border-radius:12px; background:var(--navy-800); border:1px solid var(--navy-700); font-size:.84rem; line-height:1.5;}
+  .sel-info b{display:block; font-size:.9rem; margin-bottom:2px;}
+  .sel-info .meta{color:var(--ink-400); font-size:.78rem;}
+  .sel-info a{display:inline-block; margin-top:8px; color:var(--accent-cyan); font-weight:600; font-size:.82rem; text-decoration:none;}
+  .near-item{display:flex; align-items:center; gap:10px; width:100%; text-align:left; background:none; border:none; border-top:1px solid var(--navy-700); padding:10px 0; color:var(--ink-000); font:inherit; cursor:pointer;}
+  .near-item:first-child{border-top:none;}
+  .near-num{flex-shrink:0; width:22px; height:22px; border-radius:50%; background:#f3a73a; color:#1b1202; font-size:.75rem; font-weight:800; display:flex; align-items:center; justify-content:center;}
+  .near-name{font-size:.84rem; font-weight:600;}
+  .near-meta{font-size:.74rem; color:var(--ink-400);}
+  .user-pulse{animation:pulse 2s ease-out infinite; transform-box:fill-box; transform-origin:center;}
+  @keyframes pulse{0%{opacity:.55; transform:scale(.6);}100%{opacity:0; transform:scale(2.2);}}
 </style>
 </head>
 <body>
@@ -183,24 +213,32 @@
     <div id="tipsSlot"></div>
     <div id="recentDataSlot"></div>
 
+    <div class="card" id="mapCard">
+      <h2>Evacuation centers map</h2>
+      <div class="map-wrap">
+        <svg id="evacMap" role="img" aria-label="Map of evacuation centers in Tanauan City"></svg>
+        <div class="map-ctrl">
+          <button type="button" id="zoomIn" aria-label="Zoom in">+</button>
+          <button type="button" id="zoomOut" aria-label="Zoom out">&minus;</button>
+          <button type="button" id="goMe" aria-label="Center on my location and nearest centers" hidden>&#8982;</button>
+          <button type="button" id="goAll" aria-label="Show all evacuation centers" style="font-size:.7rem;">All</button>
+        </div>
+      </div>
+      <div class="legend">
+        <span><i style="background:#33c9d1"></i>Evacuation center</span>
+        <span><i style="background:#f3a73a"></i>Nearest 3</span>
+        <span><i style="background:#4da3ff"></i>You &amp; your barangay</span>
+      </div>
+      <p class="saved-note" id="locNote" style="margin:0 0 4px;"></p>
+      <div id="selInfo"></div>
+      <div id="nearList" style="margin-top:6px;"></div>
+      <p class="saved-note">Works without internet. Drag to move, pinch or use + / &minus; to zoom. Outlines are barangay boundaries &mdash; street maps need a connection.</p>
+    </div>
+
     <div class="card">
       <h2>Emergency hotlines</h2>
-      <div class="contact-row">
-        <div><span class="contact-name">Philippine National Police</span><span class="contact-tag">Police</span></div>
-        <a class="call-btn" href="tel:117">📞 117</a>
-      </div>
-      <div class="contact-row">
-        <div><span class="contact-name">Bureau of Fire Protection</span><span class="contact-tag">Fire</span></div>
-        <a class="call-btn" href="tel:160">📞 160</a>
-      </div>
-      <div class="contact-row">
-        <div><span class="contact-name">Medical Emergency</span><span class="contact-tag">Medical</span></div>
-        <a class="call-btn" href="tel:911">📞 911</a>
-      </div>
-      <div class="contact-row">
-        <div><span class="contact-name">NDRRMC Operations Center</span><span class="contact-tag">Disaster response</span></div>
-        <a class="call-btn" href="tel:0289111406">📞 Call</a>
-      </div>
+      <div id="contactsSlot"></div>
+      <p class="saved-note">Calls and texts work without internet, using mobile signal only.</p>
     </div>
 
     <div class="card">
@@ -384,26 +422,326 @@
       slot.innerHTML = html;
     }
 
+    /*OFFLINE_DATA_START*/
+    var CONTACTS = [{"name":"National Emergency","tag":"Police","numbers":["911"]},{"name":"CDRRMO Tanauan","tag":"CDRRMO","numbers":["0962 347 5073"]},{"name":"BFP Tanauan City","tag":"Fire","numbers":["(043) 702-9678","0922 344 8887"]},{"name":"PNP Tanauan","tag":"Police","numbers":["0939-322-7848","0977-685-6947"]},{"name":"Philippine Red Cross","tag":"Medical","numbers":["0930 358 3051"]},{"name":"Philippine Coast Guard Batangas","tag":"Coast Guard","numbers":["0956-904-6653","0997-912-5851"]},{"name":"Traffic Management Office","tag":"Traffic","numbers":["(043) 778 4829"]}];
+    var CENTERS = [{"name":"Tanauan City Gymnasium / Evacuation Hub (Poblacion)","type":"Evacuation Center","address":"Brgy. Poblacion Barangay 1","lat":14.0865,"lng":121.1518},{"name":"Bañadero Covered Court & Evacuation Center","type":"Evacuation Center","address":"Brgy. Bañadero","lat":14.0861,"lng":121.0711},{"name":"Boot Barangay Gymnasium / Evacuation Center","type":"Evacuation Center","address":"Brgy. Boot","lat":14.0548,"lng":121.0858},{"name":"Balele Multi-Purpose Evacuation Center","type":"Evacuation Center","address":"Brgy. Balele","lat":14.0624,"lng":121.0916},{"name":"Darasa Barangay Covered Court & Evacuation Center","type":"Evacuation Center","address":"Brgy. Darasa","lat":14.0672,"lng":121.1531},{"name":"Altura South Covered Court & Evacuation Center","type":"Evacuation Center","address":"Brgy. Sambat","lat":14.0789,"lng":121.1238},{"name":"Natatas Multi-Purpose Evacuation Center","type":"Evacuation Center","address":"Brgy. Pagaspas","lat":14.0934,"lng":121.1442},{"name":"Janopol Oriental Evacuation Center","type":"Evacuation Center","address":"Brgy. Janopol Oriental","lat":14.0811,"lng":121.0983},{"name":"Trapiche Evacuation & Multi-Purpose Center","type":"Evacuation Center","address":"Brgy. Poblacion Barangay 4","lat":14.0911,"lng":121.1488},{"name":"Ambulong Multi-Purpose Facility","type":"Evacuation Center","address":"Brgy. Janopol","lat":14.0874,"lng":121.0851},{"name":"Tanauan North Central Elementary School","type":"Public Elementary School","address":"Brgy. Poblacion Barangay 1","lat":14.0894,"lng":121.1494},{"name":"Tanauan South Central Elementary School","type":"Public Elementary School","address":"Brgy. Poblacion Barangay 1","lat":14.0867,"lng":121.15},{"name":"Natatas Elementary School","type":"Public Elementary School","address":"Brgy. Natatas","lat":14.082,"lng":121.1196},{"name":"Bañadero Elementary School","type":"Public Elementary School","address":"Brgy. Bañadero","lat":14.0858,"lng":121.0715},{"name":"Boot Elementary School","type":"Public Elementary School","address":"Brgy. Boot","lat":14.0545,"lng":121.0861},{"name":"Balele Elementary School","type":"Public Elementary School","address":"Brgy. Balele","lat":14.062,"lng":121.0912},{"name":"Darasa Elementary School","type":"Public Elementary School","address":"Brgy. Darasa","lat":14.0678,"lng":121.1528},{"name":"Janopol Elementary School","type":"Public Elementary School","address":"Brgy. Janopol Oriental","lat":14.0815,"lng":121.098},{"name":"Trapiche Elementary School","type":"Public Elementary School","address":"Tanauan City, Batangas","lat":14.0915,"lng":121.1485},{"name":"Ambulong Elementary School","type":"Public Elementary School","address":"Brgy. Janopol","lat":14.087,"lng":121.0855},{"name":"Bagumbayan Elementary School","type":"Public Elementary School","address":"Brgy. Poblacion Barangay 3","lat":14.0785,"lng":121.1525},{"name":"Santor Elementary School","type":"Public Elementary School","address":"Brgy. Bagumbayan","lat":14.0715,"lng":121.1242},{"name":"Pantay Elementary School","type":"Public Elementary School","address":"Brgy. Pantay Matanda","lat":14.122,"lng":121.1195},{"name":"Cale Elementary School","type":"Public Elementary School","address":"Brgy. Pantay Matanda","lat":14.1205,"lng":121.1178},{"name":"Tanauan City National High School","type":"Public High School","address":"Brgy. Poblacion Barangay 2","lat":14.0845,"lng":121.1502},{"name":"Tanauan School of Fisheries (Ambulong)","type":"Public High School","address":"Brgy. Talaga","lat":14.088,"lng":121.0842},{"name":"Balele National High School","type":"Public High School","address":"Brgy. Balele","lat":14.0628,"lng":121.092},{"name":"Boot National High School","type":"Public High School","address":"Brgy. Boot","lat":14.055,"lng":121.0852},{"name":"Janopol National High School","type":"Public High School","address":"Brgy. Janopol Oriental","lat":14.0808,"lng":121.0988},{"name":"Natatas National High School","type":"Public High School","address":"Brgy. Pagaspas","lat":14.093,"lng":121.1438},{"name":"First Asia Institute of Technology and Humanities","type":"College / Private School","address":"Brgy. Poblacion Barangay 3","lat":14.0812,"lng":121.1535},{"name":"La Consolacion College Tanauan","type":"College / Private School","address":"Brgy. Poblacion Barangay 1","lat":14.0852,"lng":121.151},{"name":"Tanauan Institute","type":"College / Private School","address":"Brgy. Poblacion Barangay 4","lat":14.087,"lng":121.149},{"name":"Christian College of Tanauan","type":"College / Private School","address":"Brgy. Poblacion Barangay 2","lat":14.0838,"lng":121.152}];
+    var BOUNDS = [{"n":"Altura Bata","s":"Altura Bata","c":[121.0773,14.1272],"r":[[[121.0843,14.1284],[121.0792,14.1224],[121.0692,14.1275],[121.0747,14.1304],[121.0797,14.1306],[121.0843,14.1284]]]},{"n":"Altura Matanda","s":"Altura Matanda","c":[121.0807,14.1341],"r":[[[121.0856,14.1363],[121.0874,14.1329],[121.0875,14.1304],[121.0843,14.1284],[121.0797,14.1306],[121.0747,14.1304],[121.0753,14.1385],[121.0772,14.14],[121.079,14.1402],[121.0856,14.1363]]]},{"n":"Altura South","s":"Altura South","c":[121.0894,14.127],"r":[[[121.0962,14.1326],[121.097,14.1263],[121.0856,14.122],[121.0792,14.1224],[121.0863,14.13],[121.088,14.13],[121.0934,14.1327],[121.0962,14.1326]]]},{"n":"Ambulong","s":"Ambulong","c":[121.0578,14.0909],"r":[[[121.0575,14.0973],[121.0668,14.0905],[121.0614,14.081],[121.0609,14.0828],[121.0596,14.0839],[121.0598,14.0856],[121.0592,14.0865],[121.0571,14.0844],[121.0549,14.0845],[121.0539,14.0855],[121.0543,14.0882],[121.0538,14.089],[121.0498,14.0906],[121.0485,14.0902],[121.0529,14.099],[121.0545,14.0995],[121.0575,14.0973]]]},{"n":"Bañadero","s":"Bañadero","c":[121.0687,14.0837],"r":[[[121.0747,14.0886],[121.0734,14.0866],[121.0772,14.0831],[121.0641,14.0739],[121.0647,14.0767],[121.0622,14.0793],[121.0614,14.081],[121.0668,14.0905],[121.0689,14.0929],[121.0747,14.0886]]]},{"n":"Bagbag","s":"Bagbag","c":[121.0966,14.0472],"r":[[[121.1032,14.0504],[121.1057,14.0486],[121.1072,14.0445],[121.1052,14.0425],[121.1038,14.0418],[121.1034,14.0425],[121.1026,14.0423],[121.1016,14.0429],[121.1011,14.0423],[121.1017,14.0413],[121.1006,14.0405],[121.1008,14.0397],[121.0981,14.038],[121.0984,14.0378],[121.0976,14.0376],[121.0972,14.0384],[121.0951,14.0374],[121.094,14.038],[121.0902,14.0433],[121.0891,14.0463],[121.0885,14.0491],[121.089,14.0543],[121.0931,14.0576],[121.1032,14.0504]]]},{"n":"Bagumbayan","s":"Bagumbayan","c":[121.1335,14.0739],"r":[[[121.1434,14.0811],[121.1442,14.0812],[121.145,14.0795],[121.1404,14.0763],[121.1422,14.0721],[121.1364,14.0682],[121.1269,14.0683],[121.1244,14.07],[121.123,14.0724],[121.1204,14.0717],[121.1194,14.0733],[121.1326,14.0776],[121.1358,14.078],[121.1365,14.0804],[121.142,14.0815],[121.1434,14.0811]]]},{"n":"Balele","s":"Balele","c":[121.0932,14.0668],"r":[[[121.1046,14.0735],[121.107,14.0687],[121.1036,14.0677],[121.089,14.0543],[121.0793,14.0686],[121.0844,14.0708],[121.0872,14.0703],[121.0887,14.0719],[121.0903,14.0719],[121.0929,14.0734],[121.0939,14.0733],[121.0958,14.075],[121.1021,14.0774],[121.1046,14.0735]]]},{"n":"Banjo East","s":"Banjo East","c":[121.1403,14.0583],"r":[[[121.1455,14.0616],[121.1458,14.0578],[121.1469,14.0554],[121.1457,14.0549],[121.1451,14.056],[121.1387,14.0518],[121.1363,14.0529],[121.1355,14.0581],[121.1342,14.0599],[121.1323,14.0613],[121.1453,14.0638],[121.1455,14.0616]]]},{"n":"Banjo Laurel (West)","s":"Banjo Laurel (West)","c":[121.1227,14.0529],"r":[[[121.1342,14.0599],[121.1355,14.0581],[121.1363,14.0529],[121.1221,14.0461],[121.1147,14.046],[121.1131,14.0457],[121.1115,14.0447],[121.1072,14.0445],[121.115,14.0574],[121.1323,14.0613],[121.1342,14.0599]]]},{"n":"Bilog-bilog","s":"Bilog-bilog","c":[121.0829,14.1099],"r":[[[121.0856,14.122],[121.0876,14.1202],[121.0869,14.1191],[121.0879,14.1156],[121.0888,14.1161],[121.0974,14.1053],[121.078,14.0976],[121.0707,14.1109],[121.0717,14.1124],[121.0763,14.1127],[121.0747,14.1193],[121.0792,14.1224],[121.0856,14.122]]]},{"n":"Boot","s":"Boot","c":[121.0809,14.0431],"r":[[[121.0875,14.0566],[121.089,14.0543],[121.0885,14.0491],[121.0902,14.0433],[121.0919,14.0406],[121.0951,14.0374],[121.0917,14.0356],[121.0901,14.0338],[121.0802,14.0313],[121.0757,14.0294],[121.0731,14.0321],[121.0716,14.0358],[121.0737,14.043],[121.0715,14.0463],[121.068,14.0487],[121.0666,14.0519],[121.0831,14.0548],[121.0869,14.0573],[121.0875,14.0566]]]},{"n":"Cale","s":"Cale","c":[121.0975,14.1145],"r":[[[121.0991,14.124],[121.1012,14.1165],[121.1113,14.1054],[121.1046,14.104],[121.0974,14.1053],[121.0888,14.1161],[121.0879,14.1156],[121.0869,14.1191],[121.0876,14.1202],[121.0856,14.122],[121.097,14.1263],[121.0991,14.124]]]},{"n":"Darasa","s":"Darasa","c":[121.1511,14.0681],"r":[[[121.145,14.077],[121.1453,14.0761],[121.1489,14.0765],[121.1502,14.076],[121.1586,14.078],[121.1583,14.0765],[121.159,14.0747],[121.1592,14.0718],[121.1612,14.0701],[121.1605,14.0663],[121.1553,14.0586],[121.1469,14.0554],[121.1458,14.0578],[121.1453,14.0638],[121.1404,14.0763],[121.1444,14.0789],[121.145,14.077]]]},{"n":"Pagaspas","s":"Pagaspas","c":[121.1339,14.1033],"r":[[[121.1344,14.1185],[121.1378,14.1165],[121.1404,14.1136],[121.14,14.1124],[121.1378,14.11],[121.1378,14.109],[121.1353,14.106],[121.1351,14.1038],[121.1358,14.1012],[121.1374,14.1005],[121.1388,14.099],[121.1415,14.0991],[121.1437,14.0949],[121.1461,14.0933],[121.1428,14.0885],[121.1393,14.0908],[121.1364,14.0912],[121.1346,14.0921],[121.1318,14.096],[121.1285,14.0982],[121.125,14.0988],[121.1241,14.1083],[121.1344,14.1185]]]},{"n":"Gonzales","s":"Gonzales","c":[121.0744,14.0728],"r":[[[121.076,14.081],[121.0762,14.0786],[121.0822,14.076],[121.0844,14.0708],[121.0795,14.0687],[121.0776,14.0662],[121.0714,14.0645],[121.0695,14.0686],[121.0667,14.0704],[121.0659,14.0724],[121.0641,14.0739],[121.0772,14.0831],[121.076,14.081]]]},{"n":"Hidalgo","s":"Hidalgo","c":[121.1377,14.066],"r":[[[121.1428,14.0703],[121.1453,14.0638],[121.1323,14.0613],[121.1297,14.0683],[121.1364,14.0682],[121.1422,14.0721],[121.1428,14.0703]]]},{"n":"Janopol","s":"Janopol","c":[121.087,14.08],"r":[[[121.091,14.0866],[121.0948,14.0786],[121.0998,14.0765],[121.0958,14.075],[121.0939,14.0733],[121.0929,14.0734],[121.0903,14.0719],[121.0887,14.0719],[121.0872,14.0703],[121.0862,14.0701],[121.0844,14.0708],[121.0822,14.076],[121.0762,14.0786],[121.076,14.081],[121.0772,14.0831],[121.0923,14.0921],[121.091,14.0866]]]},{"n":"Janopol Oriental","s":"Janopol Oriental","c":[121.0992,14.0852],"r":[[[121.1027,14.0902],[121.1097,14.0803],[121.0998,14.0765],[121.0948,14.0786],[121.091,14.0866],[121.0923,14.0921],[121.0989,14.0956],[121.1027,14.0902]]]},{"n":"Laurel","s":"Laurel","c":[121.1086,14.145],"r":[[[121.1094,14.1518],[121.1104,14.1519],[121.1275,14.1454],[121.1266,14.1444],[121.1239,14.1438],[121.1189,14.1454],[121.1157,14.1446],[121.1144,14.1439],[121.1146,14.1419],[121.114,14.1414],[121.1111,14.1402],[121.1103,14.1405],[121.1094,14.138],[121.1069,14.1375],[121.1055,14.1355],[121.1043,14.1356],[121.1011,14.1395],[121.0979,14.1412],[121.0954,14.1432],[121.1055,14.1532],[121.1094,14.1518]]]},{"n":"Luyos","s":"Luyos","c":[121.0705,14.1213],"r":[[[121.0792,14.1224],[121.0747,14.1193],[121.0763,14.1127],[121.0636,14.1205],[121.0619,14.1235],[121.0692,14.1275],[121.0792,14.1224]]]},{"n":"Mabini","s":"Mabini","c":[121.1056,14.0582],"r":[[[121.1142,14.0635],[121.115,14.0574],[121.1072,14.0445],[121.1057,14.0486],[121.0931,14.0576],[121.1036,14.0677],[121.107,14.0687],[121.1142,14.0635]]]},{"n":"Malaking Pulo","s":"Malaking Pulo","c":[121.0877,14.1399],"r":[[[121.0896,14.1457],[121.091,14.1445],[121.0954,14.1432],[121.0979,14.1412],[121.1011,14.1395],[121.0962,14.1326],[121.0934,14.1327],[121.088,14.13],[121.0875,14.1304],[121.0874,14.1329],[121.0856,14.1363],[121.079,14.1402],[121.0772,14.14],[121.0753,14.1385],[121.0733,14.1462],[121.0879,14.1466],[121.0896,14.1457]]]},{"n":"Maria Paz","s":"Maria Paz","c":[121.0655,14.0367],"r":[[[121.068,14.0487],[121.0715,14.0463],[121.0737,14.043],[121.0716,14.0358],[121.0731,14.0321],[121.0757,14.0294],[121.0588,14.0269],[121.0556,14.0287],[121.0544,14.0301],[121.0542,14.0311],[121.0572,14.0341],[121.0587,14.0376],[121.0624,14.0414],[121.0632,14.0428],[121.0636,14.0469],[121.065,14.0503],[121.0666,14.0519],[121.068,14.0487]]]},{"n":"Maugat","s":"Maugat","c":[121.0664,14.1],"r":[[[121.078,14.0976],[121.072,14.096],[121.0668,14.0905],[121.0545,14.0995],[121.0597,14.1057],[121.072,14.1079],[121.078,14.0976]]]},{"n":"Montaña (Ik-ik)","s":"Montaña","c":[121.0661,14.1297],"r":[[[121.0747,14.1304],[121.0619,14.1235],[121.0636,14.1205],[121.0601,14.1188],[121.0592,14.1254],[121.0582,14.127],[121.0572,14.1304],[121.074,14.1376],[121.0753,14.1385],[121.0747,14.1304]]]},{"n":"Natatas","s":"Natatas","c":[121.1144,14.0767],"r":[[[121.125,14.0839],[121.1248,14.0806],[121.1236,14.0791],[121.124,14.0782],[121.1253,14.0779],[121.1256,14.0754],[121.107,14.0687],[121.1021,14.0774],[121.1097,14.0803],[121.1237,14.0843],[121.125,14.0839]]]},{"n":"Pantay Matanda","s":"Pantay Matanda","c":[121.1185,14.1155],"r":[[[121.1252,14.1255],[121.1293,14.1222],[121.1318,14.1187],[121.1343,14.1185],[121.1335,14.1171],[121.1241,14.1083],[121.1113,14.1054],[121.1012,14.1165],[121.1037,14.1178],[121.1058,14.1151],[121.1112,14.1194],[121.1105,14.1202],[121.1168,14.123],[121.1182,14.125],[121.1252,14.1255]]]},{"n":"Pantay Bata","s":"Pantay Bata","c":[121.1129,14.1266],"r":[[[121.1272,14.1372],[121.1277,14.1355],[121.1258,14.1308],[121.1276,14.1289],[121.1275,14.1271],[121.126,14.1262],[121.1253,14.1264],[121.1252,14.1256],[121.1182,14.125],[121.1168,14.123],[121.1105,14.1202],[121.1112,14.1194],[121.1058,14.1151],[121.1037,14.1178],[121.1012,14.1165],[121.0991,14.124],[121.097,14.1263],[121.1112,14.1312],[121.1244,14.137],[121.1272,14.1372]]]},{"n":"Poblacion Barangay 1","s":"Poblacion 1","c":[121.1512,14.0874],"r":[[[121.149,14.0912],[121.1508,14.0908],[121.1521,14.0874],[121.1537,14.0882],[121.1537,14.0873],[121.1548,14.086],[121.1498,14.0844],[121.149,14.0912]]]},{"n":"Poblacion Barangay 2","s":"Poblacion 2","c":[121.1525,14.084],"r":[[[121.1551,14.086],[121.1559,14.0859],[121.156,14.0853],[121.1539,14.0834],[121.1503,14.0813],[121.1498,14.0844],[121.1551,14.086]]]},{"n":"Poblacion Barangay 3","s":"Poblacion 3","c":[121.1532,14.0797],"r":[[[121.1549,14.0841],[121.1556,14.0831],[121.156,14.0837],[121.1565,14.0835],[121.1567,14.0827],[121.1556,14.0821],[121.1571,14.0818],[121.1569,14.0808],[121.1585,14.0798],[121.1574,14.079],[121.1582,14.0789],[121.1586,14.078],[121.1502,14.076],[121.1489,14.0765],[121.1484,14.0804],[121.1549,14.0841]]]},{"n":"Poblacion Barangay 4","s":"Poblacion 4","c":[121.1477,14.0887],"r":[[[121.1464,14.0932],[121.149,14.0912],[121.1498,14.0844],[121.1479,14.0837],[121.1466,14.0885],[121.1447,14.0906],[121.1464,14.0932]]]},{"n":"Poblacion Barangay 5","s":"Poblacion 5","c":[121.149,14.0824],"r":[[[121.1498,14.0844],[121.1503,14.0813],[121.1484,14.0804],[121.1477,14.0836],[121.1498,14.0844]]]},{"n":"Poblacion Barangay 6","s":"Poblacion 6","c":[121.1451,14.0864],"r":[[[121.1466,14.0885],[121.1479,14.0837],[121.1407,14.0846],[121.1437,14.0859],[121.144,14.0872],[121.1458,14.0873],[121.1453,14.0884],[121.1441,14.0879],[121.1428,14.0885],[121.1447,14.0906],[121.1466,14.0885]]]},{"n":"Poblacion Barangay 7","s":"Poblacion 7","c":[121.1459,14.0804],"r":[[[121.1426,14.0842],[121.1477,14.0836],[121.1489,14.0765],[121.1453,14.0761],[121.1444,14.0789],[121.1449,14.08],[121.1442,14.0812],[121.1434,14.0811],[121.1419,14.084],[121.1407,14.0846],[121.1426,14.0842]]]},{"n":"Sala","s":"Sala","c":[121.1156,14.1016],"r":[[[121.1243,14.106],[121.125,14.0988],[121.1214,14.0996],[121.1204,14.0953],[121.1154,14.0963],[121.1096,14.0954],[121.1072,14.0982],[121.107,14.0999],[121.1049,14.1022],[121.1046,14.104],[121.1241,14.1083],[121.1243,14.106]]]},{"n":"Sambat","s":"Sambat","c":[121.1313,14.0828],"r":[[[121.1278,14.0896],[121.1419,14.084],[121.1434,14.0811],[121.142,14.0815],[121.1365,14.0804],[121.1358,14.078],[121.1326,14.0776],[121.1256,14.0754],[121.1253,14.0779],[121.124,14.0782],[121.1236,14.0791],[121.1248,14.0806],[121.1252,14.0822],[121.125,14.0839],[121.1237,14.0843],[121.1239,14.0866],[121.1248,14.0897],[121.1278,14.0896]]]},{"n":"San Jose","s":"San Jose","c":[121.0658,14.1128],"r":[[[121.0763,14.1127],[121.0717,14.1124],[121.0707,14.1109],[121.072,14.1079],[121.0597,14.1057],[121.0606,14.1134],[121.0601,14.1188],[121.0636,14.1205],[121.0763,14.1127]]]},{"n":"Santol (Doña Jacoba Garcia)","s":"Santol","c":[121.0885,14.1508],"r":[[[121.1022,14.1558],[121.1024,14.1544],[121.1055,14.1532],[121.0954,14.1432],[121.091,14.1445],[121.0879,14.1466],[121.0733,14.1462],[121.0727,14.1546],[121.0951,14.1563],[121.1022,14.1558]]]},{"n":"Santor","s":"Santor","c":[121.1131,14.0893],"r":[[[121.1204,14.0953],[121.1248,14.0897],[121.1237,14.0843],[121.1097,14.0803],[121.0989,14.0956],[121.1096,14.0954],[121.1154,14.0963],[121.1204,14.0953]]]},{"n":"Sulpoc","s":"Sulpoc","c":[121.0592,14.1421],"r":[[[121.046,14.1549],[121.0493,14.1546],[121.0515,14.1533],[121.0525,14.1519],[121.057,14.1502],[121.0642,14.1393],[121.0652,14.1393],[121.0733,14.1462],[121.0753,14.1385],[121.074,14.1376],[121.0572,14.1304],[121.0513,14.1441],[121.0434,14.1539],[121.046,14.1549]]]},{"n":"Suplang","s":"Suplang","c":[121.0647,14.1487],"r":[[[121.0595,14.1535],[121.0727,14.1546],[121.0733,14.1462],[121.0652,14.1393],[121.0642,14.1393],[121.058,14.1491],[121.057,14.1502],[121.0525,14.1519],[121.0515,14.1533],[121.0493,14.1546],[121.0595,14.1535]]]},{"n":"Talaga","s":"Talaga","c":[121.0882,14.0954],"r":[[[121.1046,14.104],[121.1049,14.1022],[121.107,14.0999],[121.1072,14.0982],[121.1096,14.0954],[121.0989,14.0956],[121.0772,14.0831],[121.0734,14.0866],[121.0747,14.0886],[121.0689,14.0929],[121.072,14.096],[121.078,14.0976],[121.0974,14.1053],[121.1046,14.104]]]},{"n":"Tinurik","s":"Tinurik","c":[121.1203,14.0654],"r":[[[121.1204,14.0717],[121.123,14.0724],[121.1256,14.0688],[121.128,14.0681],[121.1297,14.0683],[121.1323,14.0613],[121.115,14.0574],[121.1142,14.0635],[121.107,14.0687],[121.1194,14.0733],[121.1204,14.0717]]]},{"n":"Trapiche","s":"Trapiche","c":[121.1311,14.0919],"r":[[[121.125,14.0988],[121.1283,14.0983],[121.1318,14.096],[121.1346,14.0921],[121.1364,14.0912],[121.1393,14.0908],[121.1441,14.0879],[121.1453,14.0884],[121.1458,14.0873],[121.144,14.0872],[121.1437,14.0859],[121.1407,14.0846],[121.1278,14.0896],[121.1248,14.0897],[121.1204,14.0953],[121.1214,14.0996],[121.125,14.0988]]]},{"n":"Ulango","s":"Ulango","c":[121.1117,14.1363],"r":[[[121.1189,14.1453],[121.1239,14.1438],[121.1266,14.1444],[121.1267,14.143],[121.1275,14.1425],[121.1278,14.1416],[121.1265,14.1397],[121.1269,14.1375],[121.1244,14.137],[121.1112,14.1312],[121.097,14.1263],[121.0962,14.1326],[121.1011,14.1395],[121.1029,14.1369],[121.1043,14.1356],[121.1055,14.1355],[121.1069,14.1375],[121.1096,14.1382],[121.1102,14.1404],[121.1114,14.1403],[121.1146,14.1418],[121.1145,14.1439],[121.1189,14.1453]]]},{"n":"Wawa","s":"Wawa","c":[121.0769,14.0592],"r":[[[121.0812,14.0658],[121.0869,14.0573],[121.0831,14.0548],[121.0666,14.0519],[121.0696,14.0567],[121.0714,14.0645],[121.0776,14.0662],[121.0793,14.0686],[121.0812,14.0658]]]}];
+    /*OFFLINE_DATA_END*/
+
+    function telHref(n) { return "tel:" + String(n).replace(/[^\d+]/g, ""); }
+
+    // ---------------- Contacts (generated from the app's own list) ----------------
+    function renderContacts() {
+      var list = CONTACTS.slice().sort(function (a, b) {
+        return (b.numbers.indexOf("911") !== -1 ? 1 : 0) - (a.numbers.indexOf("911") !== -1 ? 1 : 0);
+      });
+      document.getElementById("contactsSlot").innerHTML = list.map(function (c) {
+        var national = c.numbers.indexOf("911") !== -1;
+        var btns = c.numbers.map(function (n) {
+          return '<a class="call-btn" href="' + telHref(n) + '" aria-label="Call ' + escapeHtml(c.name) + ' at ' + escapeHtml(n) + '">&#128222; ' + escapeHtml(n) + '</a>';
+        }).join("");
+        return '<div class="contact' + (national ? " national" : "") + '">' +
+          '<div class="contact-head"><span class="contact-name">' + escapeHtml(c.name) + '</span><span class="contact-tag">' + escapeHtml(c.tag) + '</span></div>' +
+          (national ? '<p class="contact-sub">Police, fire and medical help, anywhere in the Philippines</p>' : "") +
+          '<div class="contact-nums">' + btns + '</div></div>';
+      }).join("");
+    }
+
+    // ---------------- Offline evacuation map (inline SVG, no tiles/network) ----------------
+    function haversineKm(lat1, lng1, lat2, lng2) {
+      var R = 6371, rad = Math.PI / 180, dLat = (lat2 - lat1) * rad, dLng = (lng2 - lng1) * rad;
+      var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+      return 2 * R * Math.asin(Math.sqrt(a));
+    }
+
+    function initMap() {
+      var svg = document.getElementById("evacMap");
+      var COS = Math.cos(14.09 * Math.PI / 180);
+      function X(lng) { return (lng - 121) * COS * 1000; }   // 1 unit ~ 110 m
+      function Y(lat) { return -(lat - 14) * 1000; }
+
+      // static outline layer, built once. One path per barangay so the one
+      // the user is standing in can be highlighted.
+      function ringsPath(rings) {
+        return rings.map(function (ring) {
+          return "M" + ring.map(function (p) { return X(p[0]).toFixed(2) + " " + Y(p[1]).toFixed(2); }).join("L") + "Z";
+        }).join("");
+      }
+      var bPaths = BOUNDS.map(function (b) { return ringsPath(b.r); });
+      var bSize = BOUNDS.map(function (b) {   // rough area (bbox of the biggest ring) = label priority
+        var best = 0;
+        b.r.forEach(function (r) {
+          var xs = r.map(function (p) { return p[0]; }), ys = r.map(function (p) { return p[1]; });
+          best = Math.max(best, (Math.max.apply(null, xs) - Math.min.apply(null, xs)) * (Math.max.apply(null, ys) - Math.min.apply(null, ys)));
+        });
+        return best;
+      });
+      var bOrder = BOUNDS.map(function (_, i) { return i; }).sort(function (a, b) { return bSize[b] - bSize[a]; });
+      svg.innerHTML = '<path class="bnd" d="' + bPaths.join("") + '"></path><g id="hl"></g><g id="mk"></g><g id="lb"></g>';
+      var hl = svg.querySelector("#hl");
+      var mk = svg.querySelector("#mk"), lb = svg.querySelector("#lb");
+      var userBrgy = -1;          // index into BOUNDS of the barangay the user is in
+
+      var user = null;            // { lat, lng, live, savedAt }
+      var selected = -1;
+      var order = CENTERS.map(function (_, i) { return i; });
+      var dist = CENTERS.map(function () { return null; });
+      var nearest = [];           // indices of the 3 nearest (only with a known location)
+      var view = { x: 0, y: 0, w: 100, h: 100 };
+      var home = null;
+
+      function aspect() { return (svg.clientWidth || 320) / (svg.clientHeight || 320); }
+      function fit(minX, minY, maxX, maxY) {
+        var pad = 0.08, w = (maxX - minX) * (1 + pad * 2), h = (maxY - minY) * (1 + pad * 2), a = aspect();
+        if (w / h < a) w = h * a; else h = w / a;
+        view = { x: (minX + maxX) / 2 - w / 2, y: (minY + maxY) / 2 - h / 2, w: w, h: h };
+      }
+      function bboxOfCenters() {
+        var xs = CENTERS.map(function (c) { return X(c.lng); }), ys = CENTERS.map(function (c) { return Y(c.lat); });
+        return [Math.min.apply(null, xs), Math.min.apply(null, ys), Math.max.apply(null, xs), Math.max.apply(null, ys)];
+      }
+      function showAll() { var b = bboxOfCenters(); fit(b[0], b[1], b[2], b[3]); home = { w: view.w }; render(); }
+      function scale() { return view.w / (svg.clientWidth || 320); }   // units per screen px
+
+      function inRing(x, y, ring) {
+        var inside = false;
+        for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+          var xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
+          if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+        }
+        return inside;
+      }
+      function barangayAt(lat, lng) {
+        for (var i = 0; i < BOUNDS.length; i++) {
+          var n = 0;
+          for (var r = 0; r < BOUNDS[i].r.length; r++) if (inRing(lng, lat, BOUNDS[i].r[r])) n++;
+          if (n % 2 === 1) return i;
+        }
+        return -1;
+      }
+      function short(t, max) { return t.length > max ? t.slice(0, max - 1) + "\u2026" : t; }
+
+      function render() {
+        svg.setAttribute("viewBox", view.x + " " + view.y + " " + view.w + " " + view.h);
+        var k = scale(), out = "", W = svg.clientWidth || 320, H = svg.clientHeight || 320;
+        hl.innerHTML = userBrgy > -1 ? '<path d="' + bPaths[userBrgy] + '" fill="rgba(77,163,255,.16)" stroke="#4da3ff" stroke-width="' + 2.5 * k + '" fill-rule="evenodd" stroke-linejoin="round"/>' : "";
+        function sx(x) { return (x - view.x) / k; }
+        function sy(y) { return (y - view.y) / k; }
+
+        // ---- markers ----
+        CENTERS.forEach(function (c, i) {
+          if (i === selected) return;
+          var top = nearest.indexOf(i);
+          out += '<circle cx="' + X(c.lng) + '" cy="' + Y(c.lat) + '" r="' + (top > -1 ? 8 : 6) * k + '" fill="' + (top > -1 ? "#f3a73a" : "#33c9d1") + '" stroke="#0a1830" stroke-width="' + 1.5 * k + '"/>';
+          if (top > -1) out += '<text x="' + X(c.lng) + '" y="' + (Y(c.lat) + 3.6 * k) + '" font-size="' + 10 * k + '" font-weight="800" text-anchor="middle" fill="#1b1202">' + (top + 1) + '</text>';
+        });
+        if (selected > -1) {
+          var s = CENTERS[selected], sx0 = X(s.lng), sy0 = Y(s.lat);
+          out += '<circle cx="' + sx0 + '" cy="' + sy0 + '" r="' + 15 * k + '" fill="none" stroke="#ffffff" stroke-width="' + 2 * k + '"/>' +
+                 '<circle cx="' + sx0 + '" cy="' + sy0 + '" r="' + 8 * k + '" fill="' + (nearest.indexOf(selected) > -1 ? "#f3a73a" : "#33c9d1") + '" stroke="#0a1830" stroke-width="' + 1.5 * k + '"/>';
+        }
+        if (user) {
+          var ux = X(user.lng), uy = Y(user.lat);
+          out += '<circle class="user-pulse" cx="' + ux + '" cy="' + uy + '" r="' + 12 * k + '" fill="#4da3ff"/>' +
+                 '<circle cx="' + ux + '" cy="' + uy + '" r="' + 6.5 * k + '" fill="#4da3ff" stroke="#ffffff" stroke-width="' + 2.5 * k + '"/>';
+        }
+        mk.innerHTML = out;
+
+        // ---- labels (screen-space collision avoidance, most important first) ----
+        var placed = [], lo = "";
+        CENTERS.forEach(function (c) { var px = sx(X(c.lng)), py = sy(Y(c.lat)); placed.push([px - 10, py - 10, px + 10, py + 10]); });
+        if (user) { var qx = sx(X(user.lng)), qy = sy(Y(user.lat)); placed.push([qx - 12, qy - 12, qx + 12, qy + 12]); }
+        // o.dirs: where to try the label relative to its marker (b)elow, (a)bove,
+        // (r)ight, (l)eft, in that order; o.d: gap in px; o.clamp: slide it back
+        // inside the view; o.force: place it at the first spot even if crowded.
+        function put(px, py, text, size, fill, weight, halo, o) {
+          o = o || {};
+          if (o.clamp && (px < 0 || px > W || py < 0 || py > H)) return false;   // marker not on screen: no stray label
+          var w = text.length * size * 0.56 + 6, h = size + 4, d = o.d || 19, dirs = o.dirs || ["x"], first = null;
+          for (var n = 0; n < dirs.length; n++) {
+            var dx = 0, dy = 0;
+            if (dirs[n] === "b") dy = d; else if (dirs[n] === "a") dy = -d;
+            else if (dirs[n] === "r") dx = w / 2 + d * 0.7; else if (dirs[n] === "l") dx = -(w / 2 + d * 0.7);
+            var cx = px + dx, cy = py + dy;
+            if (o.clamp) cx = Math.max(w / 2 + 3, Math.min(W - w / 2 - 3, cx));
+            var b = [cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2];
+            if (b[2] < 0 || b[0] > W || b[3] < 0 || b[1] > H) continue;
+            if (!first) first = { b: b, cx: cx, cy: cy };
+            var hit = false;
+            for (var i = 0; i < placed.length; i++) { var q = placed[i]; if (b[0] < q[2] && b[2] > q[0] && b[1] < q[3] && b[3] > q[1]) { hit = true; break; } }
+            if (!hit) { emit(b, cx, cy); return true; }
+          }
+          if (o.force && first) { emit(first.b, first.cx, first.cy); return true; }
+          return false;
+          function emit(box, ex, ey) {
+            placed.push(box);
+            lo += '<text x="' + (view.x + ex * k) + '" y="' + (view.y + (ey + size * 0.35) * k) + '" font-size="' + size * k + '" font-weight="' + weight + '" text-anchor="middle" fill="' + fill + '" stroke="' + halo + '" stroke-width="' + 3 * k + '" paint-order="stroke" stroke-linejoin="round">' + escapeHtml(text) + '</text>';
+          }
+        }
+        // 1. selected center and "You" always get a label; nearest 3 try hard
+        if (selected > -1) { var sc = CENTERS[selected]; put(sx(X(sc.lng)), sy(Y(sc.lat)), short(sc.name, 34), 12, "#ffffff", 700, "#060e1c", { dirs: ["a", "b", "r", "l"], d: 26, clamp: true, force: true }); }
+        if (user) put(sx(X(user.lng)), sy(Y(user.lat)), "You", 11, "#bfe0ff", 800, "#060e1c", { dirs: ["b", "a", "r", "l"], d: 21, force: true });
+        nearest.forEach(function (i) { if (i !== selected) { var c = CENTERS[i]; put(sx(X(c.lng)), sy(Y(c.lat)), short(c.name, 26), 10.5, "#ffd9a0", 600, "#060e1c", { dirs: ["b", "a", "r", "l"], d: 19, clamp: true }); } });
+        // 2. every other center, once zoomed in far enough for names to fit
+        if (view.w < home.w * 0.3) CENTERS.forEach(function (c, i) {
+          if (i !== selected && nearest.indexOf(i) < 0) put(sx(X(c.lng)), sy(Y(c.lat)), short(c.name, 24), 10, "#bfeef1", 600, "#060e1c", { dirs: ["b", "a"], d: 17, clamp: true });
+        });
+        // 3. barangay names: the user's own first (always shown), then the rest
+        //    biggest-first, skipped if they'd collide
+        if (userBrgy > -1) put(sx(X(BOUNDS[userBrgy].c[0])), sy(Y(BOUNDS[userBrgy].c[1])), BOUNDS[userBrgy].s, 11, "#9fcdff", 700, "#0b1b33", { force: true });
+        bOrder.forEach(function (i) {
+          if (i === userBrgy) return;
+          var b = BOUNDS[i];
+          put(sx(X(b.c[0])), sy(Y(b.c[1])), b.s, 10, "#7f9cc0", 500, "#0b1b33");
+        });
+        lb.innerHTML = lo;
+      }
+
+      function mapsLink(c) {
+        var ll = c.lat + "," + c.lng, q = encodeURIComponent(c.name);
+        if (/iPad|iPhone|iPod/.test(navigator.userAgent)) return "maps://?q=" + q + "&ll=" + ll;
+        return "geo:" + ll + "?q=" + ll + "(" + q + ")";
+      }
+      function select(i, pan) {
+        selected = i;
+        if (pan && i > -1) {
+          var c = CENTERS[i]; view.x = X(c.lng) - view.w / 2; view.y = Y(c.lat) - view.h / 2;
+        }
+        var box = document.getElementById("selInfo");
+        if (i < 0) { box.innerHTML = ""; render(); return; }
+        var c2 = CENTERS[i];
+        box.innerHTML = '<div class="sel-info"><b>' + escapeHtml(c2.name) + '</b>' +
+          '<div class="meta">' + escapeHtml([c2.type, c2.address].filter(Boolean).join(" \u00b7 ")) + '</div>' +
+          (dist[i] != null ? '<div>' + dist[i].toFixed(1) + ' km from ' + (user && user.live ? "you" : "your last known location") + '</div>' : "") +
+          '<div class="meta">' + c2.lat.toFixed(5) + ', ' + c2.lng.toFixed(5) + '</div>' +
+          '<a href="' + mapsLink(c2) + '">Open in Maps app</a></div>';
+        render();
+      }
+
+      function renderNear() {
+        var el = document.getElementById("nearList");
+        if (!user) { el.innerHTML = ""; return; }
+        el.innerHTML = nearest.map(function (i, n) {
+          var c = CENTERS[i];
+          return '<button type="button" class="near-item" data-i="' + i + '"><span class="near-num">' + (n + 1) + '</span>' +
+            '<span><span class="near-name">' + escapeHtml(c.name) + '</span><br><span class="near-meta">' + dist[i].toFixed(1) + ' km \u00b7 ' + escapeHtml(c.address) + '</span></span></button>';
+        }).join("");
+      }
+      document.getElementById("nearList").addEventListener("click", function (e) {
+        var b = e.target.closest("[data-i]"); if (b) select(Number(b.dataset.i), true);
+      });
+
+      function setUser(lat, lng, live, savedAt) {
+        user = { lat: lat, lng: lng, live: live, savedAt: savedAt };
+        order = CENTERS.map(function (_, i) { return i; });
+        CENTERS.forEach(function (c, i) { dist[i] = haversineKm(lat, lng, c.lat, c.lng); });
+        order.sort(function (a, b) { return dist[a] - dist[b]; });
+        nearest = order.slice(0, 3);
+        var note = document.getElementById("locNote");
+        var far = dist[order[0]] > 40;
+        userBrgy = barangayAt(lat, lng);
+        note.textContent = (live ? "Your location: live GPS." : "Last known location, saved " + timeAgo(savedAt) + ".") +
+          (userBrgy > -1 ? " You are in Brgy. " + BOUNDS[userBrgy].n + "." : "") +
+          (far ? " You appear to be " + dist[order[0]].toFixed(0) + " km from the nearest saved center." : "");
+        // frame the user and their nearest center so "closest" is visible at a glance
+        if (!far) {
+          var pts = [[X(lng), Y(lat)]].concat(nearest.map(function (i) { return [X(CENTERS[i].lng), Y(CENTERS[i].lat)]; }));
+          var xs = pts.map(function (p) { return p[0]; }), ys = pts.map(function (p) { return p[1]; });
+          fit(Math.min.apply(null, xs) - 8, Math.min.apply(null, ys) - 8, Math.max.apply(null, xs) + 8, Math.max.apply(null, ys) + 8);
+        }
+        document.getElementById("goMe").hidden = false;
+        renderNear(); select(selected, false);
+      }
+
+      // ---- interaction: drag, pinch, buttons, tap-to-select ----
+      function zoomAt(f, cx, cy) {
+        var r = svg.getBoundingClientRect(), nw = Math.min(Math.max(view.w * f, 3), home.w * 1.8);
+        f = nw / view.w;
+        var px = view.x + (cx - r.left) * scale(), py = view.y + (cy - r.top) * scale();
+        view = { x: px - (px - view.x) * f, y: py - (py - view.y) * f, w: view.w * f, h: view.h * f };
+        render();
+      }
+      var ptrs = {}, moved = 0, lastDist = 0;
+      function count() { return Object.keys(ptrs).length; }
+      svg.addEventListener("pointerdown", function (e) {
+        try { svg.setPointerCapture(e.pointerId); } catch (_) {}
+        ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+        moved = 0; lastDist = 0;
+      });
+      svg.addEventListener("pointermove", function (e) {
+        var p = ptrs[e.pointerId]; if (!p) return;
+        if (count() === 1) {
+          var dx = e.clientX - p.x, dy = e.clientY - p.y; moved += Math.abs(dx) + Math.abs(dy);
+          view.x -= dx * scale(); view.y -= dy * scale(); render();
+        } else if (count() === 2) {
+          p.x = e.clientX; p.y = e.clientY;
+          var ids = Object.keys(ptrs), a = ptrs[ids[0]], b = ptrs[ids[1]], dd = Math.hypot(a.x - b.x, a.y - b.y);
+          if (lastDist) zoomAt(lastDist / dd, (a.x + b.x) / 2, (a.y + b.y) / 2);
+          lastDist = dd; moved = 99; return;
+        }
+        p.x = e.clientX; p.y = e.clientY;
+      });
+      function endPtr(e) {
+        var wasTap = count() === 1 && moved < 8 && ptrs[e.pointerId];
+        delete ptrs[e.pointerId]; lastDist = 0;
+        if (!wasTap) return;
+        var r = svg.getBoundingClientRect(), best = -1, bd = 26;
+        CENTERS.forEach(function (c, i) {
+          var sx = (X(c.lng) - view.x) / scale(), sy = (Y(c.lat) - view.y) / scale();
+          var dpx = Math.hypot(sx - (e.clientX - r.left), sy - (e.clientY - r.top));
+          if (dpx < bd) { bd = dpx; best = i; }
+        });
+        select(best, false);
+      }
+      svg.addEventListener("pointerup", endPtr);
+      svg.addEventListener("pointercancel", function (e) { delete ptrs[e.pointerId]; lastDist = 0; });
+      svg.addEventListener("wheel", function (e) { e.preventDefault(); zoomAt(e.deltaY > 0 ? 1.2 : 1 / 1.2, e.clientX, e.clientY); }, { passive: false });
+      function btnZoom(f) { var r = svg.getBoundingClientRect(); zoomAt(f, r.left + r.width / 2, r.top + r.height / 2); }
+      document.getElementById("zoomIn").addEventListener("click", function () { btnZoom(1 / 1.6); });
+      document.getElementById("zoomOut").addEventListener("click", function () { btnZoom(1.6); });
+      document.getElementById("goAll").addEventListener("click", function () { select(-1, false); showAll(); });
+      document.getElementById("goMe").addEventListener("click", function () { if (user) setUser(user.lat, user.lng, user.live, user.savedAt); });
+      window.addEventListener("resize", function () { render(); });
+
+      showAll();
+      document.getElementById("locNote").textContent = "Finding your location\u2026";
+
+      // saved fix first (instant), live GPS upgrades it when it arrives
+      var gotLive = false;
+      if (navigator.geolocation) {
+        try {
+          navigator.geolocation.getCurrentPosition(function (pos) {
+            gotLive = true; setUser(pos.coords.latitude, pos.coords.longitude, true, Date.now());
+          }, function () { if (!user) noLocation(); }, { timeout: 6000, maximumAge: 600000 });
+        } catch (e) { noLocation(); }
+      } else { noLocation(); }
+      function noLocation() { if (!user) document.getElementById("locNote").textContent = "Location unavailable \u2014 showing all centers. Turn on location for distances."; }
+
+      return {
+        useSaved: function (snap) {
+          if (gotLive || !snap || !snap.data || typeof snap.data.lat !== "number" || typeof snap.data.lng !== "number") return;
+          setUser(snap.data.lat, snap.data.lng, false, snap.savedAt);
+        }
+      };
+    }
+
+    renderContacts();
+    var evacMap = initMap();
+
     Promise.all([
       nativeGet(PREFIX + "alerts"),
-      nativeGet(PREFIX + "evacuationCenters"),
-      nativeGet(PREFIX + "emergencyContacts"),
-      nativeGet(PREFIX + "taalWeather")
+      nativeGet(PREFIX + "taalWeather"),
+      nativeGet(PREFIX + "userLocation")
     ]).then(function (results) {
-      var alertsSnap = liveOnly(results[0]), evacSnap = results[1], contactsSnap = results[2], weatherSnap = results[3];
+      var alertsSnap = liveOnly(results[0]), weatherSnap = results[1], locSnap = results[2];
 
       renderFriendlyTips(weatherSnap, alertsSnap);
+      evacMap.useSaved(locSnap);
 
       var slot = document.getElementById("recentDataSlot");
       var html = "";
-      var oldestSavedAt = null;
-      function noteAge(snap) {
-        if (!snap) return;
-        oldestSavedAt = oldestSavedAt === null ? snap.savedAt : Math.min(oldestSavedAt, snap.savedAt);
-      }
 
       if (alertsSnap && alertsSnap.data && alertsSnap.data.length) {
-        noteAge(alertsSnap);
         var sorted = alertsSnap.data.slice().sort(function (a, b) {
           return (SEV_RANK[b.severity] || 0) - (SEV_RANK[a.severity] || 0);
         }).slice(0, 3);
@@ -415,20 +753,8 @@
             '<p class="alert-area">' + escapeHtml(a.area || "") + '</p>' +
             '</div>';
         });
-        html += '<p class="saved-note">Saved ' + timeAgo(alertsSnap.savedAt) + ' — may be outdated. Reconnect for live alerts.</p></div>';
+        html += '<p class="saved-note">Saved ' + timeAgo(alertsSnap.savedAt) + ' \u2014 may be outdated. Reconnect for live alerts.</p></div>';
       }
-
-      if (evacSnap && evacSnap.data && evacSnap.data.length) {
-        noteAge(evacSnap);
-        var nearest = evacSnap.data[0]; // pre-sorted by distance when saved
-        html += '<div class="card"><h2>' + (nearest.dist != null ? 'Nearest saved' : 'Saved') + ' evacuation center</h2>' +
-          '<p class="evac-name">' + escapeHtml(nearest.name || "") + '</p>' +
-          '<p class="evac-meta">' + escapeHtml(nearest.address || "") +
-          (nearest.dist != null ? " · " + nearest.dist.toFixed(1) + " km" : "") + '</p>' +
-          '<p class="saved-note">Saved ' + timeAgo(evacSnap.savedAt) + '</p></div>';
-      }
-
-      if (contactsSnap) noteAge(contactsSnap);
 
       slot.innerHTML = html;
     });

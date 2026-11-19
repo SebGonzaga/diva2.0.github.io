@@ -439,6 +439,7 @@
     });
     function setPin(lat, lng, how) {
       userPos = { lat, lng };
+      RainOffline.save("userLocation", { lat, lng }); // lets the offline page place you on its evacuation map
       items.forEach((it) => { it.dist = haversineKm(lat, lng, it.lat, it.lng); });
       if (!userMarker) {
         userMarker = L.marker([lat, lng], { icon: rainPinIcon("user", "bi-person-fill"), draggable: true, title: "You are here (drag to adjust)", zIndexOffset: 900 })
