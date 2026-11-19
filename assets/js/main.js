@@ -396,6 +396,7 @@ const RainEmergencyMode = {
         (pos) => {
           this._userLat = pos.coords.latitude;
           this._userLng = pos.coords.longitude;
+          if (typeof RainOffline !== "undefined") RainOffline.save("userLocation", { lat: this._userLat, lng: this._userLng });
           this._updateNearestShelter(this._userLat, this._userLng);
         },
         () => {}, // keep the fallback silently — no need to alarm the user in an emergency overlay

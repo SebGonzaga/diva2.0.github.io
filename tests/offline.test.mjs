@@ -90,12 +90,37 @@ test("Native Datastore mirror is allowlisted, trimmed, and drops expired alerts"
   assert.ok(sets[0].value.length < 2000);
 });
 
-test("evacuation mirror keeps only the nearest 3 with minimal fields", () => {
+test("only a bare lat/lng is mirrored for userLocation", () => {
   const sets = [];
   const ctx = loadOfflineStore(sets);
-  ctx.__list = Array.from({ length: 50 }, (_, i) => ({ name: `C${i}`, address: "addr", lat: 1, lng: 2, dist: i }));
-  vm.runInContext(`RainOffline.save("evacuationCenters", __list)`, ctx);
-  const { data } = JSON.parse(sets[0].value);
-  assert.equal(data.length, 3);
-  assert.deepEqual(Object.keys(data[0]).sort(), ["address", "dist", "name"]);
+  ctx.__loc = { lat: 14.09, lng: 121.15, accuracy: 12, extra: "x" };
+  vm.runInContext(`RainOffline.save("userLocation", __loc)`, ctx);
+  assert.deepEqual(JSON.parse(sets[0].value).data, { lat: 14.09, lng: 121.15 });
+  vm.runInContext(`RainOffline.save("evacuationCenters", [{name: "x"}])`, ctx);
+  assert.equal(sets.length, 1, "evacuation centers are built into offline.html, not mirrored");
+});
+
+test("offline.html's built-in contacts/centers/outline are in sync with demo-data.js", async () => {
+  const { buildData, renderBlock, START, END } = await import("../scripts/build-offline-page.mjs");
+  const html = read("offline.html");
+  const embedded = html.slice(html.indexOf(START), html.indexOf(END) + END.length);
+  assert.equal(embedded, renderBlock(buildData()), "run: node scripts/build-offline-page.mjs");
+});
+
+test("offline.html has no external resources (it must work with zero network)", () => {
+  const html = read("offline.html");
+  assert.ok(!/(?:src|href)="https?:/i.test(html), "no http(s) src/href allowed");
+  assert.ok(!/url\(\s*['"]?https?:/i.test(html));
+});
+
+test("every barangay has a name, a short label, and a label point inside its own outline", async () => {
+  const { buildData } = await import("../scripts/build-offline-page.mjs");
+  const { bounds } = buildData();
+  assert.equal(bounds.length, 48);
+  const inRing = (x, y, r) => { let o = false; for (let i = 0, j = r.length - 1; i < r.length; j = i++) { const [xi, yi] = r[i], [xj, yj] = r[j]; if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) o = !o; } return o; };
+  for (const b of bounds) {
+    assert.ok(b.n && b.s, "missing name");
+    assert.ok(b.r.some((r) => inRing(b.c[0], b.c[1], r)), `${b.n}: label point falls outside its barangay`);
+  }
+  assert.ok(bounds.some((b) => b.n === "Bañadero"), "uses display names, not boundary-file spellings");
 });

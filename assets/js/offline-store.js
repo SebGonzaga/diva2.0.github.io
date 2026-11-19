@@ -46,8 +46,9 @@ const RainOffline = (() => {
    *  Only these keys are mirrored to the Native Datastore, each trimmed to
    *  the fields that page reads. Reason: iOS caps App Storage
    *  (UserDefaults) at ~500 KB in total, and the full lists — every
-   *  alert's message body, every evacuation center, the raw quake feed —
-   *  aren't needed there. Expired alerts are dropped so the offline page
+   *  alert's message body, the raw quake feed — aren't needed there. (The
+   *  evacuation centers and hotlines are built into offline.html itself;
+   *  see scripts/build-offline-page.mjs.) Expired alerts are dropped so the offline page
    *  doesn't lead with something that's already over. */
   const NATIVE_MIRROR = {
     alerts(list) {
@@ -59,8 +60,10 @@ const RainOffline = (() => {
         .slice(0, 5)
         .map((a) => ({ severity: a.severity, title: a.title, area: a.area, type: a.type, expires_at: a.expires_at || null }));
     },
-    evacuationCenters(list) {
-      return (list || []).slice(0, 3).map((c) => ({ name: c.name, address: c.address, dist: c.dist != null ? c.dist : null }));
+    // Last known GPS fix, so offline.html can place "you" on its built-in
+    // evacuation map and rank the nearest centers. Stays on this device.
+    userLocation(loc) {
+      return loc && Number.isFinite(loc.lat) && Number.isFinite(loc.lng) ? { lat: loc.lat, lng: loc.lng } : null;
     },
     taalWeather(w) {
       return w ? { condition: w.condition, tempC: w.tempC, windKmh: w.windKmh } : null;
