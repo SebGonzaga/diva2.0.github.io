@@ -30,27 +30,55 @@ const RainOffline = (() => {
    *  silently presented as current. Safe to call every time a fetch
    *  succeeds — last write wins. */
   function save(key, data) {
-    const payload = JSON.stringify({ data, savedAt: Date.now() });
+    const savedAt = Date.now();
     try {
-      localStorage.setItem(PREFIX + key, payload);
+      localStorage.setItem(PREFIX + key, JSON.stringify({ data, savedAt }));
     } catch (e) {
       return false; // storage full/unavailable — non-fatal, just means no offline fallback for this key
     }
-    mirrorToNativeStorage(PREFIX + key, payload);
+    mirrorToNativeStorage(key, data, savedAt);
     return true;
   }
 
-  /** Also write the snapshot to Median's Native Datastore (App Storage),
-   *  when running inside the Median-built app. Unlike localStorage, this
-   *  storage isn't tied to this page's origin, so the standalone custom
-   *  offline.html page (a separate local file bundled into the app) can
-   *  read it back and show real recent alerts instead of static text.
-   *  No-op everywhere else (regular browser, Median plugin not enabled). */
-  function mirrorToNativeStorage(key, payload) {
+  const SEV_RANK = { critical: 3, warning: 2, advisory: 1, information: 0 };
+
+  /** What the bundled Median offline page (offline.html) actually renders.
+   *  Only these keys are mirrored to the Native Datastore, each trimmed to
+   *  the fields that page reads. Reason: iOS caps App Storage
+   *  (UserDefaults) at ~500 KB in total, and the full lists — every
+   *  alert's message body, every evacuation center, the raw quake feed —
+   *  aren't needed there. Expired alerts are dropped so the offline page
+   *  doesn't lead with something that's already over. */
+  const NATIVE_MIRROR = {
+    alerts(list) {
+      const now = Date.now();
+      return (list || [])
+        .filter((a) => !a.expires_at || Date.parse(a.expires_at) > now)
+        .sort((a, b) => (SEV_RANK[b.severity] || 0) - (SEV_RANK[a.severity] || 0)
+          || Date.parse(b.created_at || 0) - Date.parse(a.created_at || 0))
+        .slice(0, 5)
+        .map((a) => ({ severity: a.severity, title: a.title, area: a.area, type: a.type, expires_at: a.expires_at || null }));
+    },
+    evacuationCenters(list) {
+      return (list || []).slice(0, 3).map((c) => ({ name: c.name, address: c.address, dist: c.dist != null ? c.dist : null }));
+    },
+    taalWeather(w) {
+      return w ? { condition: w.condition, tempC: w.tempC, windKmh: w.windKmh } : null;
+    },
+  };
+
+  /** Also write the trimmed snapshot to Median's Native Datastore (App
+   *  Storage), when running inside the Median-built app. Unlike
+   *  localStorage, this storage isn't tied to this page's origin, so the
+   *  standalone custom offline.html (a separate local file bundled into the
+   *  app) can read it back. No-op everywhere else. */
+  function mirrorToNativeStorage(key, data, savedAt) {
+    const slim = NATIVE_MIRROR[key];
+    if (!slim) return;
     try {
       if (typeof median !== "undefined" && median.storage && median.storage.app &&
           typeof median.storage.app.set === "function") {
-        median.storage.app.set({ key, value: payload });
+        median.storage.app.set({ key: PREFIX + key, value: JSON.stringify({ data: slim(data), savedAt }) });
       }
     } catch (e) {
       // Native Datastore plugin not enabled, or bridge unavailable — fine, localStorage still has it.
@@ -110,8 +138,7 @@ const RainOffline = (() => {
    *  actually matters, same ranking used across the app. */
   function mostUrgentAlert(alerts) {
     if (!alerts || !alerts.length) return null;
-    const rank = { critical: 3, warning: 2, advisory: 1, information: 0 };
-    return [...alerts].sort((a, b) => (rank[b.severity] || 0) - (rank[a.severity] || 0))[0];
+    return [...alerts].sort((a, b) => (SEV_RANK[b.severity] || 0) - (SEV_RANK[a.severity] || 0))[0];
   }
 
   /** Builds the offline reminder shown in the shell banner + the toast
@@ -148,7 +175,8 @@ const RainOffline = (() => {
       noteAge(evacSnap);
       const nearest = evacSnap.data[0]; // pages save this list pre-sorted by distance
       if (nearest) {
-        parts.push(`Nearest saved evacuation center: ${nearest.name}${nearest.dist != null ? ` (${nearest.dist.toFixed(1)} km)` : ""}.`);
+        // Only "nearest" when the list was actually sorted by distance (needs a known location)
+        parts.push(`${nearest.dist != null ? "Nearest saved" : "Saved"} evacuation center: ${nearest.name}${nearest.dist != null ? ` (${nearest.dist.toFixed(1)} km)` : ""}.`);
       }
     }
 

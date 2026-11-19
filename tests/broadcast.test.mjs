@@ -69,7 +69,7 @@ test('server can load the browser data files (evac centers + places)', () => {
   assert.ok(loadPlaces().some((p) => /Tanauan/.test(p.name)));
 });
 
-test('buildShortSms stays within 160 characters and has no link', async () => {
+test('buildShortSms stays within 160 characters and keeps the link', async () => {
   const { buildShortSms, SITE_URL } = await import('../api/_lib/broadcast.js');
   const cases = [
     { area: 'Tanauan City, Batangas', weather: { desc: 'light rain', tempC: 34, rainMm: 2 }, flood: { level: 'High', mm: 45 }, volcano: { level: 1 }, alertCount: 2, center: { name: 'Darasa Court Evacuation Center' } },
@@ -79,7 +79,6 @@ test('buildShortSms stays within 160 characters and has no link', async () => {
   for (const c of cases) {
     const t = buildShortSms({ now: Date.UTC(2026, 10, 18), ...c });
     assert.ok(t.length <= 160, `too long (${t.length}): ${t}`);
-    assert.ok(!t.includes('http'), 'must not include a link (carriers filter them)');
-    assert.ok(t.includes('Check the RAIN website'), 'must point people to the website');
+    assert.ok(t.includes(SITE_URL), 'must include the website link');
   }
 });
