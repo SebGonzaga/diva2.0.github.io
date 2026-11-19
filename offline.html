@@ -248,23 +248,55 @@
       return day + " day" + (day === 1 ? "" : "s") + " ago";
     }
 
+    // Median injects its JS bridge AFTER this page starts running, so
+    // median.storage may not exist yet. Median calls median_library_ready()
+    // once it's up; we also poll briefly in case it beat us to it, and give
+    // up after ~1.5 s (plain browser, or the Native Datastore plugin is off).
+    var bridgeReady = new Promise(function (resolve) {
+      var done = false;
+      function finish() { if (!done) { done = true; resolve(); } }
+      function hasStorage() { return !!(window.median && median.storage && median.storage.app && typeof median.storage.app.get === "function"); }
+      var prev = window.median_library_ready;
+      window.median_library_ready = function () {
+        if (typeof prev === "function") { try { prev(); } catch (e) {} }
+        finish();
+      };
+      var waited = 0;
+      (function poll() {
+        if (hasStorage() || waited >= 1500) { finish(); return; }
+        waited += 100; setTimeout(poll, 100);
+      })();
+    });
+
+    function parseSnap(raw) {
+      try {
+        var p = typeof raw === "string" ? JSON.parse(raw) : raw;
+        return p && typeof p.savedAt === "number" ? p : null;
+      } catch (e) { return null; }
+    }
+
+    // Same-origin fallback: when the service worker serves this page from
+    // the site's own origin (Android), localStorage has the snapshots too.
+    function localGet(key) {
+      try { return parseSnap(localStorage.getItem(key)); } catch (e) { return null; }
+    }
+
     function nativeGet(key) {
-      return new Promise(function (resolve) {
-        if (!(window.median && median.storage && median.storage.app && typeof median.storage.app.get === "function")) {
-          resolve(null);
-          return;
-        }
-        try {
-          median.storage.app.get({
-            key: key,
-            callback: function (result) {
-              if (result && result.data) {
-                try { resolve(JSON.parse(result.data)); return; } catch (e) {}
-              }
-              resolve(null);
-            }
-          });
-        } catch (e) { resolve(null); }
+      return bridgeReady.then(function () {
+        return new Promise(function (resolve) {
+          if (!(window.median && median.storage && median.storage.app && typeof median.storage.app.get === "function")) {
+            resolve(localGet(key)); return;
+          }
+          var settled = false;
+          function settle(v) { if (!settled) { settled = true; resolve(v || localGet(key)); } }
+          setTimeout(function () { settle(null); }, 1500); // callback never fired
+          try {
+            median.storage.app.get({
+              key: key,
+              callback: function (result) { settle(result && result.data ? parseSnap(result.data) : null); }
+            });
+          } catch (e) { settle(null); }
+        });
       });
     }
 
@@ -279,6 +311,12 @@
      *  drink water" — instead of making the resident interpret numbers
      *  themselves. Every tip is honestly timestamped since this is only
      *  ever as fresh as the last time the app was online. */
+    function liveOnly(snap) {
+      if (!snap || !snap.data) return snap;
+      var now = Date.now();
+      return { savedAt: snap.savedAt, data: snap.data.filter(function (a) { return !a.expires_at || Date.parse(a.expires_at) > now; }) };
+    }
+
     function renderFriendlyTips(weatherSnap, alertsSnap) {
       var tips = [];
 
@@ -352,7 +390,7 @@
       nativeGet(PREFIX + "emergencyContacts"),
       nativeGet(PREFIX + "taalWeather")
     ]).then(function (results) {
-      var alertsSnap = results[0], evacSnap = results[1], contactsSnap = results[2], weatherSnap = results[3];
+      var alertsSnap = liveOnly(results[0]), evacSnap = results[1], contactsSnap = results[2], weatherSnap = results[3];
 
       renderFriendlyTips(weatherSnap, alertsSnap);
 
@@ -383,7 +421,7 @@
       if (evacSnap && evacSnap.data && evacSnap.data.length) {
         noteAge(evacSnap);
         var nearest = evacSnap.data[0]; // pre-sorted by distance when saved
-        html += '<div class="card"><h2>Nearest saved evacuation center</h2>' +
+        html += '<div class="card"><h2>' + (nearest.dist != null ? 'Nearest saved' : 'Saved') + ' evacuation center</h2>' +
           '<p class="evac-name">' + escapeHtml(nearest.name || "") + '</p>' +
           '<p class="evac-meta">' + escapeHtml(nearest.address || "") +
           (nearest.dist != null ? " · " + nearest.dist.toFixed(1) + " km" : "") + '</p>' +

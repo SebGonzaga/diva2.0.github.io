@@ -276,7 +276,7 @@
         if (!out.smsConfigured) warns.push("SMS gateway isn't configured on the server (SMS_GATEWAY_LOGIN / SMS_GATEWAY_PASSWORD) — only bell notifications will be delivered.");
         if (!out.weatherConfigured) warns.push("OPENWEATHER_API_KEY isn't set — the weather and flood lines will say unavailable.");
         if (out.hazards?.taalLevel == null) warns.push("No Taal bulletin is on file yet, so that line points people to PHIVOLCS.");
-        warns.push("Emojis are on, so each text may count as up to 2 SMS segments in the gateway queue. The full update also goes to the in-app bell.");
+        warns.push("Emojis are on, so each text may count as 2–3 SMS segments in the gateway queue. The full update also goes to the in-app bell.");
         $bc("bcWarn").innerHTML = warns.map((w) => "• " + esc(w)).join("<br>");
         $bc("bcPreview").classList.remove("d-none");
         $bc("bcSend").disabled = !out.recipients;

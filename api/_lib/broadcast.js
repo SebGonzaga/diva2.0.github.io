@@ -108,47 +108,25 @@ export function buildSmsText({ now = Date.now(), area, weather, flood, volcano, 
  *  make each message split into several segments, and the SMS gateway counts
  *  every segment against its queue limit. Sections are added in priority order
  *  and the link is always included. The full update goes to the in-app bell. */
-/** Friendly wording variants. Each resident's pick is chosen from their area and the
- *  date, so the wording changes day to day but stays the same for everyone in an area. */
-const SMS_WORDING = {
-  greet: ['Hi neighbor!', 'Hello neighbor!', 'Good day, neighbor!', 'Hi friend!', 'Kumusta, neighbor!'],
-  hot: ['Hot, drink water!', 'Stay cool, sip water!', 'Hot one, drink water often!'],
-  rain: ['Rain today, bring an umbrella!', 'Wet day ahead, grab an umbrella!', 'Rain coming, bring an umbrella!'],
-  calm: ['Have a safe and happy day!', 'Wishing you a great day!', 'Have a blessed day, stay safe!'],
-};
-
-function pickWording(list, seed) {
-  let h = 0;
-  for (const ch of String(seed)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  return list[h % list.length];
-}
-
 /** Turn the SMS emojis on or off here. With emojis on, each text is sent as
  *  Unicode and costs more queue slots (roughly 2-3 segments instead of 1). */
-export const SMS_USE_EMOJIS = true;
+export const SMS_USE_EMOJIS = false;
 
 export function buildShortSms({ now = Date.now(), area, weather, flood, volcano, alertCount = 0, center, emojis = SMS_USE_EMOJIS }) {
-  // Plain text fits 160 characters in one segment. Emoji text is Unicode, which fits
-  // only 70 characters per segment, so cap it at 2 segments (134 characters).
-  const MAX = emojis ? 134 : 160;
+  const MAX = 160;
   const e = (emoji, text) => (emojis ? `${emoji} ${text}` : text);
-  const seed = `${area || ''}|${phDate(now)}`;
-  const head = e('👋', `${pickWording(SMS_WORDING.greet, seed)} RAIN update ${phDate(now)}${area ? ` - ${String(area).split(',')[0].trim()}` : ''}.`);
-  // No link in the text: carriers filter texts with web addresses, so the daily update
-  // points people to the website by name instead. The full details are in the bell notification.
-  const tail = ' Check the RAIN website for details.';
+  const head = e('🌧', `Hi neighbor! RAIN update ${phDate(now)}${area ? ` - ${String(area).split(',')[0].trim()}` : ''}.`);
+  const tail = ` Details: ${SITE_URL}`;
   const sections = [];
   const temp = Number(weather?.tempC);
   const desc = String(weather?.desc || '').toLowerCase();
-  if (Number.isFinite(temp) && temp >= 33) sections.push(e('🥵', pickWording(SMS_WORDING.hot, seed)));
-  if ((Number(weather?.rainMm) > 0) || /rain|drizzle|storm|thunder/.test(desc)) sections.push(e('☔', pickWording(SMS_WORDING.rain, seed)));
+  if (Number.isFinite(temp) && temp >= 33) sections.push(e('🥵', 'Hot, drink water!'));
+  if ((Number(weather?.rainMm) > 0) || /rain|drizzle|storm|thunder/.test(desc)) sections.push(e('☔', 'Rain today, bring an umbrella!'));
   if (flood && /high|severe|very/i.test(String(flood.level))) sections.push(e('🌊', `Flood risk ${flood.level}, avoid low roads and stay safe.`));
   if (alertCount > 0) sections.push(e('🚨', `${alertCount} active alert${alertCount === 1 ? '' : 's'}, please check the site.`));
   if (volcano) sections.push(e('🌋', `Taal Alert Level ${volcano.level}.`));
   if (weather && Number.isFinite(temp)) sections.push(`${Math.round(temp)}C, ${weather.desc}.`);
   if (center) sections.push(e('🏫', `Evac: ${center.name}.`));
-  // Every text gets a friendly line, even on a cloudy or calm day.
-  if (!sections.some((x) => /bring|drink|hot|umbrella|flood/i.test(x))) sections.unshift(e('⛅', pickWording(SMS_WORDING.calm, seed)));
 
   // Add sections in priority order, keeping each one only if the whole text still fits.
   let body = '';
