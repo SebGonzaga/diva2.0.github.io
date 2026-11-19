@@ -123,7 +123,7 @@ export function buildShortSms({ now = Date.now(), area, weather, flood, volcano,
   if (Number.isFinite(temp) && temp >= 33) sections.push(e('🥵', 'Hot, drink water!'));
   if ((Number(weather?.rainMm) > 0) || /rain|drizzle|storm|thunder/.test(desc)) sections.push(e('☔', 'Rain today, bring an umbrella!'));
   if (flood && /high|severe|very/i.test(String(flood.level))) sections.push(e('🌊', `Flood risk ${flood.level}, avoid low roads and stay safe.`));
-  if (alertCount > 0) sections.push(e('🚨', `${alertCount} active alert${alertCount === 1 ? '' : 's'}, please check the site.`));
+  if (alertCount > 0) sections.push(e('🚨', `${alertCount} active alert${alertCount === 1 ? '' : 's'}, please check the website.`));
   if (volcano) sections.push(e('🌋', `Taal Alert Level ${volcano.level}.`));
   if (weather && Number.isFinite(temp)) sections.push(`${Math.round(temp)}C, ${weather.desc}.`);
   if (center) sections.push(e('🏫', `Evac: ${center.name}.`));
