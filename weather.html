@@ -249,23 +249,27 @@
 
   // Loads one image and checks it is a real picture (not a blank / missing tile).
   function probeUrl(url) {
-    return new Promise((resolve) => {
-      const img = new Image(); img.crossOrigin = "anonymous";
+    // Try with CORS first (lets us check the pixels are real). If the server sends no CORS headers the
+    // browser refuses the image outright, so retry as a plain image and just trust that it loaded.
+    const attempt = (cors) => new Promise((resolve) => {
+      const img = new Image(); if (cors) img.crossOrigin = "anonymous";
       let to = null;
       const done = (ok) => { clearTimeout(to); img.onload = img.onerror = null; resolve(ok); };
       to = setTimeout(() => done(false), 8000);
       img.onerror = () => done(false);
       img.onload = () => {
+        if (!cors) return done(img.naturalWidth > 0);
         try {
           const c = document.createElement("canvas"); c.width = c.height = 32;
           const g = c.getContext("2d"); g.drawImage(img, 0, 0, 32, 32);
           const d = g.getImageData(0, 0, 32, 32).data; let lo = 255, hi = 0, vis = 0;
           for (let i = 0; i < d.length; i += 4) { if (d[i + 3] > 0) vis++; lo = Math.min(lo, d[i]); hi = Math.max(hi, d[i]); }
           done(vis > 20 && hi - lo > 8);
-        } catch (e) { done(img.naturalWidth > 0); }   // tile loaded but pixels not readable (no CORS) -> trust the load
+        } catch (e) { done(img.naturalWidth > 0); }
       };
       img.src = url;
     });
+    return attempt(true).then((ok) => ok || attempt(false));
   }
   // Test tile over the Philippines: z3 / x6 / y3.
 
@@ -366,7 +370,7 @@
         errs.fill(0); loads.fill(0);
         probing = false; noImagery = false; srcName = src.name; times = src.times;
         layers = times.map((t, i) => {
-          const l = L.tileLayer(src.url(i), { subdomains: src.subdomains, noWrap: true, opacity: 0, maxNativeZoom: src.native, maxZoom: 12, updateWhenIdle: true, keepBuffer: 1, crossOrigin: true });
+          const l = L.tileLayer(src.url(i), { subdomains: src.subdomains, noWrap: true, opacity: 0, maxNativeZoom: src.native, maxZoom: 12, updateWhenIdle: true, keepBuffer: 1 });
           l.on("tileload", () => { loads[i]++; status(); });
           l.on("tileerror", (e) => { errs[i]++; if (errs[i] === 1) console.warn("Satellite tile error", e.tile && e.tile.src); status(); });
           return l;
