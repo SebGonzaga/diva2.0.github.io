@@ -95,7 +95,7 @@ export function buildSmsText({ now = Date.now(), area, weather, flood, volcano, 
   if (center) data.push(`🏫 Nearest evac: ${center.name} (${center.km < 10 ? center.km.toFixed(1) : Math.round(center.km)}km)\n${directionsUrl(center)}`);
   if (note) data.push(`📝 Note: ${String(note).trim().slice(0, 160)}`);
 
-  const footer = [`💛 Stay safe, neighbor! Check the web for details:\n${SITE_URL}`];
+  const footer = [`💛 Stay safe, neighbor!`];
 
   const blocks = [intro.join('\n')];
   if (tips.length) blocks.push(tips.join('\n'));
@@ -107,7 +107,7 @@ export function buildSmsText({ now = Date.now(), area, weather, flood, volcano, 
 /** Plain-text SMS, kept to one 160-character segment. Emojis and long text
  *  make each message split into several segments, and the SMS gateway counts
  *  every segment against its queue limit. Sections are added in priority order
- *  and the link is always included. The full update goes to the in-app bell. */
+ *  and no link is included. The full update goes to the in-app bell. */
 /** Turn the SMS emojis on or off here. With emojis on, each text is sent as
  *  Unicode and costs more queue slots (roughly 2-3 segments instead of 1). */
 export const SMS_USE_EMOJIS = false;
@@ -116,7 +116,7 @@ export function buildShortSms({ now = Date.now(), area, weather, flood, volcano,
   const MAX = 160;
   const e = (emoji, text) => (emojis ? `${emoji} ${text}` : text);
   const head = e('🌧', `Hi neighbor! RAIN update ${phDate(now)}${area ? ` - ${String(area).split(',')[0].trim()}` : ''}.`);
-  const tail = ` Details: ${SITE_URL}`;
+  const tail = '';
   const sections = [];
   const temp = Number(weather?.tempC);
   const desc = String(weather?.desc || '').toLowerCase();
